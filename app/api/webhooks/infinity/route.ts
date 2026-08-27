@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByInfinityOrderId, updateOrderStatus } from "@/lib/repo";
 import { verifyWebhookSignature } from "@/lib/infinityPayments";
@@ -15,6 +16,23 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-infinity-signature");
 
   if (!verifyWebhookSignature(rawBody, signature)) {
+    // TEMPORAL (sacar apenas se confirme el problema): un webhook real llegó
+    // pagado de verdad (PAY-1787776767595ae0e50f8, Bs 1.01) pero el pedido
+    // nunca se marcó 'pagado' — sospecha es que esta verificación de firma
+    // está rechazando en silencio (responde 401, pero eso puede figurar como
+    // "entregado" del lado de Infinity si solo miran que hubo respuesta).
+    // Esto no expone el secreto: un HMAC es de un solo sentido, ver el
+    // resultado no permite reconstruir INFINITY_WEBHOOK_SECRET.
+    const secret = process.env.INFINITY_WEBHOOK_SECRET;
+    const expected = secret
+      ? "sha256=" + crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
+      : "(falta INFINITY_WEBHOOK_SECRET)";
+    console.error("Webhook de Infinity: firma inválida", {
+      headerRecibido: signature,
+      firmaEsperada: expected,
+      largoBody: rawBody.length,
+      todosLosHeaders: Object.fromEntries(req.headers.entries()),
+    });
     return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
   }
 
