@@ -113,9 +113,6 @@ export async function POST(
       qrImage: string | null;
       amountCharged: number;
       commissionAmount: number;
-      _debugCallback?: string;
-      _debugPublicAppUrlEnv?: string | null;
-      _debugOrigin?: string;
     } | null = null;
 
     if (paymentMethod === "qr" && isInfinityConfigured()) {
@@ -135,11 +132,6 @@ export async function POST(
           qrImage: normalizeQrImage(result.qrImageBase64),
           amountCharged: totalToCharge,
           commissionAmount,
-          // TEMPORAL: sacar apenas se confirme por qué algunos pedidos
-          // mandaron localhost:3000 como callback en vez del dominio real.
-          _debugCallback: callback,
-          _debugPublicAppUrlEnv: process.env.PUBLIC_APP_URL ?? null,
-          _debugOrigin: req.nextUrl.origin,
         };
       } catch (err) {
         console.error(`No se pudo crear el pago de Infinity para el pedido ${order.id}:`, err);
