@@ -803,8 +803,9 @@ export type Payout = {
   grossAmount: number;
   commissionAmount: number;
   netAmount: number;
-  status: string;
+  status: "solicitado" | "pagado" | string;
   reference: string | null;
+  receiptImageUrl: string | null;
   paidAt: string | null;
   createdAt: string;
 };
@@ -831,7 +832,8 @@ export async function getPendingBalance(storeId: string): Promise<{
   return row;
 }
 
-export type StorePendingPayout = {
+export type PendingPayoutRequest = {
+  id: string; // id del payout (status 'solicitado'), no de la tienda
   storeId: string;
   storeName: string;
   storeSlug: string;
@@ -839,37 +841,43 @@ export type StorePendingPayout = {
   bankAccountNumber: string | null;
   bankAccountHolder: string | null;
   bankAccountType: string | null;
+  paymentQrImageUrl: string | null;
   netAmount: number;
   orderCount: number;
+  createdAt: string;
 };
 
-// Para el panel de /plataforma: qué tiendas tienen plata esperando
-// liquidación, con sus datos bancarios a mano para hacer la transferencia.
-export async function listStoresPendingPayouts(): Promise<StorePendingPayout[]> {
+// Para el panel de /plataforma: liquidaciones que un vendedor YA pidió
+// (ver requestPayout) y siguen esperando que el admin las pague — ya no es
+// "toda tienda con saldo", es puntualmente lo que el vendedor agendó. El QR
+// de pago de la tienda viaja acá para que el admin pueda pagarle
+// escaneándolo directo, sin tener que copiar el número de cuenta a mano.
+export async function listPendingPayoutRequests(): Promise<PendingPayoutRequest[]> {
   await dbReady;
-  return sql<StorePendingPayout[]>`
+  return sql<PendingPayoutRequest[]>`
     SELECT
-      s.id AS store_id, s.name AS store_name, s.slug AS store_slug,
+      p.id, s.id AS store_id, s.name AS store_name, s.slug AS store_slug,
       s.bank_name, s.bank_account_number, s.bank_account_holder, s.bank_account_type,
-      COALESCE(SUM(o.net_amount), 0) AS net_amount,
-      COUNT(o.id)::int AS order_count
-    FROM stores s
-    JOIN orders o
-      ON o.store_id = s.id AND o.status = 'pagado'
-      AND (o.sip_id_qr IS NOT NULL OR o.infinity_order_id IS NOT NULL) AND o.payout_id IS NULL
-    GROUP BY s.id, s.name, s.slug, s.bank_name, s.bank_account_number, s.bank_account_holder, s.bank_account_type
-    HAVING COALESCE(SUM(o.net_amount), 0) > 0
-    ORDER BY net_amount DESC
+      s.payment_qr_image_url,
+      p.net_amount,
+      (SELECT COUNT(*) FROM orders o WHERE o.payout_id = p.id)::int AS order_count,
+      p.created_at
+    FROM payouts p
+    JOIN stores s ON s.id = p.store_id
+    WHERE p.status = 'solicitado'
+    ORDER BY p.created_at ASC
   `;
 }
 
 /**
- * Registra una liquidación ya hecha a mano: junta todos los pedidos
- * pagados-y-no-liquidados de la tienda, los suma, y los marca como
- * incluidos en esta liquidación. `reference` es el número de comprobante
- * de la transferencia bancaria real.
+ * El vendedor agenda su liquidación desde su "billetera" (AdminEarnings):
+ * junta todos los pedidos pagados-y-no-liquidados de la tienda en un
+ * payout nuevo con status 'solicitado' — a partir de acá esos pedidos
+ * quedan "apartados" (payout_id seteado) aunque todavía no se le transfirió
+ * nada; el admin recién los ve en listPendingPayoutRequests y confirma el
+ * pago con confirmPayout.
  */
-export async function createPayout(storeId: string, reference: string | null): Promise<Payout> {
+export async function requestPayout(storeId: string): Promise<Payout> {
   await dbReady;
   const id = newId();
   const createdAt = nowISO();
@@ -885,7 +893,7 @@ export async function createPayout(storeId: string, reference: string | null): P
       FOR UPDATE
     `;
     if (pending.length === 0) {
-      throw new Error("No hay pedidos pendientes de liquidar para esta tienda");
+      throw new Error("No hay saldo pendiente para agendar todavía");
     }
 
     const grossAmount = pending.reduce((s, o) => s + Number(o.total), 0);
@@ -899,7 +907,7 @@ export async function createPayout(storeId: string, reference: string | null): P
       )
       VALUES (
         ${id}, ${storeId}, ${pending[0].createdAt}, ${pending[pending.length - 1].createdAt},
-        ${grossAmount}, ${commissionAmount}, ${netAmount}, 'pagado', ${reference}, ${createdAt}, ${createdAt}
+        ${grossAmount}, ${commissionAmount}, ${netAmount}, 'solicitado', NULL, NULL, ${createdAt}
       )
     `;
 
@@ -909,6 +917,29 @@ export async function createPayout(storeId: string, reference: string | null): P
   });
 
   const rows = await sql<Payout[]>`SELECT * FROM payouts WHERE id = ${id}`;
+  return rows[0];
+}
+
+/**
+ * El admin de plataforma confirma que ya hizo la transferencia real —
+ * cierra la liquidación con el comprobante (imagen y/o número de
+ * referencia). Solo se puede confirmar algo que esté 'solicitado': ni una
+ * liquidación ya pagada, ni un id inventado.
+ */
+export async function confirmPayout(
+  payoutId: string,
+  fields: { reference: string | null; receiptImageUrl: string | null }
+): Promise<Payout> {
+  await dbReady;
+  const rows = await sql<Payout[]>`
+    UPDATE payouts
+    SET status = 'pagado', paid_at = ${nowISO()}, reference = ${fields.reference}, receipt_image_url = ${fields.receiptImageUrl}
+    WHERE id = ${payoutId} AND status = 'solicitado'
+    RETURNING *
+  `;
+  if (!rows[0]) {
+    throw new Error("Esa liquidación no existe o ya fue confirmada");
+  }
   return rows[0];
 }
 

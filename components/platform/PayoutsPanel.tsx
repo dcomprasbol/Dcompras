@@ -1,9 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatBs, BANK_ACCOUNT_TYPES } from "@/lib/utils";
 
+const MAX_IMAGE_DIMENSION = 1024;
+const IMAGE_QUALITY = 0.82;
+
+// Mismo helper que components/admin/AdminProducts.tsx — redimensiona en el
+// navegador antes de mandarlo como data URL, para no guardar fotos de
+// comprobante gigantes en la base.
+function fileToResizedDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("El archivo no es una imagen válida"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > MAX_IMAGE_DIMENSION) {
+          height = Math.round((height * MAX_IMAGE_DIMENSION) / width);
+          width = MAX_IMAGE_DIMENSION;
+        } else if (height > MAX_IMAGE_DIMENSION) {
+          width = Math.round((width * MAX_IMAGE_DIMENSION) / height);
+          height = MAX_IMAGE_DIMENSION;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Tu navegador no soporta procesar imágenes"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 type PendingPayout = {
+  id: string; // id del payout, no de la tienda
   storeId: string;
   storeName: string;
   storeSlug: string;
@@ -11,6 +51,7 @@ type PendingPayout = {
   bankAccountNumber: string | null;
   bankAccountHolder: string | null;
   bankAccountType: string | null;
+  paymentQrImageUrl: string | null;
   netAmount: number;
   orderCount: number;
 };
@@ -21,46 +62,76 @@ function accountTypeLabel(value: string | null) {
 
 export default function PayoutsPanel({ initialPending }: { initialPending: PendingPayout[] }) {
   const [pending, setPending] = useState<PendingPayout[]>(initialPending);
-  const [liquidatingId, setLiquidatingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [reference, setReference] = useState("");
+  const [receiptImageUrl, setReceiptImageUrl] = useState("");
+  const [imageProcessing, setImageProcessing] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleLiquidar(storeId: string) {
-    const row = pending.find((p) => p.storeId === storeId);
-    if (!row) return;
+  function openConfirm(payoutId: string) {
+    setConfirmingId(payoutId);
+    setReference("");
+    setReceiptImageUrl("");
+    setImageError(null);
+  }
 
-    if (!row.bankAccountNumber) {
-      window.alert(
-        "Esta tienda todavía no cargó sus datos bancarios — pídele que los complete en su panel (Cuenta) antes de liquidar."
-      );
+  function closeConfirm() {
+    setConfirmingId(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageError(null);
+    setImageProcessing(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setReceiptImageUrl(dataUrl);
+    } catch {
+      setImageError("No se pudo procesar esa imagen, intenta con otra foto");
+    } finally {
+      setImageProcessing(false);
+    }
+  }
+
+  async function handleConfirm(payoutId: string) {
+    // El comprobante (foto o número de referencia) es lo único que prueba
+    // que la plata salió de verdad — sin al menos uno de los dos no se deja
+    // cerrar la liquidación, para no perder el rastro de una transferencia
+    // real por apuro.
+    if (!receiptImageUrl && !reference.trim()) {
+      setImageError("Subí una foto del comprobante o escribí el número de referencia");
       return;
     }
-
-    const reference = window.prompt(
-      `Vas a registrar que ya transferiste ${formatBs(row.netAmount)} a ${row.storeName} (${row.bankName || "banco no especificado"}, cuenta ${row.bankAccountNumber}).\n\nPega el número de comprobante de la transferencia:`
-    );
-    if (reference === null) return; // canceló
-
-    setLiquidatingId(storeId);
+    setSaving(true);
     try {
-      const res = await fetch("/api/platform/payouts", {
+      const res = await fetch(`/api/platform/payouts/${payoutId}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, reference: reference.trim() || null }),
+        body: JSON.stringify({
+          reference: reference.trim() || null,
+          receiptImageUrl: receiptImageUrl || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        window.alert(data.error || "No se pudo registrar la liquidación");
+        window.alert(data.error || "No se pudo confirmar la liquidación");
         return;
       }
-      setPending((prev) => prev.filter((p) => p.storeId !== storeId));
+      setPending((prev) => prev.filter((p) => p.id !== payoutId));
+      closeConfirm();
     } finally {
-      setLiquidatingId(null);
+      setSaving(false);
     }
   }
 
   if (pending.length === 0) {
     return (
       <p className="text-sm text-ink/50">
-        No hay saldos pendientes de liquidar por ahora.
+        No hay liquidaciones solicitadas por ahora — los vendedores las agendan desde su billetera.
       </p>
     );
   }
@@ -68,38 +139,99 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   return (
     <div className="space-y-3">
       {pending.map((row) => (
-        <div key={row.storeId} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-          <div className="mb-2 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-ink">
-                {row.storeName} <span className="font-normal text-ink/40">/{row.storeSlug}</span>
-              </p>
-              <p className="mt-0.5 font-mono text-lg font-bold text-jade-600">
-                {formatBs(row.netAmount)}
-              </p>
-              <p className="text-xs text-ink/50">
-                {row.orderCount} pedido{row.orderCount === 1 ? "" : "s"} sin liquidar
-              </p>
+        <div key={row.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+          <div className="flex items-start gap-4">
+            {row.paymentQrImageUrl && (
+              // El QR de cobro de la tienda sirve igual para pagarle: cualquier
+              // billetera/banco que lo escanee manda la plata a esa cuenta.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.paymentQrImageUrl}
+                alt={`QR de ${row.storeName}`}
+                className="h-20 w-20 shrink-0 rounded-lg border border-ink/10 object-contain"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-ink">
+                    {row.storeName} <span className="font-normal text-ink/40">/{row.storeSlug}</span>
+                  </p>
+                  <p className="mt-0.5 font-mono text-lg font-bold text-jade-600">
+                    {formatBs(row.netAmount)}
+                  </p>
+                  <p className="text-xs text-ink/50">
+                    {row.orderCount} pedido{row.orderCount === 1 ? "" : "s"} en esta solicitud
+                  </p>
+                </div>
+                {confirmingId !== row.id && (
+                  <button
+                    onClick={() => openConfirm(row.id)}
+                    className="shrink-0 rounded-lg bg-jade-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-jade-600"
+                  >
+                    Marcar como pagado
+                  </button>
+                )}
+              </div>
+
+              {row.bankAccountNumber ? (
+                <p className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink/60">
+                  {row.bankName || "Banco no especificado"} · {accountTypeLabel(row.bankAccountType)} ·{" "}
+                  {row.bankAccountNumber} · {row.bankAccountHolder || "titular no especificado"}
+                </p>
+              ) : (
+                <p className="rounded-lg bg-coral-50 px-2.5 py-1.5 text-xs text-coral-700">
+                  Sin datos bancarios cargados — pedile al vendedor que los complete en su panel.
+                </p>
+              )}
             </div>
-            <button
-              onClick={() => handleLiquidar(row.storeId)}
-              disabled={liquidatingId === row.storeId}
-              className="shrink-0 rounded-lg bg-jade-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
-            >
-              {liquidatingId === row.storeId ? "..." : "Liquidar"}
-            </button>
           </div>
 
-          {row.bankAccountNumber ? (
-            <p className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink/60">
-              {row.bankName || "Banco no especificado"} · {accountTypeLabel(row.bankAccountType)} ·{" "}
-              {row.bankAccountNumber} · {row.bankAccountHolder || "titular no especificado"}
-            </p>
-          ) : (
-            <p className="rounded-lg bg-coral-50 px-2.5 py-1.5 text-xs text-coral-700">
-              Sin datos bancarios cargados todavía — no se puede liquidar hasta que la tienda los
-              complete en su panel.
-            </p>
+          {confirmingId === row.id && (
+            <div className="mt-3 space-y-2 border-t border-ink/5 pt-3">
+              <label className="block text-xs font-medium text-ink/60">
+                Foto del comprobante de la transferencia
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-jade-700"
+              />
+              {imageProcessing && <p className="text-xs text-ink/50">Procesando imagen...</p>}
+              {receiptImageUrl && !imageProcessing && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={receiptImageUrl}
+                  alt="Comprobante"
+                  className="h-20 w-20 rounded-lg border border-ink/10 object-cover"
+                />
+              )}
+              <input
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="Número de referencia (opcional si subís foto)"
+                className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs"
+              />
+              {imageError && <p className="text-xs text-coral-600">{imageError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleConfirm(row.id)}
+                  disabled={saving}
+                  className="rounded-lg bg-jade-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
+                >
+                  {saving ? "Guardando..." : "Confirmar pago"}
+                </button>
+                <button
+                  onClick={closeConfirm}
+                  disabled={saving}
+                  className="rounded-lg border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           )}
         </div>
       ))}

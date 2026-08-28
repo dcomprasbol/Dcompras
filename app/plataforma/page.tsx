@@ -7,7 +7,7 @@ import {
   getTopStoresBySales,
   getPlatformAlerts,
   listAllSupportMessages,
-  listStoresPendingPayouts,
+  listPendingPayoutRequests,
 } from "@/lib/repo";
 import { formatBs } from "@/lib/utils";
 import { commissionPercent } from "@/lib/commission";
@@ -34,7 +34,7 @@ export default async function PlataformaPage() {
       getTopStoresBySales(5),
       getPlatformAlerts(),
       listAllSupportMessages(),
-      listStoresPendingPayouts(),
+      listPendingPayoutRequests(),
     ]);
   const openSupportCount = supportMessages.filter((m) => m.status === "abierto").length;
   const totalPendingPayout = pendingPayouts.reduce((s, p) => s + Number(p.netAmount), 0);
@@ -102,7 +102,7 @@ export default async function PlataformaPage() {
         <div className="mb-6" id="liquidaciones">
           <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
             <div className="mb-1 flex items-center gap-2">
-              <h2 className="text-sm font-bold text-ink">Liquidaciones pendientes</h2>
+              <h2 className="text-sm font-bold text-ink">Liquidaciones solicitadas</h2>
               {totalPendingPayout > 0 && (
                 <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
                   {formatBs(totalPendingPayout)} en total
@@ -110,9 +110,10 @@ export default async function PlataformaPage() {
               )}
             </div>
             <p className="mb-3 text-xs text-ink/50">
-              Plata que ya está en la cuenta de Dcompras (ventas por QR automático) y todavía no se
-              le transfirió al vendedor. Comisión actual: {commissionPercent()}%. Transfiere a
-              mano con los datos de abajo y después dale "Liquidar" para registrarlo.
+              Vendedores que ya agendaron su liquidación desde su billetera — plata que está en la
+              cuenta de Dcompras (ventas por QR automático) y esperan que se la transfieras.
+              Comisión actual: {commissionPercent()}%. Transfiere a mano (con el QR o los datos de
+              abajo) y subí el comprobante para cerrarla.
             </p>
             <PayoutsPanel initialPending={pendingPayouts} />
           </div>

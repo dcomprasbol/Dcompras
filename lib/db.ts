@@ -240,6 +240,15 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   );
   CREATE INDEX IF NOT EXISTS idx_payouts_store ON payouts(store_id);
 
+  -- Liquidación en dos pasos (Fase 3b): el vendedor agenda desde su
+  -- "billetera" (status 'solicitado', sin comprobante todavía) y el admin de
+  -- plataforma la confirma una vez que hizo la transferencia de verdad
+  -- (status 'pagado', con comprobante). El default de 'pagado' de arriba
+  -- queda como estaba para no tocar filas viejas; las liquidaciones nuevas
+  -- siempre insertan el status a mano — ver lib/repo.ts → requestPayout /
+  -- confirmPayout.
+  ALTER TABLE payouts ADD COLUMN IF NOT EXISTS receipt_image_url TEXT;
+
   DO $$ BEGIN
     ALTER TABLE orders ADD CONSTRAINT orders_payout_id_fkey
       FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE SET NULL;

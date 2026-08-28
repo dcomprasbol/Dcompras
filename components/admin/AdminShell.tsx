@@ -17,7 +17,7 @@ const NAV: { key: Tab; label: string; icon: string }[] = [
   { key: "cuenta", label: "Cuenta", icon: "⚙️" },
   { key: "productos", label: "Productos", icon: "🛍️" },
   { key: "pedidos", label: "Pedidos", icon: "📦" },
-  { key: "ganancias", label: "Ganancias", icon: "💰" },
+  { key: "ganancias", label: "Billetera", icon: "💰" },
   { key: "soporte", label: "Soporte", icon: "💬" },
 ];
 
