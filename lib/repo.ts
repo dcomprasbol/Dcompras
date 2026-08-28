@@ -515,6 +515,7 @@ export async function createOrderWithItems(
       }
 
       let variant: Variant | null = null;
+      // El comprador eligió una variante real (talla, color, etc.).
       if (item.variantId) {
         const variantRows = await tx<Variant[]>`
           SELECT * FROM variants WHERE id = ${item.variantId} AND product_id = ${product.id}
@@ -523,6 +524,22 @@ export async function createOrderWithItems(
         if (!variant) throw new Error(`Variante no encontrada para ${product.name}`);
         if (variant.stock < item.quantity) {
           throw new Error(`Stock insuficiente para ${product.name} (${variant.label})`);
+        }
+      } else {
+        // Producto sin opciones: el frontend manda variantId=null a propósito
+        // para el caso "Único" (ver AddToCartForm.tsx → isSingleUnnamed), pero
+        // igual existe una fila real en `variants` con el stock de ese
+        // producto — si no la resolvemos acá, el stock de un producto simple
+        // (la mayoría) nunca se descontaría, con ningún flujo de pago. Si por
+        // algún motivo hay más de una variante y no llegó un id (no debería
+        // pasar desde el checkout real), no adivinamos cuál — se deja sin
+        // tocar stock, igual que antes.
+        const variantRows = await tx<Variant[]>`SELECT * FROM variants WHERE product_id = ${product.id}`;
+        if (variantRows.length === 1) {
+          variant = variantRows[0];
+          if (variant.stock < item.quantity) {
+            throw new Error(`Stock insuficiente para ${product.name}`);
+          }
         }
       }
 
@@ -534,7 +551,11 @@ export async function createOrderWithItems(
         variantId: variant ? variant.id : null,
         quantity,
         unitPrice: product.price,
-        label: variant ? `${product.name} (${variant.label})` : product.name,
+        // Solo mostramos "(label)" cuando vino un variantId explícito (el
+        // comprador sí eligió algo) — la variante "Único" resuelta sola acá
+        // arriba no debe aparecer como "Producto (Único)", queda igual que
+        // siempre: solo el nombre del producto.
+        label: variant && item.variantId ? `${product.name} (${variant.label})` : product.name,
       });
 
       // Contra entrega descuenta stock ya mismo (aceptar ese pedido ya es un
