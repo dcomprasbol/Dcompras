@@ -12,11 +12,15 @@ export async function POST(
   const store = await requireStoreAdmin(params.slug);
   if (!store) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  // Sin datos bancarios cargados, el admin no tendría cómo pagarle —
-  // mejor frenar acá con un mensaje claro que dejar la solicitud varada.
-  if (!store.bankAccountNumber) {
+  // Sin ninguna forma de pagarle (ni cuenta bancaria ni QR), el admin no
+  // tendría cómo transferirle — mejor frenar acá con un mensaje claro que
+  // dejar la solicitud varada. Cualquiera de los dos alcanza.
+  if (!store.bankAccountNumber && !store.paymentQrImageUrl) {
     return NextResponse.json(
-      { error: "Carga tus datos bancarios en Cuenta antes de agendar una liquidación" },
+      {
+        error:
+          "Carga tu QR o tus datos bancarios en Cuenta antes de agendar una liquidación",
+      },
       { status: 400 }
     );
   }

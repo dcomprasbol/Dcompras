@@ -14,6 +14,47 @@ export function formatBs(amount: number): string {
   return `Bs ${amount.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// ---------- Subida de fotos (cliente) ----------
+// Convierte un File a un data URL ya redimensionado, para no guardar fotos
+// de celular gigantes en la base (product images, QR de cobro, comprobantes
+// de liquidación — todo se guarda como data URI directo en Postgres, no hay
+// bucket de storage configurado). Solo se usa desde componentes "use client".
+const MAX_IMAGE_DIMENSION = 1024;
+const IMAGE_QUALITY = 0.82;
+
+export function fileToResizedDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("El archivo no es una imagen válida"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > MAX_IMAGE_DIMENSION) {
+          height = Math.round((height * MAX_IMAGE_DIMENSION) / width);
+          width = MAX_IMAGE_DIMENSION;
+        } else if (height > MAX_IMAGE_DIMENSION) {
+          width = Math.round((width * MAX_IMAGE_DIMENSION) / height);
+          height = MAX_IMAGE_DIMENSION;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Tu navegador no soporta procesar imágenes"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export const ORDER_STATUSES = [
   { value: "pendiente", label: "Pendiente" },
   { value: "pagado", label: "Pagado" },

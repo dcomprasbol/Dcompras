@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   STORE_CATEGORIES,
   STORE_FONTS,
   DEFAULT_STORE_COLOR,
   BOLIVIA_DEPARTMENTS,
   BANK_ACCOUNT_TYPES,
+  fileToResizedDataUrl,
 } from "@/lib/utils";
 
 export default function AdminSettings({ slug }: { slug: string }) {
@@ -14,6 +15,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
   const [whatsapp, setWhatsapp] = useState("");
   const [city, setCity] = useState("");
   const [paymentQrImageUrl, setPaymentQrImageUrl] = useState("");
+  const [qrProcessing, setQrProcessing] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const qrFileInputRef = useRef<HTMLInputElement>(null);
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [category, setCategory] = useState<string>(STORE_CATEGORIES[0].value);
   const [themeColor, setThemeColor] = useState(DEFAULT_STORE_COLOR);
@@ -88,6 +92,26 @@ export default function AdminSettings({ slug }: { slug: string }) {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleQrChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQrError(null);
+    setQrProcessing(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setPaymentQrImageUrl(dataUrl);
+    } catch {
+      setQrError("No se pudo procesar esa imagen, intenta con otra foto");
+    } finally {
+      setQrProcessing(false);
+    }
+  }
+
+  function handleRemoveQr() {
+    setPaymentQrImageUrl("");
+    if (qrFileInputRef.current) qrFileInputRef.current.value = "";
   }
 
   if (loading) return <p className="text-sm text-ink/50">Cargando...</p>;
@@ -254,7 +278,8 @@ export default function AdminSettings({ slug }: { slug: string }) {
         <h2 className="mb-1 text-sm font-bold text-ink">Datos bancarios</h2>
         <p className="mb-3 text-xs text-ink/50">
           A esta cuenta te liquidamos lo que te corresponde de tus ventas por QR (ver pestaña
-          Ganancias). No se usa para nada más.
+          Billetera). Si ya subiste tu QR de cobro más abajo, no hace falta que llenes esto —
+          con cualquiera de los dos alcanza para poder pagarte.
         </p>
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">Banco</label>
@@ -305,25 +330,37 @@ export default function AdminSettings({ slug }: { slug: string }) {
         <p className="mb-3 text-xs text-ink/50">
           Mientras Dcompras no tenga el cobro automático activado con el banco, este QR (una foto de
           tu QR bancario) es lo que ve el comprador. Cuando se active, esto pasa a ser solo un
-          respaldo — el QR real se genera automático por pedido y el pago se confirma solo.
+          respaldo — el QR real se genera automático por pedido y el pago se confirma solo. También
+          lo usamos para pagarte tu liquidación (Billetera): cualquier banco puede escanearlo para
+          mandarte la plata, así que no hace falta que además llenes los datos bancarios de arriba.
         </p>
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-ink/70">
-            URL de la imagen de tu QR
-          </label>
+          <label className="mb-1 block text-sm font-medium text-ink/70">Foto de tu QR</label>
           <input
-            value={paymentQrImageUrl}
-            onChange={(e) => setPaymentQrImageUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            ref={qrFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleQrChange}
+            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-jade-700"
           />
-          {paymentQrImageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={paymentQrImageUrl}
-              alt="Vista previa QR"
-              className="mt-2 h-32 w-32 rounded-lg border object-contain"
-            />
+          {qrProcessing && <p className="mt-1 text-xs text-ink/50">Procesando imagen...</p>}
+          {qrError && <p className="mt-1 text-xs text-coral-600">{qrError}</p>}
+          {paymentQrImageUrl && !qrProcessing && (
+            <div className="mt-2 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={paymentQrImageUrl}
+                alt="Vista previa QR"
+                className="h-32 w-32 rounded-lg border object-contain"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveQr}
+                className="text-xs font-medium text-coral-500"
+              >
+                Quitar foto
+              </button>
+            </div>
           )}
         </div>
         <div>

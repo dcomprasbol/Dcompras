@@ -1,46 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { formatBs, BANK_ACCOUNT_TYPES } from "@/lib/utils";
-
-const MAX_IMAGE_DIMENSION = 1024;
-const IMAGE_QUALITY = 0.82;
-
-// Mismo helper que components/admin/AdminProducts.tsx — redimensiona en el
-// navegador antes de mandarlo como data URL, para no guardar fotos de
-// comprobante gigantes en la base.
-function fileToResizedDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("El archivo no es una imagen válida"));
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > height && width > MAX_IMAGE_DIMENSION) {
-          height = Math.round((height * MAX_IMAGE_DIMENSION) / width);
-          width = MAX_IMAGE_DIMENSION;
-        } else if (height > MAX_IMAGE_DIMENSION) {
-          width = Math.round((width * MAX_IMAGE_DIMENSION) / height);
-          height = MAX_IMAGE_DIMENSION;
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Tu navegador no soporta procesar imágenes"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
+import { formatBs, BANK_ACCOUNT_TYPES, fileToResizedDataUrl } from "@/lib/utils";
 
 type PendingPayout = {
   id: string; // id del payout, no de la tienda
@@ -179,9 +140,14 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
                   {row.bankName || "Banco no especificado"} · {accountTypeLabel(row.bankAccountType)} ·{" "}
                   {row.bankAccountNumber} · {row.bankAccountHolder || "titular no especificado"}
                 </p>
+              ) : row.paymentQrImageUrl ? (
+                <p className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink/50">
+                  No cargó datos bancarios — pagale escaneando el QR de al lado.
+                </p>
               ) : (
                 <p className="rounded-lg bg-coral-50 px-2.5 py-1.5 text-xs text-coral-700">
-                  Sin datos bancarios cargados — pedile al vendedor que los complete en su panel.
+                  Sin datos bancarios ni QR cargados — pedile al vendedor que complete uno de los
+                  dos en su panel.
                 </p>
               )}
             </div>

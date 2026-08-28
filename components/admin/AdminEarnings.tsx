@@ -35,7 +35,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     setPending(earningsRes.pending);
     setPayouts(earningsRes.payouts || []);
     setCommissionPercent(earningsRes.commissionPercent ?? 1);
-    setHasBankInfo(Boolean(storeRes.store?.bankAccountNumber));
+    setHasBankInfo(Boolean(storeRes.store?.bankAccountNumber || storeRes.store?.paymentQrImageUrl));
     setLoading(false);
   }
 
@@ -70,8 +70,8 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     <div className="space-y-5">
       {!hasBankInfo && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          📋 Todavía no cargaste tus datos bancarios — sin eso no podés agendar una liquidación.{" "}
-          <span className="font-medium">Agrégalos en la pestaña Cuenta.</span>
+          📋 Todavía no cargaste tu QR ni tus datos bancarios — sin uno de los dos no podés agendar
+          una liquidación. <span className="font-medium">Agrégalos en la pestaña Cuenta.</span>
         </div>
       )}
 
