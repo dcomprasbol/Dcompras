@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrderByInfinityOrderId, updateOrderStatus } from "@/lib/repo";
+import { getOrderByInfinityOrderId, getOrderById, updateOrderInfinityInfo, updateOrderStatus } from "@/lib/repo";
 import { verifyWebhookSignature } from "@/lib/infinityPayments";
 import { calculateCommission } from "@/lib/commission";
 
@@ -33,20 +33,42 @@ export async function POST(req: NextRequest) {
   }
 
   // El orderId de Infinity puede venir en el nivel raíz o adentro de data,
-  // según el evento — probamos ambos. También reenviamos nuestro propio id
-  // de pedido como metadata al crear el pago (ver orders/route.ts), como
-  // respaldo si alguna vez cambia el nombre del campo.
-  const infinityOrderId: string | undefined =
-    body.orderId || body.data?.orderId || body.metadata?.ferioOrderId;
+  // según el evento.
+  const infinityOrderId: string | undefined = body.orderId || body.data?.orderId;
+  const ferioOrderId: string | undefined = body.metadata?.ferioOrderId;
 
-  if (!infinityOrderId) {
-    console.error("Webhook de Infinity sin orderId identificable:", rawBody);
+  if (!infinityOrderId && !ferioOrderId) {
+    console.error("Webhook de Infinity sin ningún id identificable:", rawBody);
     return NextResponse.json({ received: true });
   }
 
-  const order = await getOrderByInfinityOrderId(infinityOrderId);
+  // Buscamos primero por infinity_order_id (el vínculo que dejó orders/route.ts
+  // al crear el pago). Si ese lookup falla — por ejemplo, porque
+  // updateOrderInfinityInfo no llegó a guardarlo por algún error transitorio —
+  // probamos con nuestro propio id de pedido, que viaja en metadata.ferioOrderId
+  // desde el momento en que se creó el pago. Antes esto era un "||" que nunca
+  // llegaba a probar el segundo id si el primer lookup simplemente no
+  // encontraba nada (no fallaba, solo devolvía null), así que el fallback en
+  // la práctica nunca se ejecutaba.
+  let order = infinityOrderId ? await getOrderByInfinityOrderId(infinityOrderId) : null;
+
+  if (!order && ferioOrderId) {
+    order = await getOrderById(ferioOrderId);
+    if (order && infinityOrderId) {
+      // Encontrado por el id propio pero sin el vínculo guardado — lo
+      // completamos ahora para que el próximo webhook (o cualquier otra
+      // consulta por infinity_order_id) ya lo encuentre directo.
+      console.warn(
+        `Webhook de Infinity: pedido ${ferioOrderId} encontrado por metadata, faltaba el vínculo con infinityOrderId=${infinityOrderId} — completando.`
+      );
+      await updateOrderInfinityInfo(ferioOrderId, infinityOrderId);
+    }
+  }
+
   if (!order) {
-    console.error(`Webhook de Infinity: no se encontró pedido para orderId ${infinityOrderId}`);
+    console.error(
+      `Webhook de Infinity: no se encontró pedido (infinityOrderId=${infinityOrderId ?? "-"}, ferioOrderId=${ferioOrderId ?? "-"})`
+    );
     return NextResponse.json({ received: true });
   }
 
