@@ -239,7 +239,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-ink/70">
-                Precio de oferta
+                Precio anterior (tachado)
               </label>
               <input
                 type="number"
@@ -252,13 +252,18 @@ export default function AdminProducts({ slug }: { slug: string }) {
               />
             </div>
           </div>
+          {/* "Precio (Bs)" de arriba es lo que el cliente paga ahora, ya con
+              el descuento — este campo es el precio de ANTES, más alto, que
+              se muestra tachado al lado. Por eso tiene que ser mayor, no
+              menor: quien lo lea acá abajo puede confundir "precio de
+              oferta" con "el precio con descuento", que es justo al revés. */}
           {compareAtPrice && Number(compareAtPrice) > 0 && (
             <p className="-mt-2 text-xs text-ink/40">
               {Number(compareAtPrice) > Number(price || 0)
-                ? `Se muestra tachado a Bs ${Number(compareAtPrice).toFixed(2)}, con etiqueta de "Oferta -${Math.round(
+                ? `Tu cliente ve: Bs ${Number(price || 0).toFixed(2)} y, tachado al lado, Bs ${Number(compareAtPrice).toFixed(2)} — con la etiqueta "Oferta -${Math.round(
                     (1 - Number(price || 0) / Number(compareAtPrice)) * 100
                   )}%".`
-                : "Tiene que ser mayor al precio actual para mostrarse como oferta."}
+                : "Poné acá el precio de ANTES del descuento (tiene que ser mayor al precio de arriba) — ese es el que se tacha, no el precio final."}
             </p>
           )}
           <div>
