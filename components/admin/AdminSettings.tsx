@@ -278,8 +278,8 @@ export default function AdminSettings({ slug }: { slug: string }) {
         <h2 className="mb-1 text-sm font-bold text-ink">Datos bancarios</h2>
         <p className="mb-3 text-xs text-ink/50">
           A esta cuenta te liquidamos lo que te corresponde de tus ventas por QR (ver pestaña
-          Billetera). Si ya subiste tu QR de cobro más abajo, no hace falta que llenes esto —
-          con cualquiera de los dos alcanza para poder pagarte.
+          Billetera). Si ya subiste tu QR más abajo, no hace falta que llenes esto — con
+          cualquiera de los dos alcanza para poder pagarte.
         </p>
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">Banco</label>
@@ -326,13 +326,11 @@ export default function AdminSettings({ slug }: { slug: string }) {
       </div>
 
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-sm font-bold text-ink">Cobro por QR</h2>
+        <h2 className="mb-1 text-sm font-bold text-ink">Tu QR para que te liquidemos</h2>
         <p className="mb-3 text-xs text-ink/50">
-          Mientras Dcompras no tenga el cobro automático activado con el banco, este QR (una foto de
-          tu QR bancario) es lo que ve el comprador. Cuando se active, esto pasa a ser solo un
-          respaldo — el QR real se genera automático por pedido y el pago se confirma solo. También
-          lo usamos para pagarte tu liquidación (Billetera): cualquier banco puede escanearlo para
-          mandarte la plata, así que no hace falta que además llenes los datos bancarios de arriba.
+          Este QR nunca lo ve el comprador — es solo para que Dcompras te transfiera tu
+          liquidación (Billetera) escaneándolo, como alternativa a llenar los datos bancarios de
+          arriba. Con cualquiera de los dos alcanza.
         </p>
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">Foto de tu QR</label>

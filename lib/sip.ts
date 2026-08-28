@@ -10,8 +10,8 @@
 //   de esa tienda (ver lib/repo.ts → updateStoreSipConfig).
 //
 // Mientras SIP_APIKEY/SIP_USERNAME/SIP_PASSWORD no estén seteados, o una
-// tienda no tenga apikeyServicio, el checkout sigue usando el QR estático
-// (foto subida a mano) sin ningún cambio — ver app/api/stores/[slug]/orders/route.ts.
+// tienda no tenga apikeyServicio, el checkout pide coordinar el pago por
+// WhatsApp en vez de generar un QR — ver app/api/stores/[slug]/orders/route.ts.
 
 const SIP_BASE_URL = process.env.SIP_BASE_URL;
 const SIP_APIKEY = process.env.SIP_APIKEY;

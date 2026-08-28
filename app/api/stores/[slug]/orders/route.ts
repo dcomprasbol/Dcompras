@@ -98,10 +98,12 @@ export async function POST(
     // (lo que puso el vendedor) — el QR le pide al comprador ese extra, el
     // vendedor recibe el 100% de order.total sin descuentos. Si algo falla
     // acá (proveedor caído, todavía sin configurar, etc.) no reventamos el
-    // pedido — el comprador sigue viendo el QR estático de la tienda como
-    // respaldo (por order.total, sin comisión), y el vendedor confirma el
-    // pago a mano como ya hace hoy (ese caso no genera comisión ni
-    // liquidación: la plata nunca pasa por Dcompras).
+    // pedido, pero tampoco le mostramos al comprador el QR que el vendedor
+    // cargó en Cuenta — ese es solo para que Dcompras le liquide a él, nunca
+    // para que le paguen directo (saltearía la comisión). El checkout le
+    // pide en cambio coordinar el pago por WhatsApp con el vendedor (ese
+    // caso no genera comisión ni liquidación: la plata nunca pasa por
+    // Dcompras).
     //
     // Infinity Payments es el proveedor activo por ahora. SIP/BISA queda
     // intacto como respaldo (lib/sip.ts) por si en algún momento se retoma

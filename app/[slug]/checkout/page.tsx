@@ -13,7 +13,6 @@ import type { LatLng } from "@/components/LocationPicker";
 type StoreInfo = {
   name: string;
   whatsapp: string;
-  paymentQrImageUrl: string | null;
   paymentInstructions: string | null;
 };
 
@@ -32,8 +31,10 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   // Si la plataforma tiene cobro automático configurado (Infinity Payments
   // por ahora), el pedido trae un QR dinámico ya generado para ese monto
-  // exacto — si no, cae al QR estático de la tienda (store.paymentQrImageUrl)
-  // como siempre.
+  // exacto. Si no (proveedor caído o sin configurar), NO hay QR de respaldo
+  // que mostrarle al comprador — el QR que el vendedor carga en Cuenta es
+  // solo para que Dcompras le liquide a él, nunca se le muestra al
+  // comprador (saltearía la comisión). Ver el bloque de abajo.
   const [gatewayQrImage, setGatewayQrImage] = useState<string | null>(null);
   // Monto realmente cobrado del pedido confirmado (con comisión sumada si
   // aplicó) — se fija recién al recibir la respuesta del servidor y ya no
@@ -136,26 +137,32 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         <p className="mt-1 text-sm text-ink/60">
           Número de pedido: <span className="font-mono">{orderId.slice(-6).toUpperCase()}</span>
         </p>
-        {paymentMethod === "qr" && (gatewayQrImage || store?.paymentQrImageUrl) && (
+        {paymentMethod === "qr" && gatewayQrImage && (
           <div className="mt-4">
             <p className="mb-2 text-sm font-medium text-ink/70">Escanea el QR para pagar:</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={gatewayQrImage || store!.paymentQrImageUrl!}
+              src={gatewayQrImage}
               alt="QR de pago"
               className="mx-auto h-56 w-56 border border-ink/10 object-contain"
             />
-            {gatewayQrImage ? (
-              <p className="mt-2 text-xs text-ink/50">
-                Este QR es exclusivo de tu pedido y se confirma solo — no hace falta que avises
-                por WhatsApp, pero puedes hacerlo igual si quieres.
-              </p>
-            ) : (
-              store?.paymentInstructions && (
-                <p className="mt-2 text-xs text-ink/50">{store.paymentInstructions}</p>
-              )
-            )}
+            <p className="mt-2 text-xs text-ink/50">
+              Este QR es exclusivo de tu pedido y se confirma solo — no hace falta que avises
+              por WhatsApp, pero puedes hacerlo igual si quieres.
+            </p>
           </div>
+        )}
+        {/* Si el pedido eligió QR pero no se pudo generar el QR automático
+            (proveedor caído, todavía sin configurar), NUNCA mostramos acá el
+            QR que el vendedor cargó en Cuenta — ese es solo para que
+            Dcompras le liquide a él, no para que le paguen directo los
+            compradores (eso saltearía la comisión). En ese caso coordina el
+            pago a mano por WhatsApp. */}
+        {paymentMethod === "qr" && !gatewayQrImage && (
+          <p className="mt-3 text-sm text-ink/60">
+            {store?.paymentInstructions ||
+              "La tienda te va a escribir por WhatsApp para coordinar el pago."}
+          </p>
         )}
         {paymentMethod === "contra_entrega" && (
           <p className="mt-3 text-sm text-ink/60">
