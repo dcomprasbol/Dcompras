@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { formatBs, deliveryTypeLabel } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
+import PaymentStatusPoller from "@/components/PaymentStatusPoller";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,21 @@ export default async function OrderTrackingPage({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 md:px-8">
+      <PaymentStatusPoller
+        slug={params.slug}
+        orderId={order.id}
+        status={order.status}
+        paymentMethod={order.paymentMethod}
+      />
+      {order.status === "pendiente" && order.paymentMethod === "qr" && (
+        <RevealOnScroll className="mb-6 flex items-center justify-center gap-2 border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+          <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+          </span>
+          Esperando confirmación de tu pago — esta página se actualiza sola.
+        </RevealOnScroll>
+      )}
       <RevealOnScroll>
         <span className="tag-editorial store-accent-bg">Seguimiento de pedido</span>
         <h1 className="mt-4 font-impact text-3xl uppercase leading-[0.95] text-ink md:text-4xl">

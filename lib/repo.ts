@@ -347,12 +347,21 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   // La primera vez que un pedido pasa a 'pagado' calculamos su comisión y
   // neto (lib/commission.ts) y fijamos paid_at — de ahí para adelante es
   // idempotente: re-marcar 'pagado' o cambiar a otro estado no vuelve a
-  // tocar esos montos.
+  // tocar esos montos. Ese mismo "solo la primera vez" es lo que aprovechamos
+  // para descontar el stock acá (ver createOrderWithItems: un pedido con QR
+  // NO descuenta stock al crearse, recién cuando se confirma el pago — así
+  // un comprador que nunca paga no deja reservado ni un talle para siempre).
   if (status === "pagado") {
     const rows = await sql<
-      { total: number; sipIdQr: string | null; infinityOrderId: string | null; paidAt: string | null }[]
+      {
+        total: number;
+        sipIdQr: string | null;
+        infinityOrderId: string | null;
+        paidAt: string | null;
+        paymentMethod: string;
+      }[]
     >`
-      SELECT total, sip_id_qr, infinity_order_id, paid_at FROM orders WHERE id = ${orderId}
+      SELECT total, sip_id_qr, infinity_order_id, paid_at, payment_method FROM orders WHERE id = ${orderId}
     `;
     const order = rows[0];
     if (order && order.paidAt === null) {
@@ -360,12 +369,27 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
         Number(order.total),
         Boolean(order.sipIdQr) || Boolean(order.infinityOrderId)
       );
-      await sql`
-        UPDATE orders
-        SET status = 'pagado', paid_at = ${nowISO()},
-            commission_amount = ${commissionAmount}, net_amount = ${netAmount}
-        WHERE id = ${orderId}
-      `;
+      await sql.begin(async (tx) => {
+        await tx`
+          UPDATE orders
+          SET status = 'pagado', paid_at = ${nowISO()},
+              commission_amount = ${commissionAmount}, net_amount = ${netAmount}
+          WHERE id = ${orderId}
+        `;
+        // Contra entrega ya descontó su stock al crear el pedido (ahí sí es
+        // un compromiso inmediato, no hay pago que esperar) — no lo toques
+        // de nuevo acá o quedaría descontado doble.
+        if (order.paymentMethod === "qr") {
+          const items = await tx<{ variantId: string | null; quantity: number }[]>`
+            SELECT variant_id, quantity FROM order_items WHERE order_id = ${orderId}
+          `;
+          for (const item of items) {
+            if (item.variantId) {
+              await tx`UPDATE variants SET stock = stock - ${item.quantity} WHERE id = ${item.variantId}`;
+            }
+          }
+        }
+      });
       return;
     }
   }
@@ -513,7 +537,13 @@ export async function createOrderWithItems(
         label: variant ? `${product.name} (${variant.label})` : product.name,
       });
 
-      if (variant) {
+      // Contra entrega descuenta stock ya mismo (aceptar ese pedido ya es un
+      // compromiso, no hay pago que esperar). Un pedido con QR solo valida
+      // que haya stock (el chequeo de arriba) pero no lo descuenta todavía
+      // — eso pasa recién si se confirma el pago (ver updateOrderStatus),
+      // así un comprador que nunca paga no deja un talle reservado para
+      // siempre.
+      if (variant && paymentMethod !== "qr") {
         await tx`UPDATE variants SET stock = stock - ${quantity} WHERE id = ${variant.id}`;
       }
     }

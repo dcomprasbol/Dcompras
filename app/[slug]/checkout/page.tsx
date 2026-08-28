@@ -36,6 +36,11 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   // solo para que Dcompras le liquide a él, nunca se le muestra al
   // comprador (saltearía la comisión). Ver el bloque de abajo.
   const [gatewayQrImage, setGatewayQrImage] = useState<string | null>(null);
+  // Mientras esto siga en "pendiente", el comprador ve el spinner de
+  // "esperando tu pago" debajo del QR (ver el useEffect de polling más
+  // abajo); apenas el webhook confirma el pago, pasa a "pagado" y la
+  // pantalla lo muestra al toque, sin que el comprador tenga que refrescar.
+  const [paymentStatus, setPaymentStatus] = useState<"pendiente" | "pagado">("pendiente");
   // Monto realmente cobrado del pedido confirmado (con comisión sumada si
   // aplicó) — se fija recién al recibir la respuesta del servidor y ya no
   // se toca, porque `total` del carrito vuelve a 0 apenas se llama clear().
@@ -71,6 +76,34 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
       .then((r) => r.json())
       .then(setPaymentConfig);
   }, []);
+
+  // Consulta en vivo si ya se confirmó el pago (mientras haya un QR dinámico
+  // esperando) — cada 4s, hasta 10 minutos. Pasado eso dejamos de insistir:
+  // si tarda tanto ya es mejor que coordine por WhatsApp, no tiene sentido
+  // seguir pegándole al servidor desde una pestaña que quedó abierta horas.
+  useEffect(() => {
+    if (!orderId || paymentMethod !== "qr" || !gatewayQrImage || paymentStatus === "pagado") return;
+    let attempts = 0;
+    const maxAttempts = 150;
+    const interval = setInterval(async () => {
+      attempts += 1;
+      if (attempts > maxAttempts) {
+        clearInterval(interval);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/stores/${params.slug}/orders/${orderId}/status`);
+        const data = await res.json();
+        if (data.status === "pagado") {
+          setPaymentStatus("pagado");
+          clearInterval(interval);
+        }
+      } catch {
+        // Sin conexión momentánea: seguimos intentando en el próximo tick.
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [orderId, paymentMethod, gatewayQrImage, paymentStatus, params.slug]);
 
   // Misma fórmula que calculateCommission en lib/commission.ts (redondeo a
   // centavos incluido) — si esto se desalinea con el backend, el comprador
@@ -146,9 +179,23 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
               alt="QR de pago"
               className="mx-auto h-56 w-56 border border-ink/10 object-contain"
             />
+            {paymentStatus === "pendiente" ? (
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-amber-600">
+                <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                </span>
+                Esperando confirmación de tu pago...
+              </div>
+            ) : (
+              <div className="animate-pop mt-3 border border-jade-500 bg-jade-50 px-3 py-2 text-sm font-semibold text-jade-700">
+                ✅ ¡Pago confirmado! Ya le llegó a la tienda.
+              </div>
+            )}
             <p className="mt-2 text-xs text-ink/50">
-              Este QR es exclusivo de tu pedido y se confirma solo — no hace falta que avises
-              por WhatsApp, pero puedes hacerlo igual si quieres.
+              {paymentStatus === "pendiente"
+                ? "Este QR es exclusivo de tu pedido y se confirma solo — no hace falta que avises por WhatsApp, pero puedes hacerlo igual si quieres."
+                : "Ya podés cerrar esta pantalla — el vendedor ya ve tu pedido como pagado."}
             </p>
           </div>
         )}
