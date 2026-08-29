@@ -477,12 +477,17 @@ export async function getOrderByInfinityOrderId(infinityOrderId: string): Promis
 // unos minutos para no pisarle el intento normal al webhook.
 export async function listStalePendingQrOrders(olderThanMinutes: number): Promise<Order[]> {
   await dbReady;
+  // created_at es TEXT (ISO 8601, ver lib/db.ts → nowISO), no timestamptz —
+  // comparar contra now() directo en SQL falla ("operator does not exist:
+  // text < timestamp with time zone"). Calculamos el corte en JS y
+  // comparamos texto con texto, igual que el resto del código.
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000).toISOString();
   const rows = await sql<Omit<Order, "items">[]>`
     SELECT * FROM orders
     WHERE payment_method = 'qr'
       AND status = 'pendiente'
       AND infinity_order_id IS NOT NULL
-      AND created_at < now() - (${olderThanMinutes}::text || ' minutes')::interval
+      AND created_at < ${cutoff}
   `;
   return Promise.all(rows.map(attachItems));
 }

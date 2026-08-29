@@ -13,6 +13,12 @@ import { calculateCommission } from "@/lib/commission";
 // Programado en vercel.json. Protegido con CRON_SECRET (Vercel se lo manda
 // solo si la variable de entorno CRON_SECRET está seteada — ver
 // https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs).
+// Fuerza a que se ejecute en cada llamada del cron en vez de que Next.js
+// intente pre-renderizarla en build (ahí fue donde salió a la luz el bug de
+// la comparación de fechas — ver listStalePendingQrOrders — porque el build
+// la ejecutó de verdad contra la base de producción).
+export const dynamic = "force-dynamic";
+
 const OLDER_THAN_MINUTES = 10;
 
 export async function GET(req: NextRequest) {
