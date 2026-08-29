@@ -115,9 +115,14 @@ export async function POST(
       commissionAmount: number;
     } | null = null;
 
+    // DEBUG TEMPORAL — chequeando si una variable "Shared" de Vercel resucitó
+    // un PUBLIC_APP_URL viejo pese a haberla borrado del proyecto. Sacar
+    // apenas se confirme.
+    let _debugCallback: string | null = null;
     if (paymentMethod === "qr" && isInfinityConfigured()) {
       try {
         const callback = `${process.env.PUBLIC_APP_URL || req.nextUrl.origin}/api/webhooks/infinity`;
+        _debugCallback = callback;
         const { commissionAmount, totalToCharge } = calculateCommission(order.total, true);
         const result = await createPayment({
           amount: totalToCharge,
@@ -171,7 +176,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ order, payment });
+    return NextResponse.json({ order, payment, _debugCallback });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "No se pudo crear el pedido" }, { status: 400 });
   }
