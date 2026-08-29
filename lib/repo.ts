@@ -470,6 +470,23 @@ export async function getOrderByInfinityOrderId(infinityOrderId: string): Promis
   return rows[0] ? attachItems(rows[0]) : null;
 }
 
+// Red de respaldo por si el webhook de Infinity nunca llega (nos pasó con
+// una URL de callback vieja, y también cuando el pago se confirma como
+// "manual-admin" desde el panel de ellos, que no dispara webhook) — ver
+// app/api/cron/reconcile-payments/route.ts. Solo trae pedidos con más de
+// unos minutos para no pisarle el intento normal al webhook.
+export async function listStalePendingQrOrders(olderThanMinutes: number): Promise<Order[]> {
+  await dbReady;
+  const rows = await sql<Omit<Order, "items">[]>`
+    SELECT * FROM orders
+    WHERE payment_method = 'qr'
+      AND status = 'pendiente'
+      AND infinity_order_id IS NOT NULL
+      AND created_at < now() - (${olderThanMinutes}::text || ' minutes')::interval
+  `;
+  return Promise.all(rows.map(attachItems));
+}
+
 type CartInputItem = { productId: string; variantId: string | null; quantity: number };
 
 /**
