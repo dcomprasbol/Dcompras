@@ -17,6 +17,12 @@ export default async function ProductPage({
   const product = await getProductById(params.productId);
   if (!product || product.storeId !== store.id || !product.active) notFound();
 
+  // A pedido del dueño: los agotados suelen ser piezas únicas que no
+  // vuelven a tener stock, así que ni el link directo a la ficha funciona
+  // — mismo criterio que el catálogo (app/[slug]/page.tsx).
+  const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
+  if (totalStock === 0) notFound();
+
   const onSale = product.compareAtPrice != null && product.compareAtPrice > product.price;
   const discountPct = onSale ? Math.round((1 - product.price / product.compareAtPrice!) * 100) : 0;
 

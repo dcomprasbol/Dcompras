@@ -17,7 +17,16 @@ export default async function StoreCatalogPage({
   const store = await getStoreBySlug(params.slug);
   if (!store) notFound();
 
-  const products = await listActiveProducts(store.id);
+  // A pedido del dueño: acá los productos agotados suelen ser piezas
+  // únicas que no vuelven a tener stock, así que en el catálogo público se
+  // ocultan del todo (ni "Agotado" ni "avisame") en vez de solo bloquear
+  // la compra — listActiveProducts sigue trayendo todo, sin filtrar, porque
+  // también la usa el panel del propio vendedor (necesita ver y poder
+  // reactivar sus productos agotados).
+  const allProducts = await listActiveProducts(store.id);
+  const products = allProducts.filter(
+    (p) => p.variants.reduce((s, v) => s + v.stock, 0) > 0
+  );
   const heroProduct = products[0];
   const eyebrow = [categoryLabel(store.category), store.city].filter(Boolean).join(" · ");
 
