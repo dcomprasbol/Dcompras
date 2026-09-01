@@ -24,6 +24,17 @@ export const sql =
   postgres(connectionString, {
     ssl: "require",
     transform: postgres.camel,
+    // DATABASE_URL apunta al connection pooler de Supabase (puerto 6543,
+    // modo "Transaction") — necesario en Vercel porque el host directo es
+    // IPv6-only y el runtime serverless no tiene salida IPv6 (ver README).
+    // Ese modo de pooler reparte cada query entre distintas conexiones
+    // físicas a Postgres, así que un "PREPARE" hecho en una conexión puede
+    // no existir todavía en la que atiende el siguiente "EXECUTE" — postgres.js
+    // por defecto prepara cada query, y eso revienta con
+    // 'prepared statement "..." does not exist' de forma intermitente
+    // (justo lo que pasó al confirmar un pedido en el checkout). Con el
+    // pooler en modo Transaction hay que desactivar los prepared statements.
+    prepare: false,
   });
 
 if (process.env.NODE_ENV !== "production") globalForDb.sql = sql;
