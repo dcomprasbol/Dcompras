@@ -81,7 +81,9 @@ export default function AddToCartForm({
         type="button"
         onClick={handleAdd}
         disabled={outOfStock}
-        className="btn-editorial btn-editorial-solid w-full disabled:opacity-50"
+        className={`btn-editorial btn-editorial-solid w-full disabled:opacity-50 ${
+          added ? "animate-confirm-pulse" : ""
+        }`}
       >
         {outOfStock ? "Sin stock" : added ? "¡Agregado! ✓" : "Agregar al carrito"}
       </MotionButton>

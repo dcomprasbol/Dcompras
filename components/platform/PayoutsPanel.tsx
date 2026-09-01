@@ -29,6 +29,7 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   const [imageProcessing, setImageProcessing] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmedId, setConfirmedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function openConfirm(payoutId: string) {
@@ -82,8 +83,14 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
         window.alert(data.error || "No se pudo confirmar la liquidación");
         return;
       }
-      setPending((prev) => prev.filter((p) => p.id !== payoutId));
+      // La fila se achica y desaparece en vez de saltar de golpe — confirma
+      // visualmente que quedó cerrada la liquidación.
+      setConfirmedId(payoutId);
       closeConfirm();
+      setTimeout(() => {
+        setPending((prev) => prev.filter((p) => p.id !== payoutId));
+        setConfirmedId(null);
+      }, 280);
     } finally {
       setSaving(false);
     }
@@ -100,7 +107,12 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   return (
     <div className="space-y-3">
       {pending.map((row) => (
-        <div key={row.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <div
+          key={row.id}
+          className={`animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm ${
+            confirmedId === row.id ? "animate-shrink-out" : ""
+          }`}
+        >
           <div className="flex items-start gap-4">
             {row.paymentQrImageUrl && (
               // El QR de cobro de la tienda sirve igual para pagarle: cualquier

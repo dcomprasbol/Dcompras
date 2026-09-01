@@ -36,6 +36,8 @@ export default function AdminProducts({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savedPulse, setSavedPulse] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadProducts() {
@@ -140,7 +142,11 @@ export default function AdminProducts({ slug }: { slug: string }) {
         return;
       }
       resetForm();
-      loadProducts();
+      await loadProducts();
+      // Pulso breve en el botón de "+ Nuevo producto" para confirmar que se
+      // guardó, ya que el formulario se cierra solo y podría no notarse.
+      setSavedPulse(true);
+      setTimeout(() => setSavedPulse(false), 400);
     } catch {
       setError("Error de conexión");
     } finally {
@@ -150,10 +156,17 @@ export default function AdminProducts({ slug }: { slug: string }) {
 
   async function handleDelete(productId: string) {
     if (!confirm("¿Eliminar este producto?")) return;
+    // Primero se ve la fila achicándose (animate-shrink-out) y recién
+    // después se borra de verdad — si desaparece de golpe no queda claro
+    // qué pasó.
+    setDeletingId(productId);
     await fetch(`/api/stores/${slug}/products/${productId}`, {
       method: "DELETE",
     });
-    loadProducts();
+    setTimeout(async () => {
+      await loadProducts();
+      setDeletingId(null);
+    }, 280);
   }
 
   return (
@@ -168,7 +181,9 @@ export default function AdminProducts({ slug }: { slug: string }) {
         </p>
         <button
           onClick={() => (showForm ? resetForm() : setShowForm(true))}
-          className="rounded-full bg-jade-500 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-jade-600"
+          className={`rounded-full bg-jade-500 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-jade-600 ${
+            savedPulse ? "animate-confirm-pulse" : ""
+          }`}
         >
           {showForm ? "Cancelar" : "+ Nuevo producto"}
         </button>
@@ -357,7 +372,9 @@ export default function AdminProducts({ slug }: { slug: string }) {
             return (
             <div
               key={p.id}
-              className="rounded-2xl border border-ink/5 bg-white p-3 shadow-sm"
+              className={`rounded-2xl border border-ink/5 bg-white p-3 shadow-sm animate-pop ${
+                deletingId === p.id ? "animate-shrink-out" : ""
+              }`}
             >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

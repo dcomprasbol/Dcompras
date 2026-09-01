@@ -15,6 +15,7 @@ type SupportMessage = {
 
 export default function SupportInbox({ initialMessages }: { initialMessages: SupportMessage[] }) {
   const [messages, setMessages] = useState<SupportMessage[]>(initialMessages);
+  const [justResolvedId, setJustResolvedId] = useState<string | null>(null);
 
   async function markResuelto(id: string) {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: "resuelto" } : m)));
@@ -23,6 +24,8 @@ export default function SupportInbox({ initialMessages }: { initialMessages: Sup
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "resuelto" }),
     });
+    setJustResolvedId(id);
+    setTimeout(() => setJustResolvedId(null), 400);
   }
 
   if (messages.length === 0) {
@@ -32,7 +35,7 @@ export default function SupportInbox({ initialMessages }: { initialMessages: Sup
   return (
     <div className="space-y-3">
       {messages.map((m) => (
-        <div key={m.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <div key={m.id} className="animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
           <div className="mb-1 flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-bold text-ink">{m.subject}</p>
@@ -45,7 +48,7 @@ export default function SupportInbox({ initialMessages }: { initialMessages: Sup
                 m.status === "resuelto"
                   ? "bg-jade-50 text-jade-700"
                   : "bg-amber-50 text-amber-600"
-              }`}
+              } ${justResolvedId === m.id ? "animate-confirm-pulse" : ""}`}
             >
               {m.status === "resuelto" ? "Resuelto" : "Abierto"}
             </span>

@@ -92,7 +92,9 @@ export default function AdminSupport({ slug }: { slug: string }) {
           <button
             type="submit"
             disabled={sending}
-            className="w-full rounded-full bg-jade-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
+            className={`w-full rounded-full bg-jade-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60 ${
+              sent ? "animate-confirm-pulse" : ""
+            }`}
           >
             {sending ? "Enviando..." : sent ? "¡Enviado! ✓" : "Enviar mensaje"}
           </button>
@@ -108,7 +110,7 @@ export default function AdminSupport({ slug }: { slug: string }) {
         ) : (
           <div className="space-y-2">
             {messages.map((m) => (
-              <div key={m.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+              <div key={m.id} className="animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
                 <div className="mb-1 flex items-start justify-between gap-2">
                   <p className="text-sm font-bold text-ink">{m.subject}</p>
                   <span

@@ -73,6 +73,21 @@ const config: Config = {
           from: { transform: "scaleX(0)" },
           to: { transform: "scaleX(1)" },
         },
+        // Contraparte de "pop": para cuando se borra una fila de una lista
+        // (producto, pedido, liquidación, mensaje) en vez de que desaparezca
+        // de golpe. Colapsa el alto para que el resto de la lista suba solo.
+        "shrink-out": {
+          "0%": { transform: "scale(1)", opacity: "1", maxHeight: "200px" },
+          "60%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(0.95)", opacity: "0", maxHeight: "0px", marginBottom: "0px" },
+        },
+        // Pulso corto para confirmar "esto se guardó/hizo" en un botón o
+        // badge, sin ser tan intrusivo como el pop de aparición.
+        "confirm-pulse": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1)" },
+        },
       },
       animation: {
         marquee: "marquee 28s linear infinite",
@@ -83,6 +98,8 @@ const config: Config = {
         // "both": durante el animation-delay se queda en el estado inicial
         // (scaleX(0)) en vez de mostrarse ya llena y "saltar" al arrancar.
         "grow-x": "grow-x 0.6s ease-out both",
+        "shrink-out": "shrink-out 0.3s ease-in forwards",
+        "confirm-pulse": "confirm-pulse 0.35s ease-out",
       },
     },
   },

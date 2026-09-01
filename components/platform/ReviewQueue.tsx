@@ -31,6 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ReviewQueue({ initialStores }: { initialStores: Store[] }) {
   const [stores, setStores] = useState<Store[]>(initialStores);
+  const [justChangedId, setJustChangedId] = useState<string | null>(null);
 
   async function updateStatus(storeId: string, status: string, note?: string | null) {
     setStores((prev) =>
@@ -41,6 +42,8 @@ export default function ReviewQueue({ initialStores }: { initialStores: Store[] 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, note }),
     });
+    setJustChangedId(storeId);
+    setTimeout(() => setJustChangedId(null), 400);
   }
 
   function handleReject(storeId: string) {
@@ -59,7 +62,7 @@ export default function ReviewQueue({ initialStores }: { initialStores: Store[] 
   return (
     <div className="space-y-3">
       {stores.map((store) => (
-        <div key={store.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <div key={store.id} className="animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <p className="text-sm font-bold text-ink">
@@ -73,7 +76,9 @@ export default function ReviewQueue({ initialStores }: { initialStores: Store[] 
               </p>
             </div>
             <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[store.status] || "bg-gray-200 text-ink/70"}`}
+              className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[store.status] || "bg-gray-200 text-ink/70"} ${
+                justChangedId === store.id ? "animate-confirm-pulse" : ""
+              }`}
             >
               {storeStatusLabel(store.status)}
             </span>

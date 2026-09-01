@@ -26,6 +26,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justRequested, setJustRequested] = useState(false);
 
   async function load() {
     const [earningsRes, storeRes] = await Promise.all([
@@ -56,6 +57,8 @@ export default function AdminEarnings({ slug }: { slug: string }) {
         return;
       }
       await load();
+      setJustRequested(true);
+      setTimeout(() => setJustRequested(false), 500);
     } finally {
       setRequesting(false);
     }
@@ -84,7 +87,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
           pedidos contra entrega — esos nunca pasan por Dcompras.
         </p>
         {pending && pending.orderCount > 0 ? (
-          <div className="rounded-xl bg-paper p-3.5">
+          <div className={`rounded-xl bg-paper p-3.5 ${justRequested ? "animate-confirm-pulse" : ""}`}>
             <p className="font-mono text-2xl font-bold text-jade-600">
               {formatBs(pending.netAmount)}
             </p>
@@ -117,7 +120,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
           <h2 className="mb-3 text-sm font-bold text-ink">En camino</h2>
           <div className="space-y-2">
             {requested.map((p) => (
-              <div key={p.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div key={p.id} className="animate-pop rounded-2xl border border-amber-200 bg-amber-50 p-4">
                 <div className="mb-1 flex items-start justify-between gap-2">
                   <p className="font-mono text-lg font-bold text-amber-700">
                     {formatBs(p.netAmount)}
@@ -142,7 +145,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
         ) : (
           <div className="space-y-2">
             {paid.map((p) => (
-              <div key={p.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+              <div key={p.id} className="animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
                 <div className="mb-1 flex items-start justify-between gap-2">
                   <p className="font-mono text-lg font-bold text-jade-600">
                     {formatBs(p.netAmount)}

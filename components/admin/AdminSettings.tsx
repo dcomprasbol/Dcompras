@@ -378,7 +378,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
       <button
         type="submit"
         disabled={saving}
-        className="w-full rounded-full bg-jade-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
+        className={`w-full rounded-full bg-jade-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60 ${
+          saved ? "animate-confirm-pulse" : ""
+        }`}
       >
         {saving ? "Guardando..." : saved ? "¡Guardado! ✓" : "Guardar cambios"}
       </button>

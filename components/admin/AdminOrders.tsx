@@ -46,6 +46,7 @@ export default function AdminOrders({ slug }: { slug: string }) {
   const [estimatedDrafts, setEstimatedDrafts] = useState<Record<string, string>>({});
   const [savingEstimate, setSavingEstimate] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [justChangedId, setJustChangedId] = useState<string | null>(null);
 
   async function loadOrders() {
     setLoading(true);
@@ -73,7 +74,12 @@ export default function AdminOrders({ slug }: { slug: string }) {
       const data = await res.json().catch(() => ({}));
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: previous! } : o)));
       window.alert(data.error || "No se pudo cambiar el estado del pedido");
+      return;
     }
+    // Confirma visualmente que el cambio de estado se guardó de verdad
+    // (no solo el update optimista) — el badge pulsa un instante.
+    setJustChangedId(orderId);
+    setTimeout(() => setJustChangedId(null), 400);
   }
 
   async function saveEstimatedDelivery(orderId: string) {
@@ -108,7 +114,7 @@ export default function AdminOrders({ slug }: { slug: string }) {
   return (
     <div className="space-y-3">
       {orders.map((order) => (
-        <div key={order.id} className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <div key={order.id} className="animate-pop rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
           <div className="mb-2 flex items-start justify-between">
             <div>
               <p className="text-sm font-bold text-ink">
@@ -131,7 +137,9 @@ export default function AdminOrders({ slug }: { slug: string }) {
               </p>
             </div>
             <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[order.status]}`}
+              className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[order.status]} ${
+                justChangedId === order.id ? "animate-confirm-pulse" : ""
+              }`}
             >
               {statusLabel(order.status)}
             </span>
@@ -205,7 +213,9 @@ export default function AdminOrders({ slug }: { slug: string }) {
             </button>
             <button
               onClick={() => copyTrackingLink(order.id)}
-              className="ml-auto rounded-lg border border-ink/15 px-2.5 py-1 text-xs font-medium text-ink/60 transition hover:border-ink/30"
+              className={`ml-auto rounded-lg border border-ink/15 px-2.5 py-1 text-xs font-medium text-ink/60 transition hover:border-ink/30 ${
+                copiedId === order.id ? "animate-confirm-pulse border-jade-300 text-jade-600" : ""
+              }`}
             >
               {copiedId === order.id ? "¡Copiado! ✓" : "🔗 Copiar link de seguimiento"}
             </button>
