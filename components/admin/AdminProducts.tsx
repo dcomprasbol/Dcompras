@@ -27,8 +27,15 @@ export default function AdminProducts({ slug }: { slug: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  // "price" es siempre el precio normal del producto, el que el vendedor
+  // nunca tiene que tocar para armar una oferta. "salePrice" es el precio
+  // CON descuento (opcional) — si se llena, la ficha muestra ese precio
+  // grande y el normal tachado al lado; si queda vacío, se cobra el normal
+  // sin más. A la API le sigue mandando { price, compareAtPrice } como
+  // siempre (ver handleSubmit): la API no sabe ni le importa cuál de los dos
+  // campos del formulario originó cada valor.
   const [price, setPrice] = useState("");
-  const [compareAtPrice, setCompareAtPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([{ label: "", stock: 0 }]);
@@ -90,7 +97,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     setName("");
     setDescription("");
     setPrice("");
-    setCompareAtPrice("");
+    setSalePrice("");
     handleRemoveImage();
     setHasVariants(false);
     setVariants([{ label: "", stock: 0 }]);
@@ -99,11 +106,16 @@ export default function AdminProducts({ slug }: { slug: string }) {
   }
 
   function handleEdit(p: Product) {
+    const onSale = p.compareAtPrice != null && p.compareAtPrice > p.price;
     setEditingId(p.id);
     setName(p.name);
     setDescription(p.description || "");
-    setPrice(String(p.price));
-    setCompareAtPrice(p.compareAtPrice != null ? String(p.compareAtPrice) : "");
+    // El campo "Precio (Bs)" siempre muestra el precio normal — si el
+    // producto está en oferta, ese normal es compareAtPrice (el tachado) y
+    // el precio con descuento va al campo de abajo; si no, es simplemente
+    // p.price y el campo de descuento queda vacío.
+    setPrice(String(onSale ? p.compareAtPrice : p.price));
+    setSalePrice(onSale ? String(p.price) : "");
     setImageUrl(p.imageUrl || "");
     setError(null);
     setShowForm(true);
@@ -112,6 +124,20 @@ export default function AdminProducts({ slug }: { slug: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // El precio normal (arriba) nunca se toca para armar una oferta — el
+    // vendedor solo llena "Precio con descuento" si quiere ofertar. Acá se
+    // traduce a lo que la API siempre espera: price = lo que se cobra,
+    // compareAtPrice = el normal tachado (o null si no hay oferta).
+    const normalPrice = Number(price);
+    const saleNum = salePrice === "" ? null : Number(salePrice);
+    if (saleNum != null && saleNum >= normalPrice) {
+      setError("El precio con descuento tiene que ser menor al precio normal de arriba.");
+      return;
+    }
+    const finalPrice = saleNum != null ? saleNum : normalPrice;
+    const finalCompareAtPrice = saleNum != null ? normalPrice : null;
+
     setSaving(true);
     try {
       const res = await fetch(
@@ -122,8 +148,8 @@ export default function AdminProducts({ slug }: { slug: string }) {
           body: JSON.stringify({
             name,
             description,
-            price: Number(price),
-            compareAtPrice: compareAtPrice === "" ? null : Number(compareAtPrice),
+            price: finalPrice,
+            compareAtPrice: finalCompareAtPrice,
             imageUrl: imageUrl || null,
             ...(editingId
               ? {}
@@ -205,7 +231,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-ink/70">Precio (Bs)</label>
+              <label className="mb-1 block text-sm font-medium text-ink/70">Precio normal (Bs)</label>
               <input
                 required
                 type="number"
@@ -218,31 +244,31 @@ export default function AdminProducts({ slug }: { slug: string }) {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-ink/70">
-                Precio anterior (tachado)
+                Precio con descuento
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
-                placeholder="Opcional"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="Poné acá el nuevo precio"
                 className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
               />
             </div>
           </div>
-          {/* "Precio (Bs)" de arriba es lo que el cliente paga ahora, ya con
-              el descuento — este campo es el precio de ANTES, más alto, que
-              se muestra tachado al lado. Por eso tiene que ser mayor, no
-              menor: quien lo lea acá abajo puede confundir "precio de
-              oferta" con "el precio con descuento", que es justo al revés. */}
-          {compareAtPrice && Number(compareAtPrice) > 0 && (
+          {/* "Precio (Bs)" de arriba es el precio normal — nunca hay que
+              tocarlo para armar una oferta. Este campo es el precio NUEVO,
+              más bajo, que se le cobra al cliente; el normal queda tachado
+              al lado como etiqueta de descuento. Por eso tiene que ser
+              menor, no mayor. */}
+          {salePrice && Number(salePrice) > 0 && (
             <p className="-mt-2 text-xs text-ink/40">
-              {Number(compareAtPrice) > Number(price || 0)
-                ? `Tu cliente ve: Bs ${Number(price || 0).toFixed(2)} y, tachado al lado, Bs ${Number(compareAtPrice).toFixed(2)} — con la etiqueta "Oferta -${Math.round(
-                    (1 - Number(price || 0) / Number(compareAtPrice)) * 100
+              {Number(salePrice) < Number(price || 0)
+                ? `Tu cliente ve: Bs ${Number(salePrice).toFixed(2)} y, tachado al lado, Bs ${Number(price || 0).toFixed(2)} — con la etiqueta "Oferta -${Math.round(
+                    (1 - Number(salePrice) / Number(price || 0)) * 100
                   )}%".`
-                : "Poné acá el precio de ANTES del descuento (tiene que ser mayor al precio de arriba) — ese es el que se tacha, no el precio final."}
+                : "Este precio se va a mostrar como oferta con etiqueta de descuento — tiene que ser menor al precio normal de arriba."}
             </p>
           )}
           <div>
