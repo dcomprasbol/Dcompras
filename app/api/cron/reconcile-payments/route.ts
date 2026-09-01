@@ -10,8 +10,16 @@ import { calculateCommission } from "@/lib/commission";
 // ningún webhook. En vez de depender 100% de que la notificación llegue,
 // este cron pregunta activamente por cada pedido QR pendiente hace rato.
 //
-// Programado en vercel.json. Protegido con CRON_SECRET (Vercel se lo manda
-// solo si la variable de entorno CRON_SECRET está seteada — ver
+// Programado en vercel.json — una vez al día (0 8 * * *), porque el plan
+// Hobby de Vercel rechaza cualquier cron más frecuente que eso (y eso fue
+// justo lo que tuvo el build entero sin desplegarse varios días: puse
+// */10 * * * * sin darme cuenta de esa limitación, y CADA deployment desde
+// ese commit fallaba en silencio por esto, no por ningún bug de código).
+// Si en algún momento pasan a plan Pro, cambiar a algo como "*/10 * * * *"
+// para que la red de respaldo actúe más rápido.
+//
+// Protegido con CRON_SECRET (Vercel se lo manda solo si la variable de
+// entorno CRON_SECRET está seteada — ver
 // https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs).
 // Fuerza a que se ejecute en cada llamada del cron en vez de que Next.js
 // intente pre-renderizarla en build (ahí fue donde salió a la luz el bug de
