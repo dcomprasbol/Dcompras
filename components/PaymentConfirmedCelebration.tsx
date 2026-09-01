@@ -32,7 +32,11 @@ export default function PaymentConfirmedCelebration({
           key="payment-celebration"
           role="status"
           aria-live="polite"
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-ink/92 backdrop-blur-sm"
+          // "bg-ink/92" (color custom del tema) compilaba a transparente —
+          // Tailwind no le generaba la regla con el modificador de opacidad.
+          // bg-black/90 es un color base de Tailwind, soporta opacidad sin
+          // depender de cómo esté definido "ink" en tailwind.config.
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
