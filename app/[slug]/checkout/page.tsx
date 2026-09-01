@@ -8,6 +8,7 @@ import { MotionButton } from "@/components/MotionCta";
 import { formatBs, DELIVERY_TYPES } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import LocationField from "@/components/LocationField";
+import PaymentConfirmedCelebration from "@/components/PaymentConfirmedCelebration";
 import type { LatLng } from "@/components/LocationPicker";
 
 type StoreInfo = {
@@ -41,6 +42,11 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   // abajo); apenas el webhook confirma el pago, pasa a "pagado" y la
   // pantalla lo muestra al toque, sin que el comprador tenga que refrescar.
   const [paymentStatus, setPaymentStatus] = useState<"pendiente" | "pagado">("pendiente");
+  // Festejo a pantalla completa que se muestra un instante justo cuando el
+  // polling detecta la confirmación — separado de paymentStatus porque este
+  // se apaga solo a los pocos segundos, mientras que paymentStatus se queda
+  // en "pagado" para siempre (el cartel chico de abajo).
+  const [showCelebration, setShowCelebration] = useState(false);
   // Monto realmente cobrado del pedido confirmado (con comisión sumada si
   // aplicó) — se fija recién al recibir la respuesta del servidor y ya no
   // se toca, porque `total` del carrito vuelve a 0 apenas se llama clear().
@@ -96,6 +102,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         const data = await res.json();
         if (data.status === "pagado") {
           setPaymentStatus("pagado");
+          setShowCelebration(true);
           clearInterval(interval);
         }
       } catch {
@@ -162,7 +169,12 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
       `Hola, acabo de hacer un pedido #${orderId.slice(-6).toUpperCase()} por ${formatBs(paidAmount)}. Mi nombre es ${name}.\n\nSeguimiento: ${typeof window !== "undefined" ? window.location.origin : ""}${trackingPath}`
     );
     return (
-      <div className="animate-pop mx-auto max-w-md border border-ink/10 bg-white p-6 text-center md:my-10">
+      <>
+        <PaymentConfirmedCelebration
+          show={showCelebration}
+          onDone={() => setShowCelebration(false)}
+        />
+        <div className="animate-pop mx-auto max-w-md border border-ink/10 bg-white p-6 text-center md:my-10">
         <p className="text-2xl">✅</p>
         <h1 className="mt-2 font-impact text-xl uppercase tracking-tight text-ink">
           ¡Pedido recibido!
@@ -245,7 +257,8 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         >
           Volver a la tienda
         </button>
-      </div>
+        </div>
+      </>
     );
   }
 

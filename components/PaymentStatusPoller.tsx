@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import PaymentConfirmedCelebration from "@/components/PaymentConfirmedCelebration";
 
 // Componente invisible: mientras el pedido siga 'pendiente' y sea por QR,
 // consulta cada 4s si ya se confirmó el pago (hasta 10 minutos) y, apenas
@@ -21,6 +22,11 @@ export default function PaymentStatusPoller({
   paymentMethod: string;
 }) {
   const router = useRouter();
+  // El festejo se dispara ANTES de router.refresh() y sobrevive al refresh
+  // (mismo componente, misma posición en el árbol → React conserva este
+  // estado) — así el comprador ve la pantalla completa apenas se confirma,
+  // no recién después de que la página del servidor termine de recargar.
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     if (paymentMethod !== "qr" || status !== "pendiente") return;
@@ -37,6 +43,7 @@ export default function PaymentStatusPoller({
         const data = await res.json();
         if (data.status && data.status !== status) {
           clearInterval(interval);
+          if (data.status === "pagado") setShowCelebration(true);
           router.refresh();
         }
       } catch {
@@ -46,5 +53,7 @@ export default function PaymentStatusPoller({
     return () => clearInterval(interval);
   }, [slug, orderId, status, paymentMethod, router]);
 
-  return null;
+  return (
+    <PaymentConfirmedCelebration show={showCelebration} onDone={() => setShowCelebration(false)} />
+  );
 }
