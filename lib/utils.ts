@@ -63,8 +63,15 @@ export const ORDER_STATUSES = [
   { value: "entregado", label: "Entregado" },
 ] as const;
 
+// "recibido" no es un botón que el vendedor pueda tocar en su panel: solo lo
+// pone el propio comprador al confirmar que le llegó (ver
+// ConfirmReceivedButton), así que vive aparte de ORDER_STATUSES.
+const EXTRA_STATUS_LABELS: Record<string, string> = {
+  recibido: "Recibido",
+};
+
 export function statusLabel(value: string): string {
-  return ORDER_STATUSES.find((s) => s.value === value)?.label ?? value;
+  return ORDER_STATUSES.find((s) => s.value === value)?.label ?? EXTRA_STATUS_LABELS[value] ?? value;
 }
 
 export const STORE_STATUSES = [

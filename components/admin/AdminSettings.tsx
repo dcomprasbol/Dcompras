@@ -18,10 +18,12 @@ export default function AdminSettings({ slug }: { slug: string }) {
   const [qrProcessing, setQrProcessing] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const qrFileInputRef = useRef<HTMLInputElement>(null);
-  const [paymentInstructions, setPaymentInstructions] = useState("");
   const [category, setCategory] = useState<string>(STORE_CATEGORIES[0].value);
   const [themeColor, setThemeColor] = useState(DEFAULT_STORE_COLOR);
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoProcessing, setLogoProcessing] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
   const [fontChoice, setFontChoice] = useState<string>(STORE_FONTS[0].value);
   const [tagline, setTagline] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -44,7 +46,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
         setWhatsapp(d.store.whatsapp || "");
         setCity(d.store.city || "");
         setPaymentQrImageUrl(d.store.paymentQrImageUrl || "");
-        setPaymentInstructions(d.store.paymentInstructions || "");
         setCategory(d.store.category || STORE_CATEGORIES[0].value);
         setThemeColor(d.store.themeColor || DEFAULT_STORE_COLOR);
         setLogoUrl(d.store.logoUrl || "");
@@ -73,7 +74,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
         whatsapp,
         city,
         paymentQrImageUrl,
-        paymentInstructions,
         category,
         themeColor,
         logoUrl,
@@ -92,6 +92,26 @@ export default function AdminSettings({ slug }: { slug: string }) {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoError(null);
+    setLogoProcessing(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setLogoUrl(dataUrl);
+    } catch {
+      setLogoError("No se pudo procesar esa imagen, intenta con otra foto");
+    } finally {
+      setLogoProcessing(false);
+    }
+  }
+
+  function handleRemoveLogo() {
+    setLogoUrl("");
+    if (logoFileInputRef.current) logoFileInputRef.current.value = "";
   }
 
   async function handleQrChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -213,23 +233,33 @@ export default function AdminSettings({ slug }: { slug: string }) {
           />
         </div>
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-ink/70">Logo (URL de imagen)</label>
-          <div className="flex items-center gap-3">
-            {logoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
+          <label className="mb-1 block text-sm font-medium text-ink/70">Logo</label>
+          <input
+            ref={logoFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoChange}
+            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-jade-700"
+          />
+          {logoProcessing && <p className="mt-1 text-xs text-ink/50">Procesando imagen...</p>}
+          {logoError && <p className="mt-1 text-xs text-coral-600">{logoError}</p>}
+          {logoUrl && !logoProcessing && (
+            <div className="mt-2 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoUrl}
                 alt="Vista previa del logo"
-                className="h-9 w-9 shrink-0 rounded-lg border object-cover"
+                className="h-16 w-16 rounded-lg border object-cover"
               />
-            )}
-            <input
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            />
-          </div>
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                className="text-xs font-medium text-coral-500"
+              >
+                Quitar foto
+              </button>
+            </div>
+          )}
         </div>
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">Tipografía</label>
@@ -263,7 +293,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
         <h2 className="mb-1 text-sm font-bold text-ink">Lanzamiento programado (drop)</h2>
         <p className="mb-3 text-xs text-ink/50">
           Opcional. Si pones una fecha y hora futura, tu portada muestra una cuenta regresiva en
-          vez del texto de bienvenida normal — sirve para generar expectativa antes de sacar un
+          vez del texto de bienvenida normal, sirve para generar expectativa antes de sacar un
           producto nuevo. Déjalo vacío para no mostrar nada.
         </p>
         <input
@@ -278,7 +308,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
         <h2 className="mb-1 text-sm font-bold text-ink">Datos bancarios</h2>
         <p className="mb-3 text-xs text-ink/50">
           A esta cuenta te liquidamos lo que te corresponde de tus ventas por QR (ver pestaña
-          Billetera). Si ya subiste tu QR más abajo, no hace falta que llenes esto — con
+          Billetera). Si ya subiste tu QR más abajo, no hace falta que llenes esto: con
           cualquiera de los dos alcanza para poder pagarte.
         </p>
         <div className="mb-3">
@@ -328,7 +358,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-ink">Tu QR para que te liquidemos</h2>
         <p className="mb-3 text-xs text-ink/50">
-          Este QR nunca lo ve el comprador — es solo para que Dcompras te transfiera tu
+          Este QR nunca lo ve el comprador: es solo para que Dcompras te transfiera tu
           liquidación (Billetera) escaneándolo, como alternativa a llenar los datos bancarios de
           arriba. Con cualquiera de los dos alcanza.
         </p>
@@ -360,18 +390,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
               </button>
             </div>
           )}
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink/70">
-            Instrucciones para el comprador
-          </label>
-          <textarea
-            value={paymentInstructions}
-            onChange={(e) => setPaymentInstructions(e.target.value)}
-            rows={2}
-            placeholder="Ej: Envía tu comprobante por WhatsApp para confirmar tu pedido."
-            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-          />
         </div>
       </div>
 

@@ -48,7 +48,7 @@ export default function Hero() {
 
           <motion.p variants={item} className="mt-8 max-w-lg text-balance text-base text-white/60 md:text-lg">
             Publicitas en redes, pero cobras a mano y coordinas todo por WhatsApp. Dcompras te da
-            catálogo, checkout y cobro por QR en un link — para que vendas mientras duermes, no
+            catálogo, checkout y cobro por QR en un link, para que vendas mientras duermes, no
             solo cuando estás en vivo.
           </motion.p>
 

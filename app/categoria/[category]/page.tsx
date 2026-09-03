@@ -44,7 +44,7 @@ export default async function CategoryPage({
             {category.label}
           </h1>
           <p className="mt-2 text-sm text-ink/50">
-            Ranking de esta semana — se reinicia cada lunes. Las de arriba son las que más
+            Ranking de esta semana, se reinicia cada lunes. Las de arriba son las que más
             vendieron desde entonces.
           </p>
         </RevealOnScroll>

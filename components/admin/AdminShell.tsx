@@ -139,7 +139,7 @@ export default function AdminShell({
           {status === "pendiente" && (
             <div className="mb-5 rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
               🕐 Tu tienda está en revisión. Todavía no es visible al público ni puede recibir
-              pedidos — te avisaremos por WhatsApp cuando esté aprobada.
+              pedidos. Te avisaremos por WhatsApp cuando esté aprobada.
             </div>
           )}
           {status === "rechazada" && (

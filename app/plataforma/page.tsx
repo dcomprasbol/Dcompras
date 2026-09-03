@@ -107,7 +107,7 @@ export default async function PlataformaPage() {
               )}
             </div>
             <p className="mb-3 text-xs text-ink/50">
-              Vendedores que ya agendaron su liquidación desde su billetera — plata que está en la
+              Vendedores que ya agendaron su liquidación desde su billetera: plata que está en la
               cuenta de Dcompras (ventas por QR automático) y esperan que se la transfieras.
               Comisión actual: {commissionPercent()}%. Transfiere a mano (con el QR o los datos de
               abajo) y subí el comprobante para cerrarla.

@@ -17,7 +17,7 @@ export default function Stats() {
       <div className="mx-auto max-w-6xl">
         <RevealOnScroll>
           <p className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-ink/40">
-            El mercado ya está listo — solo falta la herramienta
+            El mercado ya está listo, solo falta la herramienta
           </p>
         </RevealOnScroll>
         <div className="grid gap-px overflow-hidden border border-ink/10 bg-ink/10 sm:grid-cols-3">

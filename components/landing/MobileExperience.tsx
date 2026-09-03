@@ -42,7 +42,7 @@ export default function MobileExperience() {
             Tu tienda, lista para el link en tu bio.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-white/60 md:text-base">
-            Compartila en tu estado de WhatsApp, tu bio de TikTok o tu feed de Instagram — se abre
+            Compartila en tu estado de WhatsApp, tu bio de TikTok o tu feed de Instagram: se abre
             directo en el celular de tu cliente, sin descargar nada, y se ve tan bien como en la
             computadora.
           </p>

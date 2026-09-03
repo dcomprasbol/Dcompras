@@ -36,7 +36,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             error:
-              "Este pedido todavía no está pagado — confirma el pago antes de prepararlo o enviarlo.",
+              "Este pedido todavía no está pagado. Confirma el pago antes de prepararlo o enviarlo.",
           },
           { status: 400 }
         );

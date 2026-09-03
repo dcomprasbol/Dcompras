@@ -43,7 +43,7 @@ export default function Audiences() {
             </h3>
             <p className="mt-4 text-sm leading-relaxed text-ink/60">
               Ve el stock real, elige tu talla, paga con QR o contra entrega, y sigue el estado
-              de tu pedido — sin depender de que el vendedor te conteste el chat.
+              de tu pedido, sin depender de que el vendedor te conteste el chat.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-ink/70">
               {["Stock siempre actualizado", "Pago con QR o efectivo", "Sin registro obligatorio"].map(

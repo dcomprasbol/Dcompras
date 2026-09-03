@@ -9,7 +9,7 @@ export default function PromoBar() {
         href="/crear-tienda"
         className="nav-sweep inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider"
       >
-        Nuevo: elige el color, logo y tipografía de tu tienda — gratis
+        Nuevo: elige el color, logo y tipografía de tu tienda, gratis
         <span aria-hidden="true">→</span>
       </Link>
     </div>

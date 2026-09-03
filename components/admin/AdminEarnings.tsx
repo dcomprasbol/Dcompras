@@ -73,7 +73,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     <div className="space-y-5">
       {!hasBankInfo && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          📋 Todavía no cargaste tu QR ni tus datos bancarios — sin uno de los dos no podés agendar
+          📋 Todavía no cargaste tu QR ni tus datos bancarios: sin uno de los dos no podés agendar
           una liquidación. <span className="font-medium">Agrégalos en la pestaña Cuenta.</span>
         </div>
       )}
@@ -83,8 +83,8 @@ export default function AdminEarnings({ slug }: { slug: string }) {
         <h2 className="mb-1 text-sm font-bold text-ink">Tu billetera</h2>
         <p className="mb-3 text-xs text-ink/50">
           Por cada venta pagada con QR automático, Dcompras le suma {commissionPercent}% al
-          comprador — a vos te llega el 100% de tu precio, sin descuentos. Nada de comisión en
-          pedidos contra entrega — esos nunca pasan por Dcompras.
+          comprador: a vos te llega el 100% de tu precio, sin descuentos. Nada de comisión en
+          pedidos contra entrega, esos nunca pasan por Dcompras.
         </p>
         {pending && pending.orderCount > 0 ? (
           <div className={`rounded-xl bg-paper p-3.5 ${justRequested ? "animate-confirm-pulse" : ""}`}>
@@ -110,7 +110,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
           </div>
         ) : (
           <p className="text-sm text-ink/50">
-            No tenés saldo pendiente — todavía no hay ventas por QR automático sin liquidar.
+            No tenés saldo pendiente, todavía no hay ventas por QR automático sin liquidar.
           </p>
         )}
       </div>

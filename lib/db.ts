@@ -186,10 +186,15 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- Trackeo del envío, para que el comprador vea el estado sin tener que
   -- preguntar por WhatsApp. estimated_delivery lo pone el vendedor (fecha,
   -- yyyy-mm-dd) al despachar; delivered_at se fija solo, una vez, cuando el
-  -- pedido pasa a 'entregado' (lo puede confirmar el propio comprador desde
-  -- su link de seguimiento, o el vendedor a mano como respaldo).
+  -- VENDEDOR marca el pedido como 'entregado'.
   ALTER TABLE orders ADD COLUMN IF NOT EXISTS estimated_delivery TEXT;
   ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TEXT;
+  -- Paso final, separado de 'entregado': el COMPRADOR confirma que de verdad
+  -- le llegó (recién ahí pasa a status 'recibido'), con calificación y
+  -- comentario opcionales — ver confirmOrderReceived en lib/repo.ts.
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS received_at TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating SMALLINT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS review TEXT;
   -- Cuenta del comprador (opcional): si estaba logueado al hacer el pedido,
   -- queda asociado acá para que lo vea después en /mis-pedidos. El checkout
   -- como invitado sigue funcionando igual — esto nunca es obligatorio, solo

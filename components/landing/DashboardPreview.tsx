@@ -21,7 +21,7 @@ export default function DashboardPreview() {
             Todos tus pedidos, en un solo lugar.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-ink/60 md:text-base">
-            Estado de cada pedido, cuánto vendiste y qué te queda por cobrar — sin abrir el chat
+            Estado de cada pedido, cuánto vendiste y qué te queda por cobrar, sin abrir el chat
             para acordarte quién ya pagó.
           </p>
         </RevealOnScroll>

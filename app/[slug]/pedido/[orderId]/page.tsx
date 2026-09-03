@@ -1,6 +1,7 @@
 import { getStoreBySlug, getOrderById } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import { formatBs, deliveryTypeLabel } from "@/lib/utils";
+import { calculateCommission } from "@/lib/commission";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
@@ -11,10 +12,12 @@ const STEPS = [
   { key: "confirmado", label: "Confirmado" },
   { key: "en_preparacion", label: "En preparación" },
   { key: "enviado", label: "Enviado" },
-  { key: "entregado", label: "Recibido" },
+  { key: "entregado", label: "Entregado" },
+  { key: "recibido", label: "Recibido" },
 ] as const;
 
 function stepIndex(status: string): number {
+  if (status === "recibido") return 4;
   if (status === "entregado") return 3;
   if (status === "enviado") return 2;
   if (status === "en_preparacion") return 1;
@@ -50,6 +53,15 @@ export default async function OrderTrackingPage({
     `Hola, te escribo por mi pedido #${code} en ${store.name}.`
   );
 
+  // Mismo cálculo que el checkout (lib/commission.ts): si el QR lo procesó
+  // Dcompras, lo que se cobra/cobró es el precio del vendedor + comisión.
+  // infinity_order_id ya queda guardado desde que se genera el QR, antes de
+  // que se confirme el pago, así que esto se ve igual antes y después de
+  // pagar.
+  const processedByDcompras =
+    order.paymentMethod === "qr" && (Boolean(order.infinityOrderId) || Boolean(order.sipIdQr));
+  const { commissionAmount, totalToCharge } = calculateCommission(order.total, processedByDcompras);
+
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 md:px-8">
       <PaymentStatusPoller
@@ -64,7 +76,7 @@ export default async function OrderTrackingPage({
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
           </span>
-          Esperando confirmación de tu pago — esta página se actualiza sola.
+          Esperando confirmación de tu pago. Esta página se actualiza sola.
         </RevealOnScroll>
       )}
       <RevealOnScroll>
@@ -82,7 +94,7 @@ export default async function OrderTrackingPage({
         </p>
       </RevealOnScroll>
 
-      {/* Línea de tiempo: 4 pasos fijos, sin importar si el pago fue por QR
+      {/* Línea de tiempo: 5 pasos fijos, sin importar si el pago fue por QR
           o contra entrega — lo único que cambia es qué tan lejos llegó.
           Animada para que se sienta "viva": el paso actual pulsa, los
           pasos ya completados hacen pop al aparecer, y la línea entre dos
@@ -134,10 +146,28 @@ export default async function OrderTrackingPage({
         </div>
       </RevealOnScroll>
 
-      {order.status === "entregado" && order.deliveredAt && (
+      {order.status === "recibido" && order.receivedAt && (
         <RevealOnScroll delay={120} className="mt-8">
           <p className="border border-jade-500 bg-jade-50 px-4 py-3 text-center text-sm font-semibold text-jade-700">
             Recibido el{" "}
+            {new Date(order.receivedAt).toLocaleDateString("es-BO", {
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
+          {order.rating && (
+            <p className="mt-2 text-center text-amber-400">
+              {"★".repeat(order.rating)}
+              <span className="text-ink/15">{"★".repeat(5 - order.rating)}</span>
+            </p>
+          )}
+        </RevealOnScroll>
+      )}
+
+      {order.status === "entregado" && order.deliveredAt && (
+        <RevealOnScroll delay={120} className="mt-8">
+          <p className="border border-ink/10 bg-white px-4 py-3 text-center text-sm font-semibold text-ink/70">
+            El vendedor marcó tu pedido como entregado el{" "}
             {new Date(order.deliveredAt).toLocaleDateString("es-BO", {
               day: "numeric",
               month: "long",
@@ -157,7 +187,7 @@ export default async function OrderTrackingPage({
         </RevealOnScroll>
       )}
 
-      {order.status === "enviado" && (
+      {order.status === "entregado" && (
         <RevealOnScroll delay={160} className="mt-6">
           <ConfirmReceivedButton slug={params.slug} orderId={order.id} />
           <p className="mt-2 text-center text-xs text-ink/40">
@@ -174,13 +204,20 @@ export default async function OrderTrackingPage({
         <div className="space-y-1 p-4 text-sm text-ink/70">
           {order.items.map((item) => (
             <p key={item.id}>
-              {item.quantity}x {item.label} — {formatBs(item.unitPrice * item.quantity)}
+              {item.quantity}x {item.label} · {formatBs(item.unitPrice * item.quantity)}
             </p>
           ))}
         </div>
-        <div className="flex items-center justify-between border-t border-ink/10 p-4">
-          <span className="text-sm font-medium text-ink/70">Total</span>
-          <span className="font-mono text-base font-bold text-ink">{formatBs(order.total)}</span>
+        <div className="border-t border-ink/10 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-ink/70">Total</span>
+            <span className="font-mono text-base font-bold text-ink">{formatBs(totalToCharge)}</span>
+          </div>
+          {commissionAmount > 0 && (
+            <p className="mt-1 text-xs text-ink/50">
+              Incluye {formatBs(commissionAmount)} de comisión por pago con QR automático
+            </p>
+          )}
         </div>
         <div className="border-t border-ink/10 p-4 text-sm text-ink/60">
           <p>

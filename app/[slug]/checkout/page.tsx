@@ -14,7 +14,6 @@ import type { LatLng } from "@/components/LocationPicker";
 type StoreInfo = {
   name: string;
   whatsapp: string;
-  paymentInstructions: string | null;
 };
 
 export default function CheckoutPage({ params }: { params: { slug: string } }) {
@@ -206,8 +205,8 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             )}
             <p className="mt-2 text-xs text-ink/50">
               {paymentStatus === "pendiente"
-                ? "Este QR es exclusivo de tu pedido y se confirma solo — no hace falta que avises por WhatsApp, pero puedes hacerlo igual si quieres."
-                : "Ya podés cerrar esta pantalla — el vendedor ya ve tu pedido como pagado."}
+                ? "Este QR es exclusivo de tu pedido y se confirma solo, no hace falta que avises por WhatsApp, pero puedes hacerlo igual si quieres."
+                : "Ya podés cerrar esta pantalla: el vendedor ya ve tu pedido como pagado."}
             </p>
           </div>
         )}
@@ -219,8 +218,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             pago a mano por WhatsApp. */}
         {paymentMethod === "qr" && !gatewayQrImage && (
           <p className="mt-3 text-sm text-ink/60">
-            {store?.paymentInstructions ||
-              "La tienda te va a escribir por WhatsApp para coordinar el pago."}
+            La tienda te va a escribir por WhatsApp para coordinar el pago.
           </p>
         )}
         {paymentMethod === "contra_entrega" && (
@@ -283,7 +281,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         <div className="store-accent-soft-bg mb-4 flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
           {buyerEmail ? (
             <p className="text-ink/70">
-              Comprando como <span className="font-semibold text-ink">{buyerEmail}</span> — este
+              Comprando como <span className="font-semibold text-ink">{buyerEmail}</span>, este
               pedido va a quedar en tu historial.
             </p>
           ) : (

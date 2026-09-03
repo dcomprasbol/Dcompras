@@ -22,6 +22,8 @@ type Order = {
   status: string;
   total: number;
   estimatedDelivery: string | null;
+  rating: number | null;
+  review: string | null;
   createdAt: string;
   items: OrderItem[];
 };
@@ -32,6 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
   en_preparacion: "bg-blue-100 text-blue-800",
   enviado: "bg-gray-200 text-ink/70",
   entregado: "bg-emerald-100 text-emerald-800",
+  recibido: "bg-jade-100 text-jade-700",
 };
 
 // Espejo de REQUIRES_PAYMENT_FIRST en
@@ -118,7 +121,7 @@ export default function AdminOrders({ slug }: { slug: string }) {
           <div className="mb-2 flex items-start justify-between">
             <div>
               <p className="text-sm font-bold text-ink">
-                #{order.id.slice(-6).toUpperCase()} — {order.customerName}
+                #{order.id.slice(-6).toUpperCase()} · {order.customerName}
               </p>
               <p className="text-xs text-ink/50">
                 {order.customerPhone} · {deliveryTypeLabel(order.deliveryType)}: {order.customerAddress}
@@ -148,7 +151,7 @@ export default function AdminOrders({ slug }: { slug: string }) {
           <div className="mb-2 space-y-0.5 border-t border-ink/5 pt-2 text-sm text-ink/70">
             {order.items.map((item) => (
               <p key={item.id}>
-                {item.quantity}x {item.label} — {formatBs(item.unitPrice * item.quantity)}
+                {item.quantity}x {item.label} · {formatBs(item.unitPrice * item.quantity)}
               </p>
             ))}
           </div>
@@ -188,8 +191,19 @@ export default function AdminOrders({ slug }: { slug: string }) {
           </div>
           {order.paymentMethod === "qr" && order.status === "pendiente" && (
             <p className="mb-3 -mt-2 text-xs text-amber-600">
-              ⏳ Esperando confirmación de pago — no se puede preparar ni enviar todavía.
+              ⏳ Esperando confirmación de pago. No se puede preparar ni enviar todavía.
             </p>
+          )}
+          {order.status === "recibido" && (order.rating || order.review) && (
+            <div className="mb-3 border-t border-ink/5 pt-3">
+              {order.rating && (
+                <p className="text-sm text-amber-500">
+                  {"★".repeat(order.rating)}
+                  <span className="text-ink/15">{"★".repeat(5 - order.rating)}</span>
+                </p>
+              )}
+              {order.review && <p className="mt-1 text-sm text-ink/60">"{order.review}"</p>}
+            </div>
           )}
 
           {/* El cliente ve esto en su link de seguimiento apenas el pedido

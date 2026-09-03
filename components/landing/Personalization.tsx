@@ -30,7 +30,7 @@ export default function Personalization() {
             La tienda sigue siendo tuya.
           </h2>
           <p className="mt-4 text-sm text-ink/60 md:text-base">
-            Color de marca, tipografía y logo — cada vendedor arma su propia identidad desde su
+            Color de marca, tipografía y logo: cada vendedor arma su propia identidad desde su
             panel, sin tocar una línea de código.
           </p>
         </RevealOnScroll>

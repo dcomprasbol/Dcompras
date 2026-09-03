@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleButton from "@/components/GoogleButton";
 import LogoutButton from "@/components/LogoutButton";
-import { STORE_CATEGORIES, STORE_FONTS, DEFAULT_STORE_COLOR, BOLIVIA_DEPARTMENTS } from "@/lib/utils";
+import {
+  STORE_CATEGORIES,
+  STORE_FONTS,
+  DEFAULT_STORE_COLOR,
+  BOLIVIA_DEPARTMENTS,
+  fileToResizedDataUrl,
+} from "@/lib/utils";
 
 type Step = "cuenta" | "tienda" | "personalizacion";
 type InitialSession = { email: string | null; ownerName: string } | null;
@@ -40,6 +46,29 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
   const [category, setCategory] = useState<string>(STORE_CATEGORIES[0].value);
   const [themeColor, setThemeColor] = useState(DEFAULT_STORE_COLOR);
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoProcessing, setLogoProcessing] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoError(null);
+    setLogoProcessing(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setLogoUrl(dataUrl);
+    } catch {
+      setLogoError("No se pudo procesar esa imagen, intenta con otra foto");
+    } finally {
+      setLogoProcessing(false);
+    }
+  }
+
+  function handleRemoveLogo() {
+    setLogoUrl("");
+    if (logoFileInputRef.current) logoFileInputRef.current.value = "";
+  }
   const [fontChoice, setFontChoice] = useState<string>(STORE_FONTS[0].value);
   const [tagline, setTagline] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -395,25 +424,33 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-ink/70">
-                Logo (URL de una imagen, opcional)
-              </label>
-              <div className="flex items-center gap-3">
-                {logoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
+              <label className="mb-1 block text-sm font-medium text-ink/70">Logo (opcional)</label>
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="w-full rounded-xl border border-ink/10 px-3.5 py-2.5 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-jade-700"
+              />
+              {logoProcessing && <p className="mt-1 text-xs text-ink/40">Procesando imagen...</p>}
+              {logoError && <p className="mt-1 text-xs text-coral-600">{logoError}</p>}
+              {logoUrl && !logoProcessing && (
+                <div className="mt-2 flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logoUrl}
                     alt="Vista previa del logo"
-                    className="h-10 w-10 shrink-0 rounded-lg border border-ink/10 object-cover"
+                    className="h-14 w-14 shrink-0 rounded-lg border border-ink/10 object-cover"
                   />
-                )}
-                <input
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-xl border border-ink/10 px-3.5 py-2.5 text-sm focus:border-jade-500 focus:outline-none"
-                />
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="text-xs font-medium text-coral-500"
+                  >
+                    Quitar foto
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>

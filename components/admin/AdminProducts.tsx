@@ -265,10 +265,10 @@ export default function AdminProducts({ slug }: { slug: string }) {
           {salePrice && Number(salePrice) > 0 && (
             <p className="-mt-2 text-xs text-ink/40">
               {Number(salePrice) < Number(price || 0)
-                ? `Tu cliente ve: Bs ${Number(salePrice).toFixed(2)} y, tachado al lado, Bs ${Number(price || 0).toFixed(2)} — con la etiqueta "Oferta -${Math.round(
+                ? `Tu cliente ve: Bs ${Number(salePrice).toFixed(2)} y, tachado al lado, Bs ${Number(price || 0).toFixed(2)}, con la etiqueta "Oferta -${Math.round(
                     (1 - Number(salePrice) / Number(price || 0)) * 100
                   )}%".`
-                : "Este precio se va a mostrar como oferta con etiqueta de descuento — tiene que ser menor al precio normal de arriba."}
+                : "Este precio se va a mostrar como oferta con etiqueta de descuento, tiene que ser menor al precio normal de arriba."}
             </p>
           )}
           <div>
@@ -372,7 +372,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
 
           {editingId && (
             <p className="text-xs text-ink/40">
-              El stock y las variantes se manejan desde la ficha del producto al crearlo — acá
+              El stock y las variantes se manejan desde la ficha del producto al crearlo. Acá
               puedes ajustar precio, oferta, foto y descripción.
             </p>
           )}

@@ -7,11 +7,11 @@ import Accordion from "@/components/Accordion";
 const FAQS = [
   {
     q: "¿Es gratis de verdad?",
-    a: "Sí. Publicar tu catálogo y recibir pedidos por contra entrega no cuesta nada. Solo cobramos una comisión pequeña cuando activas el cobro automático por QR — si no lo usas, no pagas nada.",
+    a: "Sí. Publicar tu catálogo y recibir pedidos por contra entrega no cuesta nada. Solo cobramos una comisión pequeña cuando activas el cobro automático por QR; si no lo usas, no pagas nada.",
   },
   {
     q: "¿Necesito saber de diseño o tecnología?",
-    a: "No. Eliges el color de tu marca, tu logo (si tienes) y la tipografía desde un menú simple — nosotros armamos el resto de tu tienda.",
+    a: "No. Eliges el color de tu marca, tu logo (si tienes) y la tipografía desde un menú simple: nosotros armamos el resto de tu tienda.",
   },
   {
     q: "¿Cómo recibo el pago de mis clientes?",
@@ -23,7 +23,7 @@ const FAQS = [
   },
   {
     q: "¿Alguien revisa mi tienda antes de que sea pública?",
-    a: "Sí. Un administrador confirma que tu WhatsApp es real antes de aprobar tu tienda — así tus compradores saben que las tiendas en Dcompras existen de verdad.",
+    a: "Sí. Un administrador confirma que tu WhatsApp es real antes de aprobar tu tienda, así tus compradores saben que las tiendas en Dcompras existen de verdad.",
   },
   {
     q: "¿Cuánto tarda en estar lista mi tienda?",

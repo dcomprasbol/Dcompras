@@ -99,7 +99,7 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   if (pending.length === 0) {
     return (
       <p className="text-sm text-ink/50">
-        No hay liquidaciones solicitadas por ahora — los vendedores las agendan desde su billetera.
+        No hay liquidaciones solicitadas por ahora. Los vendedores las agendan desde su billetera.
       </p>
     );
   }
@@ -154,11 +154,11 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
                 </p>
               ) : row.paymentQrImageUrl ? (
                 <p className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink/50">
-                  No cargó datos bancarios — pagale escaneando el QR de al lado.
+                  No cargó datos bancarios: pagale escaneando el QR de al lado.
                 </p>
               ) : (
                 <p className="rounded-lg bg-coral-50 px-2.5 py-1.5 text-xs text-coral-700">
-                  Sin datos bancarios ni QR cargados — pedile al vendedor que complete uno de los
+                  Sin datos bancarios ni QR cargados. Pedile al vendedor que complete uno de los
                   dos en su panel.
                 </p>
               )}

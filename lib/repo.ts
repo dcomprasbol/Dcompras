@@ -75,6 +75,9 @@ export type Order = {
   payoutId: string | null;
   estimatedDelivery: string | null;
   deliveredAt: string | null;
+  receivedAt: string | null;
+  rating: number | null;
+  review: string | null;
   buyerId: string | null;
   createdAt: string;
   items: OrderItem[];
@@ -394,10 +397,11 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
     }
   }
 
-  // Igual que con paid_at: la primera vez que llega a 'entregado' fijamos
-  // delivered_at, y no se vuelve a tocar después (re-marcarlo o pasarlo a
-  // otro estado no lo pisa). Puede llegar acá por el propio comprador desde
-  // su link de seguimiento, o por el vendedor a mano como respaldo.
+  // Igual que con paid_at: la primera vez que el VENDEDOR marca 'entregado'
+  // fijamos delivered_at, y no se vuelve a tocar después. Esto ya no es lo
+  // último del flujo — todavía falta que el comprador confirme que de
+  // verdad le llegó (ver confirmOrderReceived), que es lo que pasa el
+  // pedido a 'recibido'.
   if (status === "entregado") {
     const rows = await sql<{ deliveredAt: string | null }[]>`
       SELECT delivered_at FROM orders WHERE id = ${orderId}
@@ -412,6 +416,26 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   }
 
   await sql`UPDATE orders SET status = ${status} WHERE id = ${orderId}`;
+}
+
+// Último paso del flujo: el propio comprador confirma que de verdad le
+// llegó el pedido, desde su link de seguimiento — separado de 'entregado'
+// (que lo marca el vendedor) porque una cosa es que el vendedor diga que lo
+// despachó/entregó y otra que el comprador confirme que lo tiene en la
+// mano. Solo se puede confirmar un pedido que esté en 'entregado' (no se
+// puede saltar directo desde otro estado). Calificación y comentario son
+// opcionales — si no vienen, quedan en null.
+export async function confirmOrderReceived(
+  orderId: string,
+  input: { rating: number | null; review: string | null }
+): Promise<boolean> {
+  await dbReady;
+  const result = await sql`
+    UPDATE orders
+    SET status = 'recibido', received_at = ${nowISO()}, rating = ${input.rating}, review = ${input.review}
+    WHERE id = ${orderId} AND status = 'entregado'
+  `;
+  return result.count > 0;
 }
 
 // Fecha estimada de llegada (yyyy-mm-dd), la fija el vendedor típicamente al
