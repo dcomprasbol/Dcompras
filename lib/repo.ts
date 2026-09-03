@@ -936,6 +936,49 @@ export async function getPendingBalance(storeId: string): Promise<{
   return row;
 }
 
+export type SalesReportOrder = {
+  id: string;
+  total: number;
+  commissionAmount: number | null;
+  netAmount: number | null;
+  paidAt: string;
+  customerName: string;
+};
+
+export type SalesReport = {
+  grossAmount: number;
+  commissionAmount: number;
+  netAmount: number;
+  orderCount: number;
+  orders: SalesReportOrder[];
+};
+
+// Reporte de ventas por período para que el vendedor pueda cuadrar contra
+// sus liquidaciones — mismo criterio que la billetera (paid_at, no status;
+// solo ventas por QR automático, que son las únicas que pasan por
+// Dcompras) pero sin el filtro de "todavía sin liquidar": acá entran
+// también las ya liquidadas, porque es un reporte histórico, no el saldo
+// disponible.
+export async function getSalesReport(
+  storeId: string,
+  from: string,
+  to: string
+): Promise<SalesReport> {
+  await dbReady;
+  const orders = await sql<SalesReportOrder[]>`
+    SELECT id, total, commission_amount, net_amount, paid_at, customer_name
+    FROM orders
+    WHERE store_id = ${storeId} AND paid_at IS NOT NULL
+      AND paid_at >= ${from} AND paid_at <= ${to}
+      AND (sip_id_qr IS NOT NULL OR infinity_order_id IS NOT NULL)
+    ORDER BY paid_at ASC
+  `;
+  const grossAmount = orders.reduce((s, o) => s + Number(o.total), 0);
+  const commissionAmount = orders.reduce((s, o) => s + Number(o.commissionAmount || 0), 0);
+  const netAmount = orders.reduce((s, o) => s + Number(o.netAmount || 0), 0);
+  return { grossAmount, commissionAmount, netAmount, orderCount: orders.length, orders };
+}
+
 export type PendingPayoutRequest = {
   id: string; // id del payout (status 'solicitado'), no de la tienda
   storeId: string;

@@ -4,6 +4,29 @@ import { useEffect, useState } from "react";
 import { formatBs } from "@/lib/utils";
 
 type Pending = { grossAmount: number; commissionAmount: number; netAmount: number; orderCount: number };
+type SalesReportOrder = {
+  id: string;
+  total: number;
+  commissionAmount: number | null;
+  netAmount: number | null;
+  paidAt: string;
+  customerName: string;
+};
+type SalesReport = {
+  grossAmount: number;
+  commissionAmount: number;
+  netAmount: number;
+  orderCount: number;
+  orders: SalesReportOrder[];
+};
+
+function todayISODate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function firstDayOfMonthISODate(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
 type Payout = {
   id: string;
   periodStart: string;
@@ -27,6 +50,11 @@ export default function AdminEarnings({ slug }: { slug: string }) {
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justRequested, setJustRequested] = useState(false);
+  const [reportFrom, setReportFrom] = useState(firstDayOfMonthISODate());
+  const [reportTo, setReportTo] = useState(todayISODate());
+  const [report, setReport] = useState<SalesReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   async function load() {
     const [earningsRes, storeRes] = await Promise.all([
@@ -45,6 +73,27 @@ export default function AdminEarnings({ slug }: { slug: string }) {
   }, [slug]);
 
   const hasRequestedPayout = payouts.some((p) => p.status === "solicitado");
+
+  async function handleViewReport() {
+    setReportError(null);
+    setReportLoading(true);
+    try {
+      const res = await fetch(
+        `/api/stores/${slug}/earnings/report?from=${reportFrom}&to=${reportTo}`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setReportError(data.error || "No se pudo generar el reporte");
+        setReport(null);
+        return;
+      }
+      setReport(data.report);
+    } catch {
+      setReportError("Error de conexión");
+    } finally {
+      setReportLoading(false);
+    }
+  }
 
   async function handleRequestPayout() {
     setError(null);
@@ -175,6 +224,93 @@ export default function AdminEarnings({ slug }: { slug: string }) {
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Reporte de ventas por período: mismo criterio que la billetera
+          (paid_at, solo ventas por QR automático) para que cuadre con las
+          liquidaciones — a diferencia de la billetera, acá entran también
+          las que ya se liquidaron, porque es un histórico. */}
+      <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <h2 className="mb-1 text-sm font-bold text-ink">Reporte de ventas</h2>
+        <p className="mb-3 text-xs text-ink/50">
+          Elegí un período para ver cuánto vendiste por QR automático, con el mismo criterio que
+          tus liquidaciones (para que puedas cuadrarlo).
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink/60">Desde</label>
+            <input
+              type="date"
+              value={reportFrom}
+              onChange={(e) => setReportFrom(e.target.value)}
+              className="rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink/60">Hasta</label>
+            <input
+              type="date"
+              value={reportTo}
+              onChange={(e) => setReportTo(e.target.value)}
+              className="rounded-lg border border-ink/15 px-2.5 py-1.5 text-sm"
+            />
+          </div>
+          <button
+            onClick={handleViewReport}
+            disabled={reportLoading}
+            className="rounded-lg bg-jade-500 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
+          >
+            {reportLoading ? "Generando..." : "Ver reporte"}
+          </button>
+        </div>
+        {reportError && <p className="mt-2 text-xs text-coral-600">{reportError}</p>}
+
+        {report && (
+          <div className="animate-pop mt-4 border-t border-ink/10 pt-4">
+            {report.orderCount === 0 ? (
+              <p className="text-sm text-ink/50">
+                No hubo ventas por QR automático en ese período.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="font-mono text-lg font-bold text-ink">
+                      {formatBs(report.grossAmount)}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Vendido</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-lg font-bold text-ink/50">
+                      {formatBs(report.commissionAmount)}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Comisión</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-lg font-bold text-jade-600">
+                      {formatBs(report.netAmount)}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Te toca a vos</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-center text-xs text-ink/40">
+                  {report.orderCount} pedido{report.orderCount === 1 ? "" : "s"} pagado
+                  {report.orderCount === 1 ? "" : "s"} por QR en el período
+                </p>
+                <div className="mt-3 max-h-60 space-y-1 overflow-y-auto border-t border-ink/5 pt-3 text-xs text-ink/60">
+                  {report.orders.map((o) => (
+                    <div key={o.id} className="flex items-center justify-between">
+                      <span>
+                        {new Date(o.paidAt).toLocaleDateString("es-BO")} · {o.customerName}
+                      </span>
+                      <span className="font-mono">{formatBs(o.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

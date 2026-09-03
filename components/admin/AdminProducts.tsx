@@ -195,6 +195,13 @@ export default function AdminProducts({ slug }: { slug: string }) {
     }, 280);
   }
 
+  // A pedido del dueño: los agotados (0 en stock) suelen ser piezas únicas
+  // que no vuelven a tener stock, así que ni siquiera en su propio panel
+  // conviene mezclarlos con lo que sí está a la venta — van aparte, en un
+  // desplegable, para poder editarlos o borrarlos sin que estorben.
+  const inStockProducts = products.filter((p) => p.variants.reduce((s, v) => s + v.stock, 0) > 0);
+  const outOfStockProducts = products.filter((p) => p.variants.reduce((s, v) => s + v.stock, 0) === 0);
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -392,85 +399,136 @@ export default function AdminProducts({ slug }: { slug: string }) {
       {products.length === 0 ? (
         <p className="text-sm text-ink/50">Todavía no tienes productos publicados.</p>
       ) : (
-        <div className="space-y-2">
-          {products.map((p) => {
-            const productNotifications = notifications.filter((n) => n.productId === p.id);
-            return (
-            <div
-              key={p.id}
-              className={`rounded-2xl border border-ink/5 bg-white p-3 shadow-sm animate-pop ${
-                deletingId === p.id ? "animate-shrink-out" : ""
-              }`}
-            >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-paper">
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg">
-                      🛍️
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
-                    {p.name}
-                    {p.compareAtPrice != null && p.compareAtPrice > p.price && (
-                      <span className="rounded-full bg-coral-50 px-1.5 py-0.5 text-[10px] font-semibold text-coral-600">
-                        Oferta
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-ink/50">
-                    {p.compareAtPrice != null && p.compareAtPrice > p.price ? (
-                      <>
-                        <span className="text-coral-600">{formatBs(p.price)}</span>{" "}
-                        <span className="line-through">{formatBs(p.compareAtPrice)}</span>
-                      </>
-                    ) : (
-                      formatBs(p.price)
-                    )}{" "}
-                    · {p.variants.reduce((s, v) => s + v.stock, 0)} en stock
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <button
-                  onClick={() => handleEdit(p)}
-                  className="text-xs font-medium text-ink/50 hover:text-ink"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  className="text-xs font-medium text-coral-500"
-                >
-                  Eliminar
-                </button>
-              </div>
+        <>
+          {inStockProducts.length === 0 ? (
+            <p className="text-sm text-ink/50">
+              No tenés productos con stock ahora mismo{outOfStockProducts.length > 0 ? " (mirá abajo los agotados)" : ""}.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {inStockProducts.map((p) => (
+                <ProductRow
+                  key={p.id}
+                  product={p}
+                  notifications={notifications.filter((n) => n.productId === p.id)}
+                  deleting={deletingId === p.id}
+                  onEdit={() => handleEdit(p)}
+                  onDelete={() => handleDelete(p.id)}
+                />
+              ))}
             </div>
+          )}
 
-            {productNotifications.length > 0 && (
-              <div className="mt-2 border-t border-ink/5 pt-2">
-                <p className="text-xs font-medium text-ink/60">
-                  🔔 {productNotifications.length}{" "}
-                  {productNotifications.length === 1 ? "persona quiere" : "personas quieren"} que
-                  avises cuando haya stock:
-                </p>
-                <p className="mt-0.5 text-xs text-ink/40">
-                  {productNotifications.map((n) => n.contact).join(" · ")}
-                </p>
+          {outOfStockProducts.length > 0 && (
+            <details className="mt-4 group">
+              <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-ink/40 hover:text-ink/60">
+                <span className="inline-block transition group-open:rotate-90">▶</span>{" "}
+                Agotados ({outOfStockProducts.length})
+              </summary>
+              {/* Estos productos ya no se ven ni en el catálogo ni en la ficha
+                  pública (suelen ser piezas únicas que no vuelven a tener
+                  stock) — quedan acá solo para poder editarlos o borrarlos. */}
+              <p className="mb-2 mt-2 text-xs text-ink/40">
+                Ya no aparecen para tus clientes. Editalos para sumarles stock de nuevo, o borralos
+                si no vas a reponer.
+              </p>
+              <div className="space-y-2">
+                {outOfStockProducts.map((p) => (
+                  <ProductRow
+                    key={p.id}
+                    product={p}
+                    notifications={notifications.filter((n) => n.productId === p.id)}
+                    deleting={deletingId === p.id}
+                    onEdit={() => handleEdit(p)}
+                    onDelete={() => handleDelete(p.id)}
+                  />
+                ))}
               </div>
+            </details>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ProductRow({
+  product: p,
+  notifications: productNotifications,
+  deleting,
+  onEdit,
+  onDelete,
+}: {
+  product: Product;
+  notifications: StockNotification[];
+  deleting: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
+  return (
+    <div
+      className={`rounded-2xl border border-ink/5 bg-white p-3 shadow-sm animate-pop ${
+        deleting ? "animate-shrink-out" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-paper">
+            {p.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-lg">🛍️</div>
             )}
-            </div>
-            );
-          })}
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+              {p.name}
+              {p.compareAtPrice != null && p.compareAtPrice > p.price && (
+                <span className="rounded-full bg-coral-50 px-1.5 py-0.5 text-[10px] font-semibold text-coral-600">
+                  Oferta
+                </span>
+              )}
+              {totalStock === 0 && (
+                <span className="rounded-full bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold text-ink/40">
+                  Agotado
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-ink/50">
+              {p.compareAtPrice != null && p.compareAtPrice > p.price ? (
+                <>
+                  <span className="text-coral-600">{formatBs(p.price)}</span>{" "}
+                  <span className="line-through">{formatBs(p.compareAtPrice)}</span>
+                </>
+              ) : (
+                formatBs(p.price)
+              )}{" "}
+              · {totalStock} en stock
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <button onClick={onEdit} className="text-xs font-medium text-ink/50 hover:text-ink">
+            Editar
+          </button>
+          <button onClick={onDelete} className="text-xs font-medium text-coral-500">
+            Eliminar
+          </button>
+        </div>
+      </div>
+
+      {productNotifications.length > 0 && (
+        <div className="mt-2 border-t border-ink/5 pt-2">
+          <p className="text-xs font-medium text-ink/60">
+            🔔 {productNotifications.length}{" "}
+            {productNotifications.length === 1 ? "persona quiere" : "personas quieren"} que avises
+            cuando haya stock:
+          </p>
+          <p className="mt-0.5 text-xs text-ink/40">
+            {productNotifications.map((n) => n.contact).join(" · ")}
+          </p>
         </div>
       )}
     </div>
