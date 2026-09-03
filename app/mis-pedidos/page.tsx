@@ -29,8 +29,9 @@ export default async function MisPedidosPage() {
     <div className="min-h-screen bg-paper">
       <header className="sticky top-0 z-10 border-b border-ink/10 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
-          <Link href="/" className="font-impact text-xl text-ink">
-            DCOMPRAS
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Dcompras" className="h-5 w-auto" />
           </Link>
           <AccountMenu email={user.email ?? ""} redirectTo="/" />
         </div>

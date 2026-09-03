@@ -27,10 +27,10 @@ export default async function Nav() {
 
         <Link
           href="/"
-          className="flex items-center gap-1 font-impact text-2xl tracking-tight text-ink md:absolute md:left-1/2 md:-translate-x-1/2"
+          className="flex items-center md:absolute md:left-1/2 md:-translate-x-1/2"
         >
-          DCOMPRAS
-          <span className="h-1.5 w-1.5 rounded-full bg-jade-500" aria-hidden="true" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Dcompras" className="h-6 w-auto md:h-7" />
         </Link>
 
         <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">

@@ -58,11 +58,9 @@ export default function AdminShell({
       {/* Sidebar */}
       <aside className="hidden w-60 flex-shrink-0 flex-col border-r border-ink/5 bg-white md:flex">
         <div className="border-b border-ink/5 px-5 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-jade-500 font-display text-sm font-bold text-white">
-              D
-            </span>
-            <span className="font-display text-base font-bold text-ink">Dcompras</span>
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Dcompras" className="h-6 w-auto" />
           </Link>
           <p className="mt-1 truncate text-xs text-ink/40">{slug}</p>
         </div>
@@ -104,7 +102,8 @@ export default function AdminShell({
 
       {/* Mobile top nav */}
       <div className="fixed inset-x-0 top-0 z-20 flex items-center justify-between border-b border-ink/5 bg-white px-4 py-3 md:hidden">
-        <span className="font-display text-base font-bold text-ink">Dcompras</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Dcompras" className="h-5 w-auto" />
         <div className="flex items-center gap-1.5">
           {NAV.map((item) => (
             <button

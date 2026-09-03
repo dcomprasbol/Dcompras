@@ -43,14 +43,11 @@ export default async function PlataformaPage() {
     <div className="min-h-screen bg-paper">
       <header className="sticky top-0 z-10 border-b border-ink/5 bg-white/95 px-5 py-4 backdrop-blur-sm md:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-jade-500 font-display text-lg font-bold text-white">
-              D
-            </span>
-            <div>
-              <p className="font-display text-base font-bold leading-tight text-ink">
-                Panel de Dcompras
-              </p>
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Dcompras" className="h-6 w-auto" />
+            <div className="border-l border-ink/10 pl-3">
+              <p className="text-xs font-semibold leading-tight text-ink/60">Panel interno</p>
               <p className="text-xs leading-tight text-ink/40">Administración de la plataforma</p>
             </div>
           </div>

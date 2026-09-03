@@ -14,7 +14,8 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-5 py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <span className="font-impact text-2xl text-ink">DCOMPRAS</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Dcompras" className="h-6 w-auto" />
             <p className="mt-2 max-w-xs text-sm text-ink/50">
               Hecho en Bolivia, para vendedoras y vendedores de redes sociales.
             </p>

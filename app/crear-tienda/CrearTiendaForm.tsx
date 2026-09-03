@@ -163,11 +163,9 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
       <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-coral-500/20 blur-3xl" />
 
       <div className="relative w-full max-w-md">
-        <Link href="/" className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-jade-500 font-display text-lg font-bold text-white">
-            D
-          </span>
-          <span className="font-display text-lg font-bold text-white">Dcompras</span>
+        <Link href="/" className="mb-6 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-light.png" alt="Dcompras" className="h-7 w-auto" />
         </Link>
 
         <div className="mb-5 text-center text-white">
