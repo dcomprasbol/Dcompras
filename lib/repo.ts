@@ -907,6 +907,13 @@ export type Payout = {
   createdAt: string;
 };
 
+// OJO: acá va "paid_at IS NOT NULL", nunca "status = 'pagado'". El status
+// avanza (en_preparacion, enviado, entregado, recibido) apenas el vendedor
+// empieza a despachar, así que filtrar por status = 'pagado' hacía
+// desaparecer la plata de la billetera de CUALQUIER pedido que ya hubiera
+// avanzado de ahí — o sea, casi todos los pedidos entregados de verdad.
+// paid_at se fija una sola vez, al confirmarse el pago, y ya no se toca
+// nunca más pase lo que pase con el status.
 export async function getPendingBalance(storeId: string): Promise<{
   grossAmount: number;
   commissionAmount: number;
@@ -923,7 +930,7 @@ export async function getPendingBalance(storeId: string): Promise<{
       COALESCE(SUM(net_amount), 0) AS net_amount,
       COUNT(*)::int AS order_count
     FROM orders
-    WHERE store_id = ${storeId} AND status = 'pagado'
+    WHERE store_id = ${storeId} AND paid_at IS NOT NULL
       AND (sip_id_qr IS NOT NULL OR infinity_order_id IS NOT NULL) AND payout_id IS NULL
   `;
   return row;
@@ -984,7 +991,7 @@ export async function requestPayout(storeId: string): Promise<Payout> {
       { id: string; total: number; commissionAmount: number | null; netAmount: number | null; createdAt: string }[]
     >`
       SELECT id, total, commission_amount, net_amount, created_at FROM orders
-      WHERE store_id = ${storeId} AND status = 'pagado'
+      WHERE store_id = ${storeId} AND paid_at IS NOT NULL
         AND (sip_id_qr IS NOT NULL OR infinity_order_id IS NOT NULL) AND payout_id IS NULL
       ORDER BY created_at ASC
       FOR UPDATE
