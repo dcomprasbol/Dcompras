@@ -1,5 +1,6 @@
 import { getStoreBySlug, listActiveProducts } from "@/lib/repo";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { formatBs, categoryLabel } from "@/lib/utils";
 import { themeForCategory } from "@/lib/storeTheme";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
@@ -35,6 +36,21 @@ export default async function StoreCatalogPage({
 
   return (
     <div>
+      {/* A pedido del dueño: un cliente que vuelve a la tienda (cerró la
+          pestaña de seguimiento, cambió de celular) tiene que encontrar
+          RÁPIDO cómo ver su pedido, o va a pensar que le robaron la plata.
+          Esta franja va arriba de todo, en la página a la que más vuelve la
+          gente (la raíz de la tienda) — no un link de texto escondido. */}
+      <Link
+        href={`/${params.slug}/mi-pedido`}
+        className="store-accent-soft-bg store-accent-text flex items-center justify-center gap-2 px-5 py-2.5 text-center text-sm font-medium transition hover:opacity-90"
+      >
+        <span aria-hidden="true">📦</span>
+        <span>
+          ¿Ya hiciste un pedido acá? <span className="underline underline-offset-2">Mirá en qué va →</span>
+        </span>
+      </Link>
+
       {theme === "moda" ? (
         <HeroModa
           slug={params.slug}

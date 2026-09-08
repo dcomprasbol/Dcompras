@@ -87,12 +87,19 @@ export default async function StoreLayout({
                   {/* Para comprar sin cuenta: si cerró la pestaña de
                       seguimiento y no la tiene más, acá busca su pedido por
                       teléfono (ver /[slug]/mi-pedido) — no le pedimos crear
-                      cuenta para eso. */}
+                      cuenta para eso. A pedido del dueño: tiene que ser
+                      fácil de encontrar (no un link de texto perdido) para
+                      que un cliente nuevo no crea que lo estafaron si no
+                      encuentra cómo ver su pedido — por eso va SIEMPRE
+                      visible (también en mobile, a diferencia de "Iniciar
+                      sesión") como una pastilla con ícono, no como texto
+                      plano. */}
                   <Link
                     href={`/${params.slug}/mi-pedido`}
-                    className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
+                    className="store-accent-soft-bg store-accent-text flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
                   >
-                    Mi pedido
+                    <span aria-hidden="true">📦</span>
+                    <span className="hidden sm:inline">Mi pedido</span>
                   </Link>
                   <Link
                     href={`/login?next=${encodeURIComponent(`/${params.slug}`)}`}
@@ -117,7 +124,7 @@ export default async function StoreLayout({
               </div>
               <div className="store-text-soft flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider">
                 <Link href={`/${params.slug}/mi-pedido`} className="nav-sweep hover:opacity-80">
-                  Mi pedido
+                  📦 Mi pedido
                 </Link>
                 {store.whatsapp && (
                   <a
