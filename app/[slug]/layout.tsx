@@ -7,6 +7,7 @@ import AccountMenu from "@/components/AccountMenu";
 import { fontStack } from "@/lib/utils";
 import { readableAccentText, readableOnAccent } from "@/lib/color";
 import { getCurrentUser } from "@/lib/auth";
+import { themeForCategory } from "@/lib/storeTheme";
 
 export default async function StoreLayout({
   children,
@@ -23,6 +24,7 @@ export default async function StoreLayout({
   // seguimiento que le llegó por WhatsApp. Nunca es obligatorio para
   // comprar — el checkout como invitado sigue funcionando igual.
   const buyer = await getCurrentUser();
+  const theme = themeForCategory(store.category);
 
   // Personalización por tienda: sobreescribimos las variables CSS que ya
   // usa el resto de la plataforma (--font-display / --font-body) y
@@ -51,26 +53,30 @@ export default async function StoreLayout({
 
   return (
     <CartProvider storeSlug={params.slug}>
-      <div className="min-h-screen bg-paper font-sans" style={themeStyle}>
-        <header className="sticky top-0 z-10 border-b border-ink/10 bg-white/90 backdrop-blur">
+      <div className="store-bg store-text min-h-screen font-sans" style={themeStyle} data-store-theme={theme}>
+        <header className="store-header-bg store-border sticky top-0 z-10 border-b backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 md:px-8">
             <Link href={`/${params.slug}`} className="flex items-center gap-2.5">
               {store.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={store.logoUrl} alt={store.name} className="h-8 w-8 object-cover" />
+                <img
+                  src={store.logoUrl}
+                  alt={store.name}
+                  className="h-8 w-8 rounded-[var(--store-radius)] object-cover"
+                />
               ) : (
-                <span className="store-accent-bg flex h-8 w-8 items-center justify-center font-display text-sm font-bold">
+                <span className="store-accent-bg flex h-8 w-8 items-center justify-center rounded-[var(--store-radius)] font-display text-sm font-bold">
                   {store.name.charAt(0).toUpperCase()}
                 </span>
               )}
-              <span className="font-display text-lg font-bold text-ink">{store.name}</span>
+              <span className="font-display store-text text-lg font-bold">{store.name}</span>
             </Link>
             <div className="flex items-center gap-3">
               {buyer ? (
                 <>
                   <Link
                     href="/mis-pedidos"
-                    className="hidden text-xs font-semibold uppercase tracking-wider text-ink/60 hover:text-ink sm:inline"
+                    className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
                   >
                     Mis pedidos
                   </Link>
@@ -79,7 +85,7 @@ export default async function StoreLayout({
               ) : (
                 <Link
                   href={`/login?next=${encodeURIComponent(`/${params.slug}`)}`}
-                  className="hidden text-xs font-semibold uppercase tracking-wider text-ink/60 hover:text-ink sm:inline"
+                  className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
                 >
                   Iniciar sesión
                 </Link>
@@ -90,19 +96,19 @@ export default async function StoreLayout({
         </header>
         <main>{children}</main>
 
-        <footer className="mt-10 border-t border-ink/10">
+        <footer className="store-border mt-10 border-t">
           <div className="mx-auto max-w-7xl px-5 py-8 md:px-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="font-display text-sm font-bold text-ink">{store.name}</p>
-                {store.city && <p className="mt-1 text-xs text-ink/50">{store.city}</p>}
+                <p className="font-display store-text text-sm font-bold">{store.name}</p>
+                {store.city && <p className="store-text-soft mt-1 text-xs">{store.city}</p>}
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider text-ink/60">
+              <div className="store-text-soft flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider">
                 {store.whatsapp && (
                   <a
                     href={`https://wa.me/591${store.whatsapp.replace(/\D/g, "")}`}
                     target="_blank"
-                    className="nav-sweep hover:text-ink"
+                    className="nav-sweep hover:opacity-80"
                   >
                     WhatsApp
                   </a>
@@ -113,19 +119,19 @@ export default async function StoreLayout({
                     href={s.href!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nav-sweep hover:text-ink"
+                    className="nav-sweep hover:opacity-80"
                   >
                     {s.label}
                   </a>
                 ))}
               </div>
             </div>
-            <p className="mt-6 text-[11px] text-ink/30">
+            <p className="store-text-soft mt-6 text-[11px] opacity-50">
               Tienda en Dcompras · pagos por QR o contra entrega
             </p>
           </div>
-          <div className="overflow-hidden border-t border-ink/10 px-4 py-2" aria-hidden="true">
-            <p className="wordmark-crop text-center text-[13vw] text-ink/[0.05] sm:text-[7vw]">
+          <div className="store-border overflow-hidden border-t px-4 py-2" aria-hidden="true">
+            <p className="wordmark-crop store-text text-center text-[13vw] opacity-[0.05] sm:text-[7vw]">
               {store.name}
             </p>
           </div>

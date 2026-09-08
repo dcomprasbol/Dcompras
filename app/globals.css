@@ -21,6 +21,51 @@
      siguen usando --font-display/--font-body (esos sí los elige cada
      tienda vía STORE_FONTS). */
   --font-impact: "Anton", "Archivo Black", sans-serif;
+
+  /* Tokens de la vidriera pública de cada tienda (app/[slug]/**) — varían
+     según el rubro (ver lib/storeTheme.ts → themeForCategory), sin tocar el
+     resto del sitio (landing, admin, /plataforma siguen usando bg-paper/
+     text-ink directo). Los valores de acá son el tema "default": un calco
+     exacto del look editorial de siempre, así que las categorías sin tema
+     propio todavía (joyería, belleza, hogar, comida, otros) no cambian en
+     nada. */
+  --store-bg: #fafaf8;
+  --store-surface: #ffffff;
+  --store-header-bg: rgba(255, 255, 255, 0.9);
+  --store-card-bg: #ffffff;
+  --store-text: #14102a;
+  --store-text-soft: rgba(20, 16, 42, 0.6);
+  --store-border: rgba(20, 16, 42, 0.1);
+  --store-radius: 0px;
+  --store-radius-lg: 0px;
+}
+
+/* Moda (Sabina / Arum): cálido, editorial, esquinas suaves — pensado para
+   ropa (por ahora; joyería/belleza pueden sumarse después). */
+[data-store-theme="moda"] {
+  --store-bg: #f6f1e7;
+  --store-surface: #fbf8f2;
+  --store-header-bg: rgba(246, 241, 231, 0.92);
+  --store-card-bg: #efe7d8;
+  --store-text: #2b2420;
+  --store-text-soft: rgba(43, 36, 32, 0.6);
+  --store-border: rgba(43, 36, 32, 0.1);
+  --store-radius: 6px;
+  --store-radius-lg: 18px;
+}
+
+/* Tecnología (Vende): oscuro, tipo "estudio de producto", esquinas
+   marcadas — pensado para electrónicos. */
+[data-store-theme="tecnologia"] {
+  --store-bg: #0a0a0a;
+  --store-surface: #141414;
+  --store-header-bg: rgba(10, 10, 10, 0.85);
+  --store-card-bg: #161616;
+  --store-text: #f2f2f2;
+  --store-text-soft: rgba(242, 242, 242, 0.6);
+  --store-border: rgba(242, 242, 242, 0.14);
+  --store-radius: 10px;
+  --store-radius-lg: 20px;
 }
 
 html {
@@ -228,5 +273,28 @@ body {
     line-height: 0.78;
     letter-spacing: -0.02em;
     text-transform: uppercase;
+  }
+
+  /* ---------- Tokens de tema por rubro (ver arriba y lib/storeTheme.ts) ---------- */
+  .store-bg {
+    background-color: var(--store-bg);
+  }
+  .store-surface-bg {
+    background-color: var(--store-surface);
+  }
+  .store-header-bg {
+    background-color: var(--store-header-bg);
+  }
+  .store-card-bg {
+    background-color: var(--store-card-bg);
+  }
+  .store-text {
+    color: var(--store-text);
+  }
+  .store-text-soft {
+    color: var(--store-text-soft);
+  }
+  .store-border {
+    border-color: var(--store-border);
   }
 }
