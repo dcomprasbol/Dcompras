@@ -8,18 +8,11 @@ import { MotionButton } from "@/components/MotionCta";
 import { formatBs, DELIVERY_TYPES } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import LocationField from "@/components/LocationField";
-import PaymentConfirmedCelebration from "@/components/PaymentConfirmedCelebration";
 import type { LatLng } from "@/components/LocationPicker";
-
-type StoreInfo = {
-  name: string;
-  whatsapp: string;
-};
 
 export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const { items, total, clear } = useCart();
   const router = useRouter();
-  const [store, setStore] = useState<StoreInfo | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -28,32 +21,10 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const [paymentMethod, setPaymentMethod] = useState<"qr" | "contra_entrega">("qr");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
   // Si la plataforma tiene cobro automático configurado (Infinity Payments
-  // por ahora), el pedido trae un QR dinámico ya generado para ese monto
-  // exacto. Si no (proveedor caído o sin configurar), NO hay QR de respaldo
-  // que mostrarle al comprador — el QR que el vendedor carga en Cuenta es
-  // solo para que Dcompras le liquide a él, nunca se le muestra al
-  // comprador (saltearía la comisión). Ver el bloque de abajo.
-  const [gatewayQrImage, setGatewayQrImage] = useState<string | null>(null);
-  // Mientras esto siga en "pendiente", el comprador ve el spinner de
-  // "esperando tu pago" debajo del QR (ver el useEffect de polling más
-  // abajo); apenas el webhook confirma el pago, pasa a "pagado" y la
-  // pantalla lo muestra al toque, sin que el comprador tenga que refrescar.
-  const [paymentStatus, setPaymentStatus] = useState<"pendiente" | "pagado">("pendiente");
-  // Festejo a pantalla completa que se muestra un instante justo cuando el
-  // polling detecta la confirmación — separado de paymentStatus porque este
-  // se apaga solo a los pocos segundos, mientras que paymentStatus se queda
-  // en "pagado" para siempre (el cartel chico de abajo).
-  const [showCelebration, setShowCelebration] = useState(false);
-  // Monto realmente cobrado del pedido confirmado (con comisión sumada si
-  // aplicó) — se fija recién al recibir la respuesta del servidor y ya no
-  // se toca, porque `total` del carrito vuelve a 0 apenas se llama clear().
-  const [paidAmount, setPaidAmount] = useState<number>(0);
-  // Si el cobro automático de la plataforma está activo, "Pagar con QR" le
-  // suma una comisión al precio del vendedor (lib/commission.ts) — la
-  // mostramos ANTES de confirmar para que el comprador nunca vea un número
-  // acá y le cobren otro en el QR.
+  // por ahora), "Pagar con QR" le suma una comisión al precio del vendedor
+  // (lib/commission.ts) — la mostramos ANTES de confirmar para que el
+  // comprador nunca vea un número acá y le cobren otro en el QR.
   const [paymentConfig, setPaymentConfig] = useState<{
     autoQrEnabled: boolean;
     commissionPercent: number;
@@ -63,12 +34,6 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   // nada más para mostrarle "comprando como..." o invitarlo a loguearse.
   // Nunca bloquea el checkout: comprar como invitado sigue funcionando igual.
   const [buyerEmail, setBuyerEmail] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    fetch(`/api/stores/${params.slug}`)
-      .then((r) => r.json())
-      .then((d) => setStore(d.store));
-  }, [params.slug]);
 
   useEffect(() => {
     fetch("/api/me")
@@ -81,35 +46,6 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
       .then((r) => r.json())
       .then(setPaymentConfig);
   }, []);
-
-  // Consulta en vivo si ya se confirmó el pago (mientras haya un QR dinámico
-  // esperando) — cada 4s, hasta 10 minutos. Pasado eso dejamos de insistir:
-  // si tarda tanto ya es mejor que coordine por WhatsApp, no tiene sentido
-  // seguir pegándole al servidor desde una pestaña que quedó abierta horas.
-  useEffect(() => {
-    if (!orderId || paymentMethod !== "qr" || !gatewayQrImage || paymentStatus === "pagado") return;
-    let attempts = 0;
-    const maxAttempts = 150;
-    const interval = setInterval(async () => {
-      attempts += 1;
-      if (attempts > maxAttempts) {
-        clearInterval(interval);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/stores/${params.slug}/orders/${orderId}/status`);
-        const data = await res.json();
-        if (data.status === "pagado") {
-          setPaymentStatus("pagado");
-          setShowCelebration(true);
-          clearInterval(interval);
-        }
-      } catch {
-        // Sin conexión momentánea: seguimos intentando en el próximo tick.
-      }
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [orderId, paymentMethod, gatewayQrImage, paymentStatus, params.slug]);
 
   // Misma fórmula que calculateCommission en lib/commission.ts (redondeo a
   // centavos incluido) — si esto se desalinea con el backend, el comprador
@@ -149,115 +85,22 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         setLoading(false);
         return;
       }
-      setOrderId(data.order.id);
-      if (data.payment?.qrImage) setGatewayQrImage(data.payment.qrImage);
-      // data.payment.amountCharged es lo que realmente pide el QR (con
-      // comisión); si el pedido cayó al QR estático o es contra entrega, no
-      // hay comisión y el monto es el total del carrito tal cual.
-      setPaidAmount(data.payment?.amountCharged ?? totalToPay);
       clear();
+      // Antes esta pantalla de "pedido recibido" (con el QR y todo) vivía
+      // acá mismo, solo en memoria del componente — si el comprador
+      // refrescaba la página (algo muy natural mientras espera que se
+      // confirme un pago) el carrito ya estaba vacío y todo rastro del
+      // pedido desaparecía, sin ninguna forma de volver a verlo. Ahora
+      // redirigimos directo al seguimiento (misma info, QR incluido — ver
+      // app/[slug]/pedido/[orderId]/page.tsx), que vive en su propia URL y
+      // sobrevive a un refresh o a cerrar la pestaña y volver más tarde. Si
+      // ni siquiera guardó ese link, puede volver a encontrarlo por
+      // teléfono en /[slug]/mi-pedido.
+      router.push(`/${params.slug}/pedido/${data.order.id}`);
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
       setLoading(false);
     }
-  }
-
-  if (orderId) {
-    const trackingPath = `/${params.slug}/pedido/${orderId}`;
-    const whatsappMsg = encodeURIComponent(
-      `Hola, acabo de hacer un pedido #${orderId.slice(-6).toUpperCase()} por ${formatBs(paidAmount)}. Mi nombre es ${name}.\n\nSeguimiento: ${typeof window !== "undefined" ? window.location.origin : ""}${trackingPath}`
-    );
-    return (
-      <>
-        <PaymentConfirmedCelebration
-          show={showCelebration}
-          onDone={() => setShowCelebration(false)}
-        />
-        <div className="animate-pop mx-auto max-w-md border border-ink/10 bg-white p-6 text-center md:my-10">
-        <p className="text-2xl">✅</p>
-        <h1 className="mt-2 font-impact text-xl uppercase tracking-tight text-ink">
-          ¡Pedido recibido!
-        </h1>
-        <p className="mt-1 text-sm text-ink/60">
-          Número de pedido: <span className="font-mono">{orderId.slice(-6).toUpperCase()}</span>
-        </p>
-        {paymentMethod === "qr" && gatewayQrImage && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-ink/70">Escanea el QR para pagar:</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={gatewayQrImage}
-              alt="QR de pago"
-              className="mx-auto h-56 w-56 border border-ink/10 object-contain"
-            />
-            {paymentStatus === "pendiente" ? (
-              <div className="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-amber-600">
-                <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
-                </span>
-                Esperando confirmación de tu pago...
-              </div>
-            ) : (
-              <div className="animate-pop mt-3 border border-jade-500 bg-jade-50 px-3 py-2 text-sm font-semibold text-jade-700">
-                ✅ ¡Pago confirmado! Ya le llegó a la tienda.
-              </div>
-            )}
-            <p className="mt-2 text-xs text-ink/50">
-              {paymentStatus === "pendiente"
-                ? "Este QR es exclusivo de tu pedido y se confirma solo, no hace falta que avises por WhatsApp, pero puedes hacerlo igual si quieres."
-                : "Ya podés cerrar esta pantalla: el vendedor ya ve tu pedido como pagado."}
-            </p>
-          </div>
-        )}
-        {/* Si el pedido eligió QR pero no se pudo generar el QR automático
-            (proveedor caído, todavía sin configurar), NUNCA mostramos acá el
-            QR que el vendedor cargó en Cuenta — ese es solo para que
-            Dcompras le liquide a él, no para que le paguen directo los
-            compradores (eso saltearía la comisión). En ese caso coordina el
-            pago a mano por WhatsApp. */}
-        {paymentMethod === "qr" && !gatewayQrImage && (
-          <p className="mt-3 text-sm text-ink/60">
-            La tienda te va a escribir por WhatsApp para coordinar el pago.
-          </p>
-        )}
-        {paymentMethod === "contra_entrega" && (
-          <p className="mt-3 text-sm text-ink/60">
-            Pagarás en efectivo cuando recibas tu pedido.
-          </p>
-        )}
-        {store?.whatsapp && (
-          <a
-            href={`https://wa.me/591${store.whatsapp.replace(/\D/g, "")}?text=${whatsappMsg}`}
-            target="_blank"
-            className="btn-editorial mt-5 flex bg-green-500 text-white border-green-500"
-          >
-            Avisar por WhatsApp
-          </a>
-        )}
-        <Link
-          href={trackingPath}
-          className="btn-editorial btn-editorial-solid mt-3 flex"
-        >
-          Ver seguimiento de mi pedido
-        </Link>
-        {buyerEmail && (
-          <Link
-            href="/mis-pedidos"
-            className="nav-sweep mt-3 block text-center text-xs font-semibold text-ink/50"
-          >
-            Ver todos mis pedidos →
-          </Link>
-        )}
-        <button
-          onClick={() => router.push(`/${params.slug}`)}
-          className="mt-3 w-full border border-ink/15 px-4 py-2.5 text-sm text-ink/60 transition hover:border-ink/30"
-        >
-          Volver a la tienda
-        </button>
-        </div>
-      </>
-    );
   }
 
   if (items.length === 0) {

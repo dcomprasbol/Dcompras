@@ -2,6 +2,7 @@ import { getStoreBySlug, getOrderById } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import { formatBs, deliveryTypeLabel } from "@/lib/utils";
 import { calculateCommission } from "@/lib/commission";
+import { getPaymentStatus, isInfinityConfigured, normalizeQrImage } from "@/lib/infinityPayments";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
@@ -62,6 +63,33 @@ export default async function OrderTrackingPage({
     order.paymentMethod === "qr" && (Boolean(order.infinityOrderId) || Boolean(order.sipIdQr));
   const { commissionAmount, totalToCharge } = calculateCommission(order.total, processedByDcompras);
 
+  // El QR nunca se guardó en la base (ver createOrderWithItems /
+  // updateOrderInfinityInfo): solo vivía en la pantalla de "pedido
+  // recibido" del checkout, así que si el comprador refrescaba o volvía más
+  // tarde lo perdía por completo — el bug que estamos arreglando acá. Ahora,
+  // mientras el pedido siga pendiente, lo volvemos a pedir en vivo a
+  // Infinity con el id que sí guardamos, cada vez que se entra a esta
+  // página (el timeout evita que un proveedor caído trabe la carga).
+  let liveQrImage: string | null = null;
+  let qrFetchFailed = false;
+  const pendingQr = order.status === "pendiente" && order.paymentMethod === "qr";
+  if (pendingQr && order.infinityOrderId && isInfinityConfigured()) {
+    try {
+      const result = await Promise.race([
+        getPaymentStatus(order.infinityOrderId),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 6000)),
+      ]);
+      liveQrImage = normalizeQrImage(result.qrImageBase64 ?? null);
+      if (!liveQrImage) qrFetchFailed = true;
+    } catch (err) {
+      console.error(`No se pudo obtener el QR en vivo del pedido ${order.id}:`, err);
+      qrFetchFailed = true;
+    }
+  }
+  const whatsappOrderMsg = encodeURIComponent(
+    `Hola, hice un pedido #${code} por ${formatBs(totalToCharge)} en ${store.name}. Mi nombre es ${order.customerName}.`
+  );
+
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 md:px-8">
       <PaymentStatusPoller
@@ -70,13 +98,44 @@ export default async function OrderTrackingPage({
         status={order.status}
         paymentMethod={order.paymentMethod}
       />
-      {order.status === "pendiente" && order.paymentMethod === "qr" && (
-        <RevealOnScroll className="mb-6 flex items-center justify-center gap-2 border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-          <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
-          </span>
-          Esperando confirmación de tu pago. Esta página se actualiza sola.
+      {pendingQr && (
+        <RevealOnScroll className="mb-6 border border-amber-200 bg-amber-50 px-4 py-4 text-center">
+          <div className="flex items-center justify-center gap-2 text-sm font-medium text-amber-700">
+            <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+            </span>
+            Esperando confirmación de tu pago. Esta página se actualiza sola.
+          </div>
+          {liveQrImage ? (
+            <div className="mt-3">
+              <p className="mb-2 text-sm font-medium text-ink/70">Escanea el QR para pagar:</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={liveQrImage}
+                alt="QR de pago"
+                className="mx-auto h-56 w-56 border border-ink/10 bg-white object-contain"
+              />
+            </div>
+          ) : qrFetchFailed ? (
+            <p className="mt-3 text-xs text-amber-700">
+              No pudimos cargar el QR en este momento. Actualiza la página o pídele el QR a la
+              tienda por WhatsApp.
+            </p>
+          ) : (
+            <p className="mt-3 text-xs text-amber-700">
+              La tienda te va a escribir por WhatsApp para coordinar el pago.
+            </p>
+          )}
+          {store.whatsapp && (
+            <a
+              href={`https://wa.me/591${store.whatsapp.replace(/\D/g, "")}?text=${whatsappOrderMsg}`}
+              target="_blank"
+              className="btn-editorial mt-4 flex bg-green-500 text-white border-green-500"
+            >
+              Avisar por WhatsApp
+            </a>
+          )}
         </RevealOnScroll>
       )}
       <RevealOnScroll>

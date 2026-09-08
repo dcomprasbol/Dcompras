@@ -83,12 +83,24 @@ export default async function StoreLayout({
                   <AccountMenu email={buyer.email ?? ""} redirectTo={`/${params.slug}`} />
                 </>
               ) : (
-                <Link
-                  href={`/login?next=${encodeURIComponent(`/${params.slug}`)}`}
-                  className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
-                >
-                  Iniciar sesión
-                </Link>
+                <>
+                  {/* Para comprar sin cuenta: si cerró la pestaña de
+                      seguimiento y no la tiene más, acá busca su pedido por
+                      teléfono (ver /[slug]/mi-pedido) — no le pedimos crear
+                      cuenta para eso. */}
+                  <Link
+                    href={`/${params.slug}/mi-pedido`}
+                    className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
+                  >
+                    Mi pedido
+                  </Link>
+                  <Link
+                    href={`/login?next=${encodeURIComponent(`/${params.slug}`)}`}
+                    className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
+                  >
+                    Iniciar sesión
+                  </Link>
+                </>
               )}
               <CartHeaderBadge slug={params.slug} />
             </div>
@@ -104,6 +116,9 @@ export default async function StoreLayout({
                 {store.city && <p className="store-text-soft mt-1 text-xs">{store.city}</p>}
               </div>
               <div className="store-text-soft flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+                <Link href={`/${params.slug}/mi-pedido`} className="nav-sweep hover:opacity-80">
+                  Mi pedido
+                </Link>
                 {store.whatsapp && (
                   <a
                     href={`https://wa.me/591${store.whatsapp.replace(/\D/g, "")}`}

@@ -372,6 +372,25 @@ export async function listOrdersByBuyerId(buyerId: string): Promise<BuyerOrder[]
   return Promise.all(rows.map(async (row) => ({ ...(await attachItems(row)), storeName: row.storeName, storeSlug: row.storeSlug })));
 }
 
+// Para que un comprador SIN cuenta pueda volver a encontrar su pedido si
+// cerró la pestaña y perdió el link de seguimiento: el teléfono que él mismo
+// escribió al pedir es lo único que hace falta (ver /[slug]/mi-pedido). No
+// es una credencial fuerte, pero es la misma idea que "seguimiento por
+// teléfono" de cualquier delivery — y el orderId real (que sí es secreto)
+// sigue siendo lo único que da acceso al detalle completo del pedido.
+export async function listOrdersByPhone(storeId: string, phone: string): Promise<Order[]> {
+  await dbReady;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 6) return [];
+  const rows = await sql<Omit<Order, "items">[]>`
+    SELECT * FROM orders
+    WHERE store_id = ${storeId} AND regexp_replace(customer_phone, '\\D', '', 'g') = ${digits}
+    ORDER BY created_at DESC
+    LIMIT 20
+  `;
+  return Promise.all(rows.map(attachItems));
+}
+
 export async function updateOrderStatus(orderId: string, status: string): Promise<void> {
   await dbReady;
 
