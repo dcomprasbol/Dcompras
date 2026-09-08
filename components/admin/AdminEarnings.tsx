@@ -4,21 +4,8 @@ import { useEffect, useState } from "react";
 import { formatBs } from "@/lib/utils";
 
 type Pending = { grossAmount: number; commissionAmount: number; netAmount: number; orderCount: number };
-type SalesReportOrder = {
-  id: string;
-  total: number;
-  commissionAmount: number | null;
-  netAmount: number | null;
-  paidAt: string;
-  customerName: string;
-};
-type SalesReport = {
-  grossAmount: number;
-  commissionAmount: number;
-  netAmount: number;
-  orderCount: number;
-  orders: SalesReportOrder[];
-};
+type SalesReportProduct = { label: string; quantity: number; total: number };
+type SalesReport = { grossAmount: number; orderCount: number; products: SalesReportProduct[] };
 
 function todayISODate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -34,10 +21,11 @@ type Payout = {
   grossAmount: number;
   commissionAmount: number;
   netAmount: number;
-  status: "solicitado" | "pagado" | string;
+  status: "solicitado" | "transferido" | "pagado" | string;
   reference: string | null;
   receiptImageUrl: string | null;
   paidAt: string | null;
+  confirmedAt: string | null;
   createdAt: string;
 };
 
@@ -50,6 +38,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justRequested, setJustRequested] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reportFrom, setReportFrom] = useState(firstDayOfMonthISODate());
   const [reportTo, setReportTo] = useState(todayISODate());
   const [report, setReport] = useState<SalesReport | null>(null);
@@ -72,7 +61,9 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     load();
   }, [slug]);
 
-  const hasRequestedPayout = payouts.some((p) => p.status === "solicitado");
+  const hasRequestedPayout = payouts.some(
+    (p) => p.status === "solicitado" || p.status === "transferido"
+  );
 
   async function handleViewReport() {
     setReportError(null);
@@ -113,9 +104,32 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     }
   }
 
+  // El vendedor mira el comprobante y confirma que de verdad le llegó la
+  // plata — recién ahí la liquidación pasa a "Pagado" en el historial. Sin
+  // este paso, cerrar la liquidación dependía solo de que el admin dijera
+  // que transfirió.
+  async function handleConfirmReceived(payoutId: string) {
+    if (!window.confirm("¿Confirmás que ya te llegó esta plata a tu cuenta o QR?")) return;
+    setConfirmingId(payoutId);
+    try {
+      const res = await fetch(`/api/stores/${slug}/payouts/${payoutId}/confirm-received`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        window.alert(data.error || "No se pudo confirmar");
+        return;
+      }
+      await load();
+    } finally {
+      setConfirmingId(null);
+    }
+  }
+
   if (loading) return <p className="text-sm text-ink/50">Cargando...</p>;
 
   const requested = payouts.filter((p) => p.status === "solicitado");
+  const transferred = payouts.filter((p) => p.status === "transferido");
   const paid = payouts.filter((p) => p.status === "pagado");
 
   return (
@@ -187,6 +201,53 @@ export default function AdminEarnings({ slug }: { slug: string }) {
         </div>
       )}
 
+      {/* El admin ya dijo que transfirió y subió un comprobante, pero la
+          liquidación no cierra sola: hace falta que el propio vendedor mire
+          el comprobante y confirme que de verdad le llegó la plata. */}
+      {transferred.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-bold text-ink">Confirmá que te llegó</h2>
+          <div className="space-y-2">
+            {transferred.map((p) => (
+              <div key={p.id} className="animate-pop rounded-2xl border border-jade-300 bg-jade-50 p-4">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <p className="font-mono text-lg font-bold text-jade-700">
+                    {formatBs(p.netAmount)}
+                  </p>
+                  <span className="rounded-full bg-jade-100 px-2 py-0.5 text-xs font-medium text-jade-800">
+                    Admin dice que ya transfirió
+                  </span>
+                </div>
+                {p.reference && (
+                  <p className="text-xs text-ink/50">Referencia: {p.reference}</p>
+                )}
+                {p.receiptImageUrl && (
+                  <a href={p.receiptImageUrl} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.receiptImageUrl}
+                      alt="Comprobante de pago"
+                      className="mt-2 h-40 w-40 cursor-zoom-in rounded-lg border border-ink/10 object-cover transition hover:opacity-90"
+                    />
+                  </a>
+                )}
+                <p className="mt-2 text-xs text-ink/50">
+                  Revisá el comprobante (hacé clic para verlo más grande) y confirmá solo si de
+                  verdad ya te llegó la plata a tu cuenta o QR.
+                </p>
+                <button
+                  onClick={() => handleConfirmReceived(p.id)}
+                  disabled={confirmingId === p.id}
+                  className="mt-3 w-full rounded-lg bg-jade-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-jade-700 disabled:opacity-60"
+                >
+                  {confirmingId === p.id ? "Confirmando..." : "Sí, ya me llegó la plata"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="mb-3 text-sm font-bold text-ink">Historial de liquidaciones</h2>
         {paid.length === 0 ? (
@@ -217,9 +278,10 @@ export default function AdminEarnings({ slug }: { slug: string }) {
                     className="mt-2 h-20 w-20 rounded-lg border border-ink/10 object-cover"
                   />
                 )}
-                {p.paidAt && (
+                {p.confirmedAt && (
                   <p className="mt-1 text-xs text-ink/40">
-                    {new Date(p.paidAt).toLocaleString("es-BO")}
+                    Confirmaste que te llegó el{" "}
+                    {new Date(p.confirmedAt).toLocaleString("es-BO")}
                   </p>
                 )}
               </div>
@@ -228,15 +290,14 @@ export default function AdminEarnings({ slug }: { slug: string }) {
         )}
       </div>
 
-      {/* Reporte de ventas por período: mismo criterio que la billetera
-          (paid_at, solo ventas por QR automático) para que cuadre con las
-          liquidaciones — a diferencia de la billetera, acá entran también
-          las que ya se liquidaron, porque es un histórico. */}
+      {/* Reporte de ventas por período: a propósito solo muestra lo que
+          generó y qué productos vendió (control de inventario/ventas), sin
+          comisión ni neto — eso ya se ve arriba en la billetera. */}
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-ink">Reporte de ventas</h2>
         <p className="mb-3 text-xs text-ink/50">
-          Elegí un período para ver cuánto vendiste por QR automático, con el mismo criterio que
-          tus liquidaciones (para que puedas cuadrarlo).
+          Elegí un período para ver qué vendiste por QR automático y cuánto generó, con el mismo
+          criterio que tus liquidaciones (para que puedas cuadrarlo).
         </p>
         <div className="flex flex-wrap items-end gap-2">
           <div>
@@ -275,37 +336,24 @@ export default function AdminEarnings({ slug }: { slug: string }) {
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="font-mono text-lg font-bold text-ink">
-                      {formatBs(report.grossAmount)}
-                    </p>
-                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Vendido</p>
-                  </div>
-                  <div>
-                    <p className="font-mono text-lg font-bold text-ink/50">
-                      {formatBs(report.commissionAmount)}
-                    </p>
-                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Comisión</p>
-                  </div>
-                  <div>
-                    <p className="font-mono text-lg font-bold text-jade-600">
-                      {formatBs(report.netAmount)}
-                    </p>
-                    <p className="text-[11px] uppercase tracking-wide text-ink/40">Te toca a vos</p>
-                  </div>
+                <div className="text-center">
+                  <p className="font-mono text-2xl font-bold text-jade-600">
+                    {formatBs(report.grossAmount)}
+                  </p>
+                  <p className="text-[11px] uppercase tracking-wide text-ink/40">
+                    Generado en {report.orderCount} pedido{report.orderCount === 1 ? "" : "s"}
+                  </p>
                 </div>
-                <p className="mt-2 text-center text-xs text-ink/40">
-                  {report.orderCount} pedido{report.orderCount === 1 ? "" : "s"} pagado
-                  {report.orderCount === 1 ? "" : "s"} por QR en el período
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-ink/40">
+                  Productos vendidos
                 </p>
-                <div className="mt-3 max-h-60 space-y-1 overflow-y-auto border-t border-ink/5 pt-3 text-xs text-ink/60">
-                  {report.orders.map((o) => (
-                    <div key={o.id} className="flex items-center justify-between">
-                      <span>
-                        {new Date(o.paidAt).toLocaleDateString("es-BO")} · {o.customerName}
+                <div className="max-h-60 space-y-1 overflow-y-auto text-sm text-ink/70">
+                  {report.products.map((p) => (
+                    <div key={p.label} className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 flex-1 truncate">
+                        {p.quantity}x {p.label}
                       </span>
-                      <span className="font-mono">{formatBs(o.total)}</span>
+                      <span className="shrink-0 font-mono text-ink">{formatBs(p.total)}</span>
                     </div>
                   ))}
                 </div>

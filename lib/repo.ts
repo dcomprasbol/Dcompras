@@ -900,10 +900,11 @@ export type Payout = {
   grossAmount: number;
   commissionAmount: number;
   netAmount: number;
-  status: "solicitado" | "pagado" | string;
+  status: "solicitado" | "transferido" | "pagado" | string;
   reference: string | null;
   receiptImageUrl: string | null;
   paidAt: string | null;
+  confirmedAt: string | null;
   createdAt: string;
 };
 
@@ -936,47 +937,48 @@ export async function getPendingBalance(storeId: string): Promise<{
   return row;
 }
 
-export type SalesReportOrder = {
-  id: string;
-  total: number;
-  commissionAmount: number | null;
-  netAmount: number | null;
-  paidAt: string;
-  customerName: string;
-};
+export type SalesReportProduct = { label: string; quantity: number; total: number };
 
 export type SalesReport = {
   grossAmount: number;
-  commissionAmount: number;
-  netAmount: number;
   orderCount: number;
-  orders: SalesReportOrder[];
+  products: SalesReportProduct[];
 };
 
-// Reporte de ventas por período para que el vendedor pueda cuadrar contra
-// sus liquidaciones — mismo criterio que la billetera (paid_at, no status;
-// solo ventas por QR automático, que son las únicas que pasan por
-// Dcompras) pero sin el filtro de "todavía sin liquidar": acá entran
-// también las ya liquidadas, porque es un reporte histórico, no el saldo
-// disponible.
+// Reporte de ventas por período: a propósito NO muestra comisión ni neto
+// (eso ya se ve en la Billetera/liquidaciones) — acá el vendedor quiere
+// control de qué vendió y cuánto generó, para cuadrarlo con lo liquidado.
+// Mismo criterio que la billetera para "generó" (paid_at, no status; solo
+// ventas por QR automático, que son las únicas que pasan por Dcompras),
+// pero sin el filtro de "todavía sin liquidar" — acá entran también las ya
+// liquidadas, porque es un histórico, no el saldo disponible.
 export async function getSalesReport(
   storeId: string,
   from: string,
   to: string
 ): Promise<SalesReport> {
   await dbReady;
-  const orders = await sql<SalesReportOrder[]>`
-    SELECT id, total, commission_amount, net_amount, paid_at, customer_name
+  const [totals] = await sql<{ grossAmount: number; orderCount: number }[]>`
+    SELECT COALESCE(SUM(total), 0) AS gross_amount, COUNT(*)::int AS order_count
     FROM orders
     WHERE store_id = ${storeId} AND paid_at IS NOT NULL
       AND paid_at >= ${from} AND paid_at <= ${to}
       AND (sip_id_qr IS NOT NULL OR infinity_order_id IS NOT NULL)
-    ORDER BY paid_at ASC
   `;
-  const grossAmount = orders.reduce((s, o) => s + Number(o.total), 0);
-  const commissionAmount = orders.reduce((s, o) => s + Number(o.commissionAmount || 0), 0);
-  const netAmount = orders.reduce((s, o) => s + Number(o.netAmount || 0), 0);
-  return { grossAmount, commissionAmount, netAmount, orderCount: orders.length, orders };
+  // oi.label (no products.name) porque ya es lo que se guardó al momento del
+  // pedido — sigue mostrando bien el producto aunque después se haya
+  // borrado o rebautizado (mismo criterio que el resto del sitio).
+  const products = await sql<SalesReportProduct[]>`
+    SELECT oi.label, SUM(oi.quantity)::int AS quantity, SUM(oi.quantity * oi.unit_price) AS total
+    FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    WHERE o.store_id = ${storeId} AND o.paid_at IS NOT NULL
+      AND o.paid_at >= ${from} AND o.paid_at <= ${to}
+      AND (o.sip_id_qr IS NOT NULL OR o.infinity_order_id IS NOT NULL)
+    GROUP BY oi.label
+    ORDER BY total DESC
+  `;
+  return { grossAmount: Number(totals.grossAmount), orderCount: totals.orderCount, products };
 }
 
 export type PendingPayoutRequest = {
@@ -991,14 +993,20 @@ export type PendingPayoutRequest = {
   paymentQrImageUrl: string | null;
   netAmount: number;
   orderCount: number;
+  status: "solicitado" | "transferido";
+  reference: string | null;
+  receiptImageUrl: string | null;
+  paidAt: string | null;
   createdAt: string;
 };
 
-// Para el panel de /plataforma: liquidaciones que un vendedor YA pidió
-// (ver requestPayout) y siguen esperando que el admin las pague — ya no es
-// "toda tienda con saldo", es puntualmente lo que el vendedor agendó. El QR
-// de pago de la tienda viaja acá para que el admin pueda pagarle
-// escaneándolo directo, sin tener que copiar el número de cuenta a mano.
+// Para el panel de /plataforma: liquidaciones que un vendedor YA pidió (ver
+// requestPayout) y todavía no quedaron cerradas del todo — incluye tanto
+// las recién agendadas ('solicitado', el admin tiene que transferir) como
+// las ya transferidas ('transferido', esperando que el propio vendedor
+// confirme que le llegó la plata — ver confirmPayoutReceived). El QR de
+// pago de la tienda viaja acá para que el admin pueda pagarle escaneándolo
+// directo, sin tener que copiar el número de cuenta a mano.
 export async function listPendingPayoutRequests(): Promise<PendingPayoutRequest[]> {
   await dbReady;
   return sql<PendingPayoutRequest[]>`
@@ -1006,12 +1014,12 @@ export async function listPendingPayoutRequests(): Promise<PendingPayoutRequest[
       p.id, s.id AS store_id, s.name AS store_name, s.slug AS store_slug,
       s.bank_name, s.bank_account_number, s.bank_account_holder, s.bank_account_type,
       s.payment_qr_image_url,
-      p.net_amount,
+      p.net_amount, p.status, p.reference, p.receipt_image_url, p.paid_at,
       (SELECT COUNT(*) FROM orders o WHERE o.payout_id = p.id)::int AS order_count,
       p.created_at
     FROM payouts p
     JOIN stores s ON s.id = p.store_id
-    WHERE p.status = 'solicitado'
+    WHERE p.status IN ('solicitado', 'transferido')
     ORDER BY p.created_at ASC
   `;
 }
@@ -1073,6 +1081,10 @@ export async function requestPayout(storeId: string): Promise<Payout> {
  * referencia). Solo se puede confirmar algo que esté 'solicitado': ni una
  * liquidación ya pagada, ni un id inventado.
  */
+// El admin dice "ya transferí" y sube el comprobante — pero esto todavía
+// NO cierra la liquidación. Queda en 'transferido' hasta que el propio
+// vendedor confirme (ver confirmPayoutReceived) que de verdad le llegó la
+// plata; así el sistema no depende solo de la palabra del admin.
 export async function confirmPayout(
   payoutId: string,
   fields: { reference: string | null; receiptImageUrl: string | null }
@@ -1080,7 +1092,7 @@ export async function confirmPayout(
   await dbReady;
   const rows = await sql<Payout[]>`
     UPDATE payouts
-    SET status = 'pagado', paid_at = ${nowISO()}, reference = ${fields.reference}, receipt_image_url = ${fields.receiptImageUrl}
+    SET status = 'transferido', paid_at = ${nowISO()}, reference = ${fields.reference}, receipt_image_url = ${fields.receiptImageUrl}
     WHERE id = ${payoutId} AND status = 'solicitado'
     RETURNING *
   `;
@@ -1088,6 +1100,20 @@ export async function confirmPayout(
     throw new Error("Esa liquidación no existe o ya fue confirmada");
   }
   return rows[0];
+}
+
+// El propio vendedor confirma, desde su billetera, que la plata del
+// comprobante le llegó de verdad — recién acá la liquidación queda
+// 'pagado' (cerrada) en el sistema. Filtra por storeId además del id del
+// payout para que un vendedor no pueda confirmar la liquidación de otro.
+export async function confirmPayoutReceived(payoutId: string, storeId: string): Promise<boolean> {
+  await dbReady;
+  const result = await sql`
+    UPDATE payouts
+    SET status = 'pagado', confirmed_at = ${nowISO()}
+    WHERE id = ${payoutId} AND store_id = ${storeId} AND status = 'transferido'
+  `;
+  return result.count > 0;
 }
 
 export async function listPayoutsByStore(storeId: string): Promise<Payout[]> {

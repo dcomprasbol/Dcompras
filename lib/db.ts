@@ -265,6 +265,14 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- confirmPayout.
   ALTER TABLE payouts ADD COLUMN IF NOT EXISTS receipt_image_url TEXT;
 
+  -- Fase 3c: ahora son TRES pasos, no dos. El admin subir el comprobante ya
+  -- no cierra la liquidación por sí solo — solo la pasa a 'transferido'
+  -- (paid_at = cuándo transfirió). Recién cuando el propio VENDEDOR hace clic
+  -- en el comprobante y confirma que le llegó la plata pasa a 'pagado'
+  -- (confirmed_at = cuándo confirmó) — así queda el consentimiento del
+  -- vendedor de que de verdad cobró, no solo la palabra del admin.
+  ALTER TABLE payouts ADD COLUMN IF NOT EXISTS confirmed_at TEXT;
+
   DO $$ BEGIN
     ALTER TABLE orders ADD CONSTRAINT orders_payout_id_fkey
       FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE SET NULL;

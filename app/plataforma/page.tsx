@@ -110,7 +110,8 @@ export default async function PlataformaPage() {
               Vendedores que ya agendaron su liquidación desde su billetera: plata que está en la
               cuenta de Dcompras (ventas por QR automático) y esperan que se la transfieras.
               Comisión actual: {commissionPercent()}%. Transfiere a mano (con el QR o los datos de
-              abajo) y subí el comprobante para cerrarla.
+              abajo) y subí el comprobante — la liquidación queda cerrada recién cuando el propio
+              vendedor confirma que le llegó.
             </p>
             <PayoutsPanel initialPending={pendingPayouts} />
           </div>

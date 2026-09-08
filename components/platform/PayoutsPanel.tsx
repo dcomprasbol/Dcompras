@@ -16,6 +16,10 @@ type PendingPayout = {
   paymentQrImageUrl: string | null;
   netAmount: number;
   orderCount: number;
+  status: "solicitado" | "transferido";
+  reference: string | null;
+  receiptImageUrl: string | null;
+  paidAt: string | null;
 };
 
 function accountTypeLabel(value: string | null) {
@@ -30,7 +34,6 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   const [imageProcessing, setImageProcessing] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [confirmedId, setConfirmedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const open = pending.find((p) => p.id === openId) ?? null;
@@ -65,7 +68,7 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
   async function handleConfirm(payoutId: string) {
     // El comprobante (foto o número de referencia) es lo único que prueba
     // que la plata salió de verdad — sin al menos uno de los dos no se deja
-    // cerrar la liquidación, para no perder el rastro de una transferencia
+    // marcar como transferido, para no perder el rastro de una transferencia
     // real por apuro.
     if (!receiptImageUrl && !reference.trim()) {
       setImageError("Subí una foto del comprobante o escribí el número de referencia");
@@ -83,17 +86,25 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
       });
       const data = await res.json();
       if (!res.ok) {
-        window.alert(data.error || "No se pudo confirmar la liquidación");
+        window.alert(data.error || "No se pudo marcar como transferido");
         return;
       }
-      // La fila se achica y desaparece en vez de saltar de golpe — confirma
-      // visualmente que quedó cerrada la liquidación.
-      setConfirmedId(payoutId);
+      // Todavía no desaparece de la lista: sigue apareciendo, ahora como
+      // "transferido", hasta que el propio vendedor confirme que le llegó
+      // (recién ahí sale de listPendingPayoutRequests para siempre).
+      setPending((prev) =>
+        prev.map((p) =>
+          p.id === payoutId
+            ? {
+                ...p,
+                status: "transferido",
+                reference: reference.trim() || null,
+                receiptImageUrl: receiptImageUrl || null,
+              }
+            : p
+        )
+      );
       closeDetail();
-      setTimeout(() => {
-        setPending((prev) => prev.filter((p) => p.id !== payoutId));
-        setConfirmedId(null);
-      }, 280);
     } finally {
       setSaving(false);
     }
@@ -115,9 +126,7 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
             key={row.id}
             type="button"
             onClick={() => openDetail(row.id)}
-            className={`animate-pop w-full rounded-2xl border border-ink/5 bg-white p-4 text-left shadow-sm transition hover:border-jade-300 hover:shadow-md ${
-              confirmedId === row.id ? "animate-shrink-out" : ""
-            }`}
+            className="animate-pop w-full rounded-2xl border border-ink/5 bg-white p-4 text-left shadow-sm transition hover:border-jade-300 hover:shadow-md"
           >
             <div className="flex items-start gap-4">
               {row.paymentQrImageUrl && (
@@ -129,15 +138,22 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
                 />
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-ink">
-                  {row.storeName} <span className="font-normal text-ink/40">/{row.storeSlug}</span>
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-ink">
+                    {row.storeName} <span className="font-normal text-ink/40">/{row.storeSlug}</span>
+                  </p>
+                  {row.status === "transferido" && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                      Esperando confirmación del vendedor
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 font-mono text-lg font-bold text-jade-600">
                   {formatBs(row.netAmount)}
                 </p>
                 <p className="text-xs text-ink/50">
-                  {row.orderCount} pedido{row.orderCount === 1 ? "" : "s"} en esta solicitud · Ver
-                  detalle y marcar como pagado →
+                  {row.orderCount} pedido{row.orderCount === 1 ? "" : "s"} en esta solicitud ·{" "}
+                  {row.status === "transferido" ? "Ver comprobante" : "Ver detalle y marcar como transferido"} →
                 </p>
               </div>
             </div>
@@ -146,8 +162,8 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
       </div>
 
       {/* Detalle de la solicitud: QR grande, datos bancarios, subir
-          comprobante y cerrar la liquidación — todo en un panel aparte para
-          no amontonar la lista con un formulario por fila. */}
+          comprobante y marcar como transferido — todo en un panel aparte
+          para no amontonar la lista con un formulario por fila. */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -216,50 +232,84 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
                 </p>
               )}
 
-              <div className="space-y-2 border-t border-ink/5 pt-3">
-                <label className="block text-xs font-medium text-ink/60">
-                  Foto del comprobante de la transferencia
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-jade-700"
-                />
-                {imageProcessing && <p className="text-xs text-ink/50">Procesando imagen...</p>}
-                {receiptImageUrl && !imageProcessing && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={receiptImageUrl}
-                    alt="Comprobante"
-                    className="h-20 w-20 rounded-lg border border-ink/10 object-cover"
-                  />
-                )}
-                <input
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  placeholder="Número de referencia (opcional si subís foto)"
-                  className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs"
-                />
-                {imageError && <p className="text-xs text-coral-600">{imageError}</p>}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleConfirm(open.id)}
-                    disabled={saving}
-                    className="flex-1 rounded-lg bg-jade-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
-                  >
-                    {saving ? "Guardando..." : "Marcar como pagado"}
-                  </button>
+              {open.status === "transferido" ? (
+                // Ya se subió el comprobante — ahora es esperar a que el
+                // vendedor lo confirme desde su billetera, nada más que
+                // hacer acá.
+                <div className="space-y-2 border-t border-ink/5 pt-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800">
+                    ⏳ Esperando que el vendedor confirme que le llegó la plata.
+                  </div>
+                  {open.reference && (
+                    <p className="text-xs text-ink/50">Referencia: {open.reference}</p>
+                  )}
+                  {open.receiptImageUrl && (
+                    <a href={open.receiptImageUrl} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={open.receiptImageUrl}
+                        alt="Comprobante"
+                        className="h-40 w-40 cursor-zoom-in rounded-lg border border-ink/10 object-cover transition hover:opacity-90"
+                      />
+                    </a>
+                  )}
                   <button
                     onClick={closeDetail}
-                    disabled={saving}
-                    className="rounded-lg border border-ink/15 px-3 py-2 text-sm font-medium text-ink/60"
+                    className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm font-medium text-ink/60"
                   >
                     Cerrar
                   </button>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-2 border-t border-ink/5 pt-3">
+                  <label className="block text-xs font-medium text-ink/60">
+                    Foto del comprobante de la transferencia
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-jade-700"
+                  />
+                  {imageProcessing && <p className="text-xs text-ink/50">Procesando imagen...</p>}
+                  {receiptImageUrl && !imageProcessing && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={receiptImageUrl}
+                      alt="Comprobante"
+                      className="h-20 w-20 rounded-lg border border-ink/10 object-cover"
+                    />
+                  )}
+                  <input
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    placeholder="Número de referencia (opcional si subís foto)"
+                    className="w-full rounded-lg border border-ink/15 px-3 py-2 text-xs"
+                  />
+                  {imageError && <p className="text-xs text-coral-600">{imageError}</p>}
+                  <p className="text-[11px] text-ink/40">
+                    Esto no cierra la liquidación todavía — el vendedor tiene que confirmar desde
+                    su billetera que le llegó la plata.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleConfirm(open.id)}
+                      disabled={saving}
+                      className="flex-1 rounded-lg bg-jade-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:opacity-60"
+                    >
+                      {saving ? "Guardando..." : "Marcar como transferido"}
+                    </button>
+                    <button
+                      onClick={closeDetail}
+                      disabled={saving}
+                      className="rounded-lg border border-ink/15 px-3 py-2 text-sm font-medium text-ink/60"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
