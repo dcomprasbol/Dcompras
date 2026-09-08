@@ -38,6 +38,7 @@ export type Product = {
   price: number;
   compareAtPrice: number | null;
   imageUrl: string | null;
+  images: string[];
   active: boolean;
   createdAt: string;
   variants: Variant[];
@@ -234,14 +235,25 @@ export async function createProduct(input: {
   price: number;
   compareAtPrice: number | null;
   imageUrl: string | null;
+  images?: string[];
   variants: { label: string; stock: number }[];
 }): Promise<Product> {
   await dbReady;
   const id = newId();
   const createdAt = nowISO();
+  // La portada (image_url) siempre es la primera foto de la galería, para
+  // que todo lo que lee una sola imagen (carrito, checkout, tarjeta de
+  // producto, pedidos) siga funcionando sin cambios.
+  const images = (input.images && input.images.length > 0
+    ? input.images
+    : input.imageUrl
+      ? [input.imageUrl]
+      : []
+  ).slice(0, 5);
+  const coverImage = images[0] ?? null;
   await sql`
-    INSERT INTO products (id, store_id, name, description, price, compare_at_price, image_url, active, created_at)
-    VALUES (${id}, ${input.storeId}, ${input.name}, ${input.description}, ${input.price}, ${input.compareAtPrice}, ${input.imageUrl}, true, ${createdAt})
+    INSERT INTO products (id, store_id, name, description, price, compare_at_price, image_url, images, active, created_at)
+    VALUES (${id}, ${input.storeId}, ${input.name}, ${input.description}, ${input.price}, ${input.compareAtPrice}, ${coverImage}, ${sql.json(images)}, true, ${createdAt})
   `;
 
   for (const v of input.variants) {
@@ -258,12 +270,28 @@ export async function setProductActive(productId: string, active: boolean): Prom
 
 export async function updateProduct(
   productId: string,
-  fields: Partial<Pick<Product, "name" | "description" | "price" | "compareAtPrice" | "imageUrl">>
+  fields: Partial<
+    Pick<Product, "name" | "description" | "price" | "compareAtPrice" | "imageUrl" | "images">
+  >
 ): Promise<void> {
   await dbReady;
-  const keys = Object.keys(fields) as (keyof typeof fields)[];
-  if (keys.length === 0) return;
-  await sql`UPDATE products SET ${sql(fields as Record<string, unknown>, ...keys)} WHERE id = ${productId}`;
+  // "images" (jsonb) va aparte del resto: sql() no sabe serializar un array
+  // de strings a jsonb en un SET dinámico, y además la portada (image_url)
+  // siempre tiene que quedar igual a images[0] — ver createProduct.
+  const { images, imageUrl, ...rest } = fields;
+  if (images !== undefined) {
+    const trimmed = images.slice(0, 5);
+    await sql`
+      UPDATE products SET images = ${sql.json(trimmed)}, image_url = ${trimmed[0] ?? null}
+      WHERE id = ${productId}
+    `;
+  } else if (imageUrl !== undefined) {
+    await sql`UPDATE products SET image_url = ${imageUrl} WHERE id = ${productId}`;
+  }
+  const keys = Object.keys(rest) as (keyof typeof rest)[];
+  if (keys.length > 0) {
+    await sql`UPDATE products SET ${sql(rest as Record<string, unknown>, ...keys)} WHERE id = ${productId}`;
+  }
 }
 
 export async function deleteProduct(productId: string): Promise<void> {

@@ -22,6 +22,9 @@ export function formatBs(amount: number): string {
 const MAX_IMAGE_DIMENSION = 1024;
 const IMAGE_QUALITY = 0.82;
 
+// Cuántas fotos puede tener un producto (ver AdminProducts, ProductGallery).
+export const MAX_PRODUCT_IMAGES = 5;
+
 export function fileToResizedDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

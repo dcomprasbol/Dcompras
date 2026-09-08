@@ -125,6 +125,13 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- que se cobra (compare_at_price es solo para mostrar).
   ALTER TABLE products ADD COLUMN IF NOT EXISTS compare_at_price DOUBLE PRECISION;
 
+  -- Galería de fotos (hasta 5 por producto, ver MAX_PRODUCT_IMAGES en
+  -- lib/utils.ts). image_url sigue siendo la portada (images[0]) para no
+  -- tocar nada de lo que ya lee una sola imagen (carrito, checkout, tarjeta
+  -- de producto en el catálogo, pedidos del admin); la ficha de producto es
+  -- la única que muestra la galería completa.
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'::jsonb;
+
   CREATE TABLE IF NOT EXISTS variants (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStoreBySlug, listActiveProducts, createProduct } from "@/lib/repo";
 import { requireStoreAdmin } from "@/lib/auth";
+import { MAX_PRODUCT_IMAGES } from "@/lib/utils";
 
 export async function GET(
   req: NextRequest,
@@ -21,7 +22,10 @@ export async function POST(
   if (!store) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { name, description, price, compareAtPrice, imageUrl, variants } = body;
+  const { name, description, price, compareAtPrice, imageUrl, images, variants } = body;
+  const parsedImages: string[] | undefined = Array.isArray(images)
+    ? images.filter((u: unknown) => typeof u === "string" && u).slice(0, MAX_PRODUCT_IMAGES)
+    : undefined;
 
   if (!name || price === undefined || price === null) {
     return NextResponse.json(
@@ -55,6 +59,7 @@ export async function POST(
     price: Number(price),
     compareAtPrice: parsedCompareAtPrice,
     imageUrl: imageUrl || null,
+    images: parsedImages,
     variants: parsedVariants,
   });
 

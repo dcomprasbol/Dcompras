@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatBs, fileToResizedDataUrl } from "@/lib/utils";
+import { formatBs, fileToResizedDataUrl, MAX_PRODUCT_IMAGES } from "@/lib/utils";
 
 type Variant = { id?: string; label: string; stock: number };
 type Product = {
@@ -11,6 +11,7 @@ type Product = {
   price: number;
   compareAtPrice: number | null;
   imageUrl: string | null;
+  images: string[];
   variants: Variant[];
 };
 type StockNotification = {
@@ -36,7 +37,9 @@ export default function AdminProducts({ slug }: { slug: string }) {
   // campos del formulario originó cada valor.
   const [price, setPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  // Hasta MAX_PRODUCT_IMAGES fotos por producto; la primera es la portada
+  // (la que se ve en el catálogo y el carrito).
+  const [images, setImages] = useState<string[]>([]);
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([{ label: "", stock: 0 }]);
   const [saving, setSaving] = useState(false);
@@ -65,23 +68,37 @@ export default function AdminProducts({ slug }: { slug: string }) {
   }, [slug]);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setImageError(null);
+    const room = MAX_PRODUCT_IMAGES - images.length;
+    if (room <= 0) {
+      setImageError(`Máximo ${MAX_PRODUCT_IMAGES} fotos por producto`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setImageProcessing(true);
     try {
-      const dataUrl = await fileToResizedDataUrl(file);
-      setImageUrl(dataUrl);
+      const toProcess = files.slice(0, room);
+      const dataUrls = await Promise.all(toProcess.map(fileToResizedDataUrl));
+      setImages((prev) => [...prev, ...dataUrls]);
+      if (files.length > room) {
+        setImageError(`Solo se agregaron ${room}: máximo ${MAX_PRODUCT_IMAGES} fotos por producto`);
+      }
     } catch {
-      setImageError("No se pudo procesar esa imagen, intenta con otra foto");
+      setImageError("No se pudo procesar alguna imagen, intenta con otra foto");
     } finally {
       setImageProcessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  function handleRemoveImage() {
-    setImageUrl("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  function handleRemoveImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleMakeCover(idx: number) {
+    setImages((prev) => [prev[idx], ...prev.filter((_, i) => i !== idx)]);
   }
 
   function updateVariant(idx: number, field: "label" | "stock", value: string) {
@@ -98,7 +115,9 @@ export default function AdminProducts({ slug }: { slug: string }) {
     setDescription("");
     setPrice("");
     setSalePrice("");
-    handleRemoveImage();
+    setImages([]);
+    setImageError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setHasVariants(false);
     setVariants([{ label: "", stock: 0 }]);
     setError(null);
@@ -116,7 +135,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     // p.price y el campo de descuento queda vacío.
     setPrice(String(onSale ? p.compareAtPrice : p.price));
     setSalePrice(onSale ? String(p.price) : "");
-    setImageUrl(p.imageUrl || "");
+    setImages(p.images && p.images.length > 0 ? p.images : p.imageUrl ? [p.imageUrl] : []);
     setError(null);
     setShowForm(true);
   }
@@ -150,7 +169,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
             description,
             price: finalPrice,
             compareAtPrice: finalCompareAtPrice,
-            imageUrl: imageUrl || null,
+            images,
             ...(editingId
               ? {}
               : {
@@ -279,35 +298,61 @@ export default function AdminProducts({ slug }: { slug: string }) {
             </p>
           )}
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink/70">Foto (opcional)</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-jade-700"
-            />
+            <label className="mb-1 block text-sm font-medium text-ink/70">
+              Fotos (opcional, hasta {MAX_PRODUCT_IMAGES})
+            </label>
+            {images.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="group relative h-16 w-16">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img}
+                      alt={`Foto ${idx + 1}`}
+                      className={`h-16 w-16 rounded-lg object-cover ${
+                        idx === 0 ? "ring-2 ring-jade-500 ring-offset-1" : ""
+                      }`}
+                    />
+                    {idx === 0 && (
+                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-jade-500 px-1.5 py-px text-[9px] font-semibold text-white">
+                        Portada
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100"
+                      aria-label="Quitar foto"
+                    >
+                      ×
+                    </button>
+                    {idx !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleMakeCover(idx)}
+                        className="absolute inset-x-0 bottom-0 truncate rounded-b-lg bg-ink/60 px-1 text-center text-[9px] font-medium text-white opacity-0 transition group-hover:opacity-100"
+                      >
+                        Usar como portada
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {images.length < MAX_PRODUCT_IMAGES && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-jade-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-jade-700"
+              />
+            )}
             {imageProcessing && (
               <p className="mt-1 text-xs text-ink/50">Procesando imagen...</p>
             )}
             {imageError && <p className="mt-1 text-xs text-coral-600">{imageError}</p>}
-            {imageUrl && !imageProcessing && (
-              <div className="mt-2 flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imageUrl}
-                  alt="Vista previa"
-                  className="h-16 w-16 rounded-lg object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="text-xs font-medium text-coral-500"
-                >
-                  Quitar foto
-                </button>
-              </div>
-            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-ink/70">

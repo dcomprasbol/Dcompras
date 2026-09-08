@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { formatBs } from "@/lib/utils";
 import { themeForCategory } from "@/lib/storeTheme";
 import AddToCartForm from "@/components/AddToCartForm";
+import ProductGallery from "@/components/ProductGallery";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 
 export const dynamic = "force-dynamic";
@@ -33,36 +34,26 @@ export default async function ProductPage({
   return (
     <div className="mx-auto max-w-6xl px-5 py-10 md:px-8">
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-        <RevealOnScroll
-          className={
-            themedImage
-              ? `store-card-bg relative aspect-square w-full overflow-hidden rounded-[var(--store-radius-lg)] lg:aspect-[4/5] ${theme === "tecnologia" ? "store-border border" : ""}`
-              : "relative aspect-square w-full overflow-hidden border border-ink/10 bg-paper lg:aspect-[4/5]"
-          }
-        >
-          {onSale && (
-            <span
-              className={
-                themedImage
-                  ? `absolute left-3 top-3 z-10 text-xs font-semibold ${theme === "moda" ? "store-text" : "store-accent-bg rounded px-1.5 py-0.5 uppercase tracking-wide"}`
-                  : "tag-editorial absolute left-3 top-3 z-10 bg-coral-500 text-white"
-              }
-            >
-              {theme === "moda" ? `-${discountPct}%` : `-${discountPct}% de descuento`}
-            </span>
-          )}
-          {product.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl">
-              {placeholderIcon}
-            </div>
-          )}
+        <RevealOnScroll>
+          <ProductGallery
+            images={product.images && product.images.length > 0 ? product.images : product.imageUrl ? [product.imageUrl] : []}
+            alt={product.name}
+            theme={theme}
+            placeholderIcon={placeholderIcon}
+            badge={
+              onSale ? (
+                <span
+                  className={
+                    themedImage
+                      ? `absolute left-3 top-3 z-10 text-xs font-semibold ${theme === "moda" ? "store-text" : "store-accent-bg rounded px-1.5 py-0.5 uppercase tracking-wide"}`
+                      : "tag-editorial absolute left-3 top-3 z-10 bg-coral-500 text-white"
+                  }
+                >
+                  {theme === "moda" ? `-${discountPct}%` : `-${discountPct}% de descuento`}
+                </span>
+              ) : undefined
+            }
+          />
         </RevealOnScroll>
 
         <div className="lg:pt-4">
