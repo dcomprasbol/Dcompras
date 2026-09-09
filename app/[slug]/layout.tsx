@@ -99,7 +99,7 @@ export default async function StoreLayout({
                     className="store-accent-soft-bg store-accent-text flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
                   >
                     <span aria-hidden="true">📦</span>
-                    <span className="hidden sm:inline">Mi pedido</span>
+                    <span>Mis pedidos</span>
                   </Link>
                   <Link
                     href={`/login?next=${encodeURIComponent(`/${params.slug}`)}`}
