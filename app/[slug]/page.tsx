@@ -6,6 +6,7 @@ import { themeForCategory } from "@/lib/storeTheme";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import DropCountdown from "@/components/DropCountdown";
 import ProductCard from "@/components/ProductCard";
+import HeroCarousel from "@/components/HeroCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,9 @@ export default async function StoreCatalogPage({
     (p) => p.variants.reduce((s, v) => s + v.stock, 0) > 0
   );
   const heroProduct = products[0];
+  // El hero "moda" (ver HeroModa) rota entre varias fotos del catálogo en
+  // vez de mostrar una sola fija — hasta 6, y solo las que tienen foto.
+  const heroProducts = products.slice(0, 6);
   const eyebrow = [categoryLabel(store.category), store.city].filter(Boolean).join(" · ");
   const theme = themeForCategory(store.category);
   const tagline = store.tagline || `Bienvenido a ${store.name}`;
@@ -57,7 +61,7 @@ export default async function StoreCatalogPage({
           store={store}
           eyebrow={eyebrow}
           tagline={tagline}
-          heroProduct={heroProduct}
+          heroProducts={heroProducts}
           hasProducts={products.length > 0}
         />
       ) : theme === "tecnologia" ? (
@@ -161,12 +165,13 @@ export default async function StoreCatalogPage({
   );
 }
 
-type HeroProduct = {
+type HeroProductItem = {
   name: string;
   price: number;
   compareAtPrice: number | null;
   imageUrl: string | null;
-} | undefined;
+};
+type HeroProduct = HeroProductItem | undefined;
 
 type StoreLike = {
   name: string;
@@ -268,45 +273,66 @@ function HeroDefault({
   );
 }
 
-// Hero "moda" (referencia: Sabina / Arum): foto del producto a todo el
-// ancho, degradé abajo para que el texto se lea, titular grande en la
-// tipografía que eligió la tienda (no impact) y un botón pill. Sin foto de
-// producto, cae a un fondo cálido liso — nunca se ve "vacío".
+// Hero "moda" (referencia: Sabina / Arum): rota sola entre las fotos del
+// catálogo (HeroCarousel) en vez de mostrar una sola fija, degradé abajo
+// para que el texto se lea, titular grande en la tipografía que eligió la
+// tienda (no impact) y un botón pill. El logo de la tienda se ve grande,
+// en una placa blanca arriba del título — a pedido del dueño, tenía que
+// notarse más que el ícono chico del header. Sin fotos ni logo, cae a un
+// fondo cálido liso — nunca se ve "vacío".
 function HeroModa({
   slug,
   store,
   eyebrow,
   tagline,
-  heroProduct,
+  heroProducts,
   hasProducts,
 }: {
   slug: string;
   store: StoreLike;
   eyebrow: string;
   tagline: string;
-  heroProduct: HeroProduct;
+  heroProducts: HeroProductItem[];
   hasProducts: boolean;
 }) {
-  const image = heroProduct?.imageUrl || store.logoUrl;
+  const slides = heroProducts
+    .filter((p) => p.imageUrl)
+    .map((p) => ({ url: p.imageUrl as string, alt: p.name }));
+  const hasImage = slides.length > 0 || Boolean(store.logoUrl);
   return (
     <section className="store-bg relative overflow-hidden">
       <div className="relative flex min-h-[70vh] items-end md:min-h-[80vh]">
-        {image ? (
+        {slides.length > 0 ? (
+          <>
+            <HeroCarousel images={slides} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          </>
+        ) : store.logoUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={store.logoUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           </>
         ) : (
           <div className="store-card-bg absolute inset-0" />
         )}
         <RevealOnScroll
-          className={`relative w-full px-5 pb-14 pt-24 md:px-8 md:pb-20 ${image ? "text-white" : "store-text"}`}
+          className={`relative w-full px-5 pb-14 pt-24 md:px-8 md:pb-20 ${hasImage ? "text-white" : "store-text"}`}
         >
           <div className="mx-auto max-w-3xl text-center">
+            {store.logoUrl && (
+              <div className="mb-5 inline-flex rounded-2xl bg-white p-2.5 shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={store.logoUrl}
+                  alt={store.name}
+                  className="h-14 w-14 rounded-xl object-cover md:h-16 md:w-16"
+                />
+              </div>
+            )}
             {eyebrow && (
               <span
-                className={`text-xs uppercase tracking-[0.2em] ${image ? "text-white/70" : "store-text-soft"}`}
+                className={`block text-xs uppercase tracking-[0.2em] ${hasImage ? "text-white/70" : "store-text-soft"}`}
               >
                 {eyebrow}
               </span>
@@ -318,7 +344,7 @@ function HeroModa({
               <a
                 href="#catalogo"
                 className={`mt-8 inline-flex rounded-full px-7 py-3 text-sm font-medium transition hover:opacity-90 ${
-                  image ? "bg-white text-ink" : "store-accent-bg"
+                  hasImage ? "bg-white text-ink" : "store-accent-bg"
                 }`}
               >
                 Ver colección

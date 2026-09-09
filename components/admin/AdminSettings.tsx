@@ -6,7 +6,6 @@ import {
   STORE_FONTS,
   DEFAULT_STORE_COLOR,
   BOLIVIA_DEPARTMENTS,
-  BANK_ACCOUNT_TYPES,
   fileToResizedDataUrl,
 } from "@/lib/utils";
 
@@ -29,10 +28,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
   const [instagramUrl, setInstagramUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [bankAccountNumber, setBankAccountNumber] = useState("");
-  const [bankAccountHolder, setBankAccountHolder] = useState("");
-  const [bankAccountType, setBankAccountType] = useState<string>(BANK_ACCOUNT_TYPES[0].value);
   const [dropAt, setDropAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,10 +49,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
         setInstagramUrl(d.store.instagramUrl || "");
         setTiktokUrl(d.store.tiktokUrl || "");
         setFacebookUrl(d.store.facebookUrl || "");
-        setBankName(d.store.bankName || "");
-        setBankAccountNumber(d.store.bankAccountNumber || "");
-        setBankAccountHolder(d.store.bankAccountHolder || "");
-        setBankAccountType(d.store.bankAccountType || BANK_ACCOUNT_TYPES[0].value);
         setDropAt(d.store.dropAt || "");
         setLoading(false);
       });
@@ -82,10 +73,6 @@ export default function AdminSettings({ slug }: { slug: string }) {
         instagramUrl,
         tiktokUrl,
         facebookUrl,
-        bankName,
-        bankAccountNumber,
-        bankAccountHolder,
-        bankAccountType,
         dropAt: dropAt || null,
       }),
     });
@@ -305,64 +292,33 @@ export default function AdminSettings({ slug }: { slug: string }) {
       </div>
 
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-sm font-bold text-ink">Datos bancarios</h2>
+        <h2 className="mb-1 text-sm font-bold text-ink">💰 Ingresa tu QR para que te depositemos tus ganancias</h2>
         <p className="mb-3 text-xs text-ink/50">
-          A esta cuenta te liquidamos lo que te corresponde de tus ventas por QR (ver pestaña
-          Billetera). Si ya subiste tu QR más abajo, no hace falta que llenes esto: con
-          cualquiera de los dos alcanza para poder pagarte.
+          Es el QR de cualquier cuenta tuya (banco o billetera móvil) donde quieras recibir la
+          plata de tus ventas. Así funciona cuando agendes una liquidación desde la pestaña
+          Billetera:
         </p>
-        <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-ink/70">Banco</label>
-          <input
-            value={bankName}
-            onChange={(e) => setBankName(e.target.value)}
-            placeholder="Ej: Banco BISA"
-            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-          />
-        </div>
-        <div className="mb-3 grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink/70">N° de cuenta</label>
-            <input
-              value={bankAccountNumber}
-              onChange={(e) => setBankAccountNumber(e.target.value)}
-              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink/70">Tipo de cuenta</label>
-            <select
-              value={bankAccountType}
-              onChange={(e) => setBankAccountType(e.target.value)}
-              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-            >
-              {BANK_ACCOUNT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <ol className="mb-4 space-y-2 text-xs text-ink/60">
+          <li className="flex gap-2">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-jade-100 text-[11px] font-bold text-jade-700">
+              1
+            </span>
+            <span>Agendás la liquidación de lo que vendiste, cuando quieras.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-jade-100 text-[11px] font-bold text-jade-700">
+              2
+            </span>
+            <span>Dcompras te transfiere escaneando este QR, y te sube el comprobante.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-jade-100 text-[11px] font-bold text-jade-700">
+              3
+            </span>
+            <span>Vos confirmás que te llegó y ahí queda cerrada la liquidación.</span>
+          </li>
+        </ol>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink/70">Titular de la cuenta</label>
-          <input
-            value={bankAccountHolder}
-            onChange={(e) => setBankAccountHolder(e.target.value)}
-            placeholder="Nombre completo como figura en el banco"
-            className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-          />
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-sm font-bold text-ink">Tu QR para que te liquidemos</h2>
-        <p className="mb-3 text-xs text-ink/50">
-          Este QR nunca lo ve el comprador: es solo para que Dcompras te transfiera tu
-          liquidación (Billetera) escaneándolo, como alternativa a llenar los datos bancarios de
-          arriba. Con cualquiera de los dos alcanza.
-        </p>
-        <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">Foto de tu QR</label>
           <input
             ref={qrFileInputRef}
