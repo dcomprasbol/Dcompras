@@ -43,6 +43,12 @@ function MiPedidoForm({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<FoundOrder[] | null>(null);
 
+  // Clave donde recordamos, por tienda, el último teléfono que sí
+  // encontró algo — así "Mis pedidos" del header/footer (que no sabe qué
+  // teléfono buscar) puede llevarlo directo a sus pedidos, en vez de
+  // pedírselo de nuevo cada vez que entra por ahí en lugar de con "atrás".
+  const storageKey = `dcompras:mi-pedido:${slug}`;
+
   const runSearch = useCallback(
     async (phoneToSearch: string) => {
       setError(null);
@@ -60,20 +66,42 @@ function MiPedidoForm({ slug }: { slug: string }) {
           return;
         }
         setOrders(data.orders || []);
+        try {
+          localStorage.setItem(storageKey, phoneToSearch);
+        } catch {
+          // Privado/bloqueado: sin problema, solo no lo va a recordar la
+          // próxima vez.
+        }
       } catch {
         setError("Error de conexión. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
     },
-    [slug]
+    [slug, storageKey]
   );
 
-  // Si la URL ya trae un teléfono (volvió de /pedido/[id] con "atrás", o
-  // recargó la página), buscamos solo — no hace falta que vuelva a
-  // escribirlo ni a apretar "Buscar".
+  // Mantiene el input sincronizado con la URL (ej: cuando el efecto de
+  // abajo la completa solo desde lo recordado).
   useEffect(() => {
-    if (phoneFromUrl) runSearch(phoneFromUrl);
+    if (phoneFromUrl) setPhone(phoneFromUrl);
+  }, [phoneFromUrl]);
+
+  // Si la URL ya trae un teléfono (volvió de /pedido/[id] con "atrás", o
+  // recargó la página), buscamos solo. Si NO trae uno (ej: entró por el
+  // link "Mis pedidos" del header, no con "atrás") pero ya buscó antes en
+  // esta tienda, usamos ese mismo teléfono en vez de pedírselo de nuevo.
+  useEffect(() => {
+    if (phoneFromUrl) {
+      runSearch(phoneFromUrl);
+      return;
+    }
+    try {
+      const remembered = localStorage.getItem(storageKey);
+      if (remembered) router.replace(`/${slug}/mi-pedido?phone=${encodeURIComponent(remembered)}`);
+    } catch {
+      // Sin localStorage: se comporta como antes, pide el teléfono.
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneFromUrl]);
 
