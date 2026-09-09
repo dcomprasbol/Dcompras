@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
+import ReportButton from "@/components/ReportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -325,6 +326,13 @@ export default async function OrderTrackingPage({
           </a>
         </RevealOnScroll>
       )}
+
+      {/* El vendedor es quien responde por la calidad/entrega de este
+          pedido (así lo aclaran los Términos y Condiciones) — esto es para
+          que la plataforma se entere si hace falta intervenir. */}
+      <RevealOnScroll delay={260} className="mt-4 text-center">
+        <ReportButton slug={params.slug} type="order" orderId={order.id} label="¿Problema con este pedido? Reportalo" />
+      </RevealOnScroll>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { formatBs } from "@/lib/utils";
 import { themeForCategory } from "@/lib/storeTheme";
 import AddToCartForm from "@/components/AddToCartForm";
 import ProductGallery from "@/components/ProductGallery";
+import ReportButton from "@/components/ReportButton";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,15 @@ export default async function ProductPage({
               }}
             />
           </RevealOnScroll>
+
+          <div className="mt-4 max-w-md">
+            <ReportButton
+              slug={params.slug}
+              type="product"
+              productId={product.id}
+              label="⚠️ Reportar este producto"
+            />
+          </div>
         </div>
       </div>
     </div>

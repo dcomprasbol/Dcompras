@@ -81,10 +81,41 @@ export const STORE_STATUSES = [
   { value: "pendiente", label: "Pendiente de revisión" },
   { value: "aprobada", label: "Aprobada" },
   { value: "rechazada", label: "Rechazada" },
+  // Moderación (Fase 4): a diferencia de "rechazada" (una tienda nueva que
+  // nunca llegó a operar), "suspendida" es una tienda que YA estaba
+  // aprobada y el admin le corta el acceso público por reportes/incumplir
+  // los Términos — ver ReportsPanel. El storefront público ya la esconde
+  // solo (app/[slug]/layout.tsx exige status === 'aprobada').
+  { value: "suspendida", label: "Suspendida" },
+  // Eliminada por el admin de plataforma (ver softDeleteStore) — nunca se
+  // borra de verdad, solo se esconde y queda visible para el admin por un
+  // tiempo por temas contables.
+  { value: "eliminada", label: "Eliminada" },
 ] as const;
 
 export function storeStatusLabel(value: string): string {
   return STORE_STATUSES.find((s) => s.value === value)?.label ?? value;
+}
+
+// Motivos de reporte (Fase 4): dos familias — sobre el PRODUCTO/vendedor
+// (se reporta desde la ficha del producto) o sobre UN PEDIDO puntual (se
+// reporta desde su seguimiento). Ver ReportButton y /api/stores/[slug]/reports.
+export const PRODUCT_REPORT_REASONS = [
+  { value: "ilegal", label: "Es un producto ilegal o prohibido" },
+  { value: "sospechoso", label: "Este vendedor me parece sospechoso" },
+  { value: "otro", label: "Otro motivo" },
+] as const;
+
+export const ORDER_REPORT_REASONS = [
+  { value: "no_llego", label: "Mi pedido no llegó" },
+  { value: "defectuoso", label: "Llegó defectuoso o incompleto" },
+  { value: "otro", label: "Otro motivo" },
+] as const;
+
+const ALL_REPORT_REASONS = [...PRODUCT_REPORT_REASONS, ...ORDER_REPORT_REASONS];
+
+export function reportReasonLabel(value: string): string {
+  return ALL_REPORT_REASONS.find((r) => r.value === value)?.label ?? value;
 }
 
 export const DELIVERY_TYPES = [

@@ -26,6 +26,7 @@ export type Store = {
   bankAccountHolder: string | null;
   bankAccountType: string | null;
   dropAt: string | null;
+  deletedAt: string | null;
   createdAt: string;
 };
 
@@ -134,8 +135,12 @@ export async function createStore(input: {
 
 export async function listAllStores(): Promise<Store[]> {
   await dbReady;
+  // Las eliminadas (soft-delete, ver softDeleteStore) no van acá — tienen su
+  // propia vista en ReportsPanel, para no mezclarlas con la cola normal de
+  // revisión/tiendas activas.
   return sql<Store[]>`
     SELECT * FROM stores
+    WHERE deleted_at IS NULL
     ORDER BY (status = 'pendiente') DESC, created_at DESC
   `;
 }
@@ -173,6 +178,34 @@ export async function resubmitStoreForReview(storeId: string): Promise<boolean> 
 export async function deleteStore(storeId: string): Promise<void> {
   await dbReady;
   await sql`DELETE FROM stores WHERE id = ${storeId}`;
+}
+
+// Eliminar una tienda YA APROBADA (con historial real: pedidos, plata
+// cobrada, posible liquidación pendiente) es distinto de deleteStore de
+// arriba — acá NUNCA se borra la fila, solo se esconde. El storefront
+// público la deja de mostrar solo (exige status = 'aprobada'), pero el
+// admin de plataforma la sigue viendo en "Tiendas eliminadas" con todos sus
+// datos de facturación intactos, por si queda algo pendiente de liquidar.
+export async function softDeleteStore(storeId: string): Promise<void> {
+  await dbReady;
+  await sql`
+    UPDATE stores SET status = 'eliminada', deleted_at = ${nowISO()}
+    WHERE id = ${storeId}
+  `;
+}
+
+// Para la vista de "Tiendas eliminadas" del admin — por defecto, solo las
+// borradas en los últimos `withinDays` (30 = "un mes", como se acordó),
+// para no acumular para siempre. Compara como texto porque deleted_at es
+// TEXT (ISO), igual que el resto de las fechas de esta tabla.
+export async function listDeletedStores(withinDays = 30): Promise<Store[]> {
+  await dbReady;
+  const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000).toISOString();
+  return sql<Store[]>`
+    SELECT * FROM stores
+    WHERE deleted_at IS NOT NULL AND deleted_at >= ${cutoff}
+    ORDER BY deleted_at DESC
+  `;
 }
 
 export async function updateStoreSettings(
@@ -1166,4 +1199,106 @@ export async function confirmPayoutReceived(payoutId: string, storeId: string): 
 export async function listPayoutsByStore(storeId: string): Promise<Payout[]> {
   await dbReady;
   return sql<Payout[]>`SELECT * FROM payouts WHERE store_id = ${storeId} ORDER BY created_at DESC`;
+}
+
+// ---------- Reportes y moderación (Fase 4) ----------
+// Cualquiera (con o sin cuenta) puede reportar un producto o un pedido
+// puntual desde la tienda pública — ver ReportButton y
+// /api/stores/[slug]/reports. El admin de plataforma los revisa todos
+// juntos en /plataforma (ReportsPanel), agrupados por tienda, para poder
+// decidir si amonestar, suspender o eliminar a un vendedor.
+
+export type Report = {
+  id: string;
+  storeId: string;
+  productId: string | null;
+  orderId: string | null;
+  reason: string;
+  message: string | null;
+  reporterContact: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export async function createReport(input: {
+  storeId: string;
+  productId?: string | null;
+  orderId?: string | null;
+  reason: string;
+  message?: string | null;
+  reporterContact?: string | null;
+}): Promise<Report> {
+  await dbReady;
+  const id = newId();
+  const createdAt = nowISO();
+  await sql`
+    INSERT INTO reports (id, store_id, product_id, order_id, reason, message, reporter_contact, status, created_at)
+    VALUES (
+      ${id}, ${input.storeId}, ${input.productId ?? null}, ${input.orderId ?? null},
+      ${input.reason}, ${input.message ?? null}, ${input.reporterContact ?? null}, 'abierto', ${createdAt}
+    )
+  `;
+  const rows = await sql<Report[]>`SELECT * FROM reports WHERE id = ${id}`;
+  return rows[0];
+}
+
+export type ReportWithContext = Report & {
+  storeName: string;
+  storeSlug: string;
+  productName: string | null;
+  orderCode: string | null;
+};
+
+// Todos los reportes de todas las tiendas, con lo justo para que el admin
+// reconozca de qué se trata cada uno y pueda ir directo a verlo (el "code"
+// del pedido es el mismo de 6 caracteres que se muestra en el seguimiento,
+// no el UUID completo — orderId sigue yendo aparte para armar el link).
+export async function listAllReports(): Promise<ReportWithContext[]> {
+  await dbReady;
+  const rows = await sql<(Report & { storeName: string; storeSlug: string; productName: string | null; orderIdRaw: string | null })[]>`
+    SELECT
+      r.*, s.name AS store_name, s.slug AS store_slug,
+      p.name AS product_name, o.id AS order_id_raw
+    FROM reports r
+    JOIN stores s ON s.id = r.store_id
+    LEFT JOIN products p ON p.id = r.product_id
+    LEFT JOIN orders o ON o.id = r.order_id
+    ORDER BY (r.status = 'abierto') DESC, r.created_at DESC
+  `;
+  return rows.map((r) => ({
+    ...r,
+    orderCode: r.orderIdRaw ? r.orderIdRaw.slice(-6).toUpperCase() : null,
+  }));
+}
+
+export async function updateReportStatus(id: string, status: string): Promise<void> {
+  await dbReady;
+  await sql`UPDATE reports SET status = ${status} WHERE id = ${id}`;
+}
+
+export type StoreWarning = {
+  id: string;
+  storeId: string;
+  note: string | null;
+  createdAt: string;
+};
+
+export async function createStoreWarning(storeId: string, note?: string | null): Promise<StoreWarning> {
+  await dbReady;
+  const id = newId();
+  const createdAt = nowISO();
+  await sql`
+    INSERT INTO store_warnings (id, store_id, note, created_at)
+    VALUES (${id}, ${storeId}, ${note ?? null}, ${createdAt})
+  `;
+  const rows = await sql<StoreWarning[]>`SELECT * FROM store_warnings WHERE id = ${id}`;
+  return rows[0];
+}
+
+// Todas las amonestaciones de todas las tiendas — el panel arma el conteo
+// por tienda del lado del cliente (son pocas filas, no vale la pena una
+// query agrupada aparte).
+export async function listAllStoreWarnings(): Promise<StoreWarning[]> {
+  await dbReady;
+  return sql<StoreWarning[]>`SELECT * FROM store_warnings ORDER BY created_at DESC`;
 }

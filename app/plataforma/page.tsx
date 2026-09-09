@@ -8,6 +8,11 @@ import {
   getPlatformAlerts,
   listAllSupportMessages,
   listPendingPayoutRequests,
+  listAllReports,
+  listAllStoreWarnings,
+  listDeletedStores,
+  getPendingBalance,
+  listPayoutsByStore,
 } from "@/lib/repo";
 import { formatBs } from "@/lib/utils";
 import { commissionPercent } from "@/lib/commission";
@@ -19,6 +24,8 @@ import TopStores from "@/components/platform/TopStores";
 import ReviewQueue from "@/components/platform/ReviewQueue";
 import SupportInbox from "@/components/platform/SupportInbox";
 import PayoutsPanel from "@/components/platform/PayoutsPanel";
+import ReportsPanel from "@/components/platform/ReportsPanel";
+import DeletedStoresPanel from "@/components/platform/DeletedStoresPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +33,7 @@ export default async function PlataformaPage() {
   const admin = await requirePlatformAdmin();
   if (!admin) redirect("/");
 
-  const [stores, metrics, dailySales, topStores, alerts, supportMessages, pendingPayouts] =
+  const [stores, metrics, dailySales, topStores, alerts, supportMessages, pendingPayouts, reports, warnings, deletedStores] =
     await Promise.all([
       listAllStores(),
       getPlatformMetrics(),
@@ -35,9 +42,28 @@ export default async function PlataformaPage() {
       getPlatformAlerts(),
       listAllSupportMessages(),
       listPendingPayoutRequests(),
+      listAllReports(),
+      listAllStoreWarnings(),
+      listDeletedStores(30),
     ]);
   const openSupportCount = supportMessages.filter((m) => m.status === "abierto").length;
   const totalPendingPayout = pendingPayouts.reduce((s, p) => s + Number(p.netAmount), 0);
+  const openReportsCount = reports.filter((r) => r.status === "abierto").length;
+  const warningCounts: Record<string, number> = {};
+  for (const w of warnings) warningCounts[w.storeId] = (warningCounts[w.storeId] || 0) + 1;
+  // Facturación de cada tienda eliminada, para que el admin la vea sin
+  // tener que ir tienda por tienda — son pocas filas (soft-deletes
+  // recientes), así que un query por tienda acá es plenamente aceptable.
+  const deletedStoreSummaries = await Promise.all(
+    deletedStores.map(async (s) => ({
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      deletedAt: s.deletedAt as string,
+      pendingBalance: await getPendingBalance(s.id),
+      payouts: await listPayoutsByStore(s.id),
+    }))
+  );
 
   return (
     <div className="min-h-screen bg-paper">
@@ -114,6 +140,42 @@ export default async function PlataformaPage() {
               vendedor confirma que le llegó.
             </p>
             <PayoutsPanel initialPending={pendingPayouts} />
+          </div>
+        </div>
+
+        <div className="mb-6" id="reportes">
+          <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-ink">Reportes y moderación</h2>
+              {openReportsCount > 0 && (
+                <span className="rounded-full bg-coral-500 px-2 py-0.5 text-xs font-semibold text-white">
+                  {openReportsCount} abierto{openReportsCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+            <p className="mb-3 text-xs text-ink/50">
+              Reportes de compradores sobre productos (ilegal, sospechoso) o pedidos puntuales
+              (no llegó, defectuoso) — el vendedor sigue siendo el responsable de lo que vende
+              (Términos y Condiciones), esto es para que la plataforma pueda intervenir si hace
+              falta: amonestar, suspender o eliminar a un vendedor con reportes reiterados.
+            </p>
+            <ReportsPanel
+              initialReports={reports}
+              warningCounts={warningCounts}
+              stores={stores.map((s) => ({ id: s.id, slug: s.slug, name: s.name, whatsapp: s.whatsapp, status: s.status }))}
+            />
+          </div>
+        </div>
+
+        <div className="mb-6" id="eliminadas">
+          <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+            <h2 className="mb-1 text-sm font-bold text-ink">Tiendas eliminadas</h2>
+            <p className="mb-3 text-xs text-ink/50">
+              Al eliminar una tienda desde Reportes y moderación, nunca se borra de verdad — queda
+              acá, visible por 30 días, para que puedas revisar si le quedó plata pendiente de
+              liquidar antes de que se pierda de vista.
+            </p>
+            <DeletedStoresPanel stores={deletedStoreSummaries} />
           </div>
         </div>
 

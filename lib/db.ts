@@ -105,6 +105,13 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- texto de bienvenida normal (ver DropCountdown). Cualquier tienda puede
   -- usarla, no es específico de un rubro.
   ALTER TABLE stores ADD COLUMN IF NOT EXISTS drop_at TEXT;
+  -- Moderación (Fase 4): cuando el admin de plataforma elimina una tienda
+  -- (ver softDeleteStore en lib/repo.ts) NUNCA se borra de verdad — se marca
+  -- acá y status pasa a 'eliminada' (el storefront público ya la esconde
+  -- solo, igual que 'suspendida', porque el layout exige status='aprobada').
+  -- Así el admin puede seguir viendo sus datos de facturación por un tiempo
+  -- después de borrarla, por si queda una liquidación pendiente.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS deleted_at TEXT;
   CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id);
 
   CREATE TABLE IF NOT EXISTS products (
@@ -230,6 +237,38 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   CREATE INDEX IF NOT EXISTS idx_variants_product ON variants(product_id);
   CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id);
   CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+
+  -- Reportes de compradores (Fase 4, moderación): cualquiera puede reportar
+  -- un producto (ilegal, sospechoso) o un pedido puntual (no llegó, llegó
+  -- defectuoso) sin necesitar cuenta — el admin de plataforma los revisa en
+  -- /plataforma y puede ir directo al producto/pedido reportado. product_id
+  -- y order_id son opcionales y nunca obligan a los dos a la vez; ON DELETE
+  -- SET NULL porque el reporte tiene que sobrevivir aunque el producto se
+  -- borre después (es evidencia de moderación, no debería desaparecer).
+  CREATE TABLE IF NOT EXISTS reports (
+    id TEXT PRIMARY KEY,
+    store_id TEXT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+    order_id TEXT REFERENCES orders(id) ON DELETE SET NULL,
+    reason TEXT NOT NULL,
+    message TEXT,
+    reporter_contact TEXT,
+    status TEXT NOT NULL DEFAULT 'abierto',
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_reports_store ON reports(store_id);
+
+  -- Amonestaciones (Fase 4): cada vez que el admin de plataforma usa
+  -- "Notificar al vendedor" desde un reporte, queda un registro acá —
+  -- así se ve de un vistazo cuántas veces ya se le llamó la atención a una
+  -- tienda antes de decidir suspenderla o eliminarla.
+  CREATE TABLE IF NOT EXISTS store_warnings (
+    id TEXT PRIMARY KEY,
+    store_id TEXT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    note TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_store_warnings_store ON store_warnings(store_id);
 
   -- Mensajes de soporte: el vendedor escribe desde su panel (pestaña
   -- Soporte), la plataforma los ve y responde desde /plataforma.
