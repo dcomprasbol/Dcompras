@@ -161,6 +161,20 @@ function LoginForm() {
           </button>
           </form>
 
+          {mode === "signup" && (
+            <p className="text-center text-xs text-ink/40">
+              Al crear tu cuenta aceptás nuestros{" "}
+              <Link href="/terminos" className="underline hover:text-ink">
+                Términos y Condiciones
+              </Link>{" "}
+              y nuestra{" "}
+              <Link href="/privacidad" className="underline hover:text-ink">
+                Política de Privacidad
+              </Link>
+              .
+            </p>
+          )}
+
           <button
             type="button"
             onClick={() => {

@@ -56,8 +56,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-ink/10 pt-6 text-xs text-ink/40">
-          © {new Date().getFullYear()} Dcompras.
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-6 text-xs text-ink/40">
+          <span>© {new Date().getFullYear()} Dcompras.</span>
+          <div className="flex gap-4">
+            <Link href="/terminos" className="nav-sweep hover:text-ink">
+              Términos y Condiciones
+            </Link>
+            <Link href="/privacidad" className="nav-sweep hover:text-ink">
+              Política de Privacidad
+            </Link>
+          </div>
         </div>
       </div>
 

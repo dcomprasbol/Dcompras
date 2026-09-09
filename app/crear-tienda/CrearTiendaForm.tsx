@@ -265,6 +265,18 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
                   {accountLoading ? "Creando cuenta..." : "Crear cuenta y continuar →"}
                 </button>
               </form>
+
+              <p className="text-center text-xs text-ink/40">
+                Al crear tu cuenta aceptás nuestros{" "}
+                <Link href="/terminos" className="underline hover:text-ink">
+                  Términos y Condiciones
+                </Link>{" "}
+                y nuestra{" "}
+                <Link href="/privacidad" className="underline hover:text-ink">
+                  Política de Privacidad
+                </Link>
+                .
+              </p>
             </div>
 
             <p className="mt-5 text-center text-xs text-white/40">
@@ -496,6 +508,17 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
             >
               {storeLoading ? "Creando..." : "Crear mi tienda →"}
             </button>
+            <p className="text-center text-xs text-ink/40">
+              Al crear tu tienda aceptás nuestros{" "}
+              <Link href="/terminos" className="underline hover:text-ink">
+                Términos y Condiciones
+              </Link>{" "}
+              y nuestra{" "}
+              <Link href="/privacidad" className="underline hover:text-ink">
+                Política de Privacidad
+              </Link>
+              .
+            </p>
           </form>
         )}
       </div>

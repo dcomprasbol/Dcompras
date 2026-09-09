@@ -165,7 +165,14 @@ export default async function StoreLayout({
               </div>
             </div>
             <p className="store-text-soft mt-6 text-[11px] opacity-50">
-              Tienda en Dcompras · pagos por QR o contra entrega
+              Tienda en Dcompras · pagos por QR o contra entrega ·{" "}
+              <Link href="/terminos" className="underline hover:opacity-80">
+                Términos
+              </Link>{" "}
+              ·{" "}
+              <Link href="/privacidad" className="underline hover:opacity-80">
+                Privacidad
+              </Link>
             </p>
           </div>
           <div className="store-border overflow-hidden border-t px-4 py-2" aria-hidden="true">
