@@ -1,8 +1,10 @@
 import { getStoreBySlug, getOrderById } from "@/lib/repo";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { formatBs, deliveryTypeLabel } from "@/lib/utils";
 import { calculateCommission } from "@/lib/commission";
 import { getPaymentStatus, isInfinityConfigured, normalizeQrImage } from "@/lib/infinityPayments";
+import { getCurrentUser } from "@/lib/auth";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
@@ -89,6 +91,13 @@ export default async function OrderTrackingPage({
   const whatsappOrderMsg = encodeURIComponent(
     `Hola, hice un pedido #${code} por ${formatBs(totalToCharge)} en ${store.name}. Mi nombre es ${order.customerName}.`
   );
+
+  // Este pedido no quedó atado a ninguna cuenta (compró como invitado) — lo
+  // invitamos a crear una así el próximo pedido (en esta tienda o en
+  // cualquier otra de Dcompras) queda guardado solo, sin depender de este
+  // link o de buscar por teléfono en /mi-pedido. Si ya está logueado (otra
+  // pestaña, otra sesión) no tiene sentido mostrárselo.
+  const showSignupNudge = !order.buyerId && !(await getCurrentUser());
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 md:px-8">
@@ -287,6 +296,23 @@ export default async function OrderTrackingPage({
           </p>
         </div>
       </RevealOnScroll>
+
+      {showSignupNudge && (
+        <RevealOnScroll delay={220} className="mt-6">
+          <div className="store-accent-soft-bg flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+            <p className="store-accent-text">
+              💡 Creá tu cuenta gratis: guardás este pedido y los que vengan, sin buscar por
+              teléfono cada vez.
+            </p>
+            <Link
+              href={`/login?mode=signup&next=${encodeURIComponent(`/${params.slug}/pedido/${order.id}`)}`}
+              className="store-accent-text font-semibold underline underline-offset-2"
+            >
+              Crear cuenta →
+            </Link>
+          </div>
+        </RevealOnScroll>
+      )}
 
       {store.whatsapp && (
         <RevealOnScroll delay={240} className="mt-6 text-center">

@@ -22,7 +22,13 @@ function LoginForm() {
   // siempre (que a su vez manda a cada quien a lo suyo: panel de vendedor,
   // /plataforma, o /mis-pedidos).
   const next = searchParams.get("next");
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  // Los links que invitan a crear cuenta (checkout, seguimiento de pedido,
+  // /mi-pedido) mandan ?mode=signup para caer directo en el formulario de
+  // registro, en vez de que el comprador tenga que notar el toggle chico
+  // de "¿No tienes cuenta?" — ver esos otros archivos.
+  const [mode, setMode] = useState<"login" | "signup">(
+    searchParams.get("mode") === "signup" ? "signup" : "login"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -105,7 +111,7 @@ function LoginForm() {
           </h1>
           <p className="mt-2 text-sm text-white/60">
             {mode === "signup"
-              ? "Para ver tus pedidos y comprar más rápido la próxima vez."
+              ? "Guardá tus pedidos, comprá más rápido la próxima vez y enterate primero de descuentos."
               : "Entra a tu cuenta de Dcompras."}
           </p>
         </div>

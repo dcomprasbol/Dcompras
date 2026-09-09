@@ -129,12 +129,20 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             </p>
           ) : (
             <>
-              <p className="text-ink/70">¿Ya tienes cuenta en Dcompras?</p>
+              {/* Antes decía "¿Ya tienes cuenta?" — asumía que el
+                  comprador ya sabía que existían cuentas y solo lo
+                  invitaba a loguearse. A pedido del dueño: tiene que
+                  incitar a CREAR una, con el beneficio a la vista (guardar
+                  el historial, futuros descuentos), no solo ofrecer
+                  loguearse a quien ya tiene una. */}
+              <p className="text-ink/70">
+                💡 Creá tu cuenta gratis y guardá el historial de tus pedidos.
+              </p>
               <Link
-                href={`/login?next=${encodeURIComponent(`/${params.slug}/checkout`)}`}
+                href={`/login?mode=signup&next=${encodeURIComponent(`/${params.slug}/checkout`)}`}
                 className="nav-sweep font-semibold text-ink"
               >
-                Inicia sesión (opcional) →
+                Crear cuenta →
               </Link>
             </>
           )}
