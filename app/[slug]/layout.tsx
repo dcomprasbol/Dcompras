@@ -1,4 +1,4 @@
-import { getStoreBySlug } from "@/lib/repo";
+import { getStoreBySlug, getStoreByUserId } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CartProvider } from "@/lib/cart-context";
@@ -24,6 +24,13 @@ export default async function StoreLayout({
   // seguimiento que le llegó por WhatsApp. Nunca es obligatorio para
   // comprar — el checkout como invitado sigue funcionando igual.
   const buyer = await getCurrentUser();
+  // Si el que está logueado es un vendedor (tiene su propia tienda en
+  // Dcompras, sea esta o cualquier otra), le mostramos acceso directo a "Mi
+  // panel" acá mismo — antes, si entraba a ver cómo se veía SU tienda como
+  // comprador, para volver a su panel tenía que salir hasta la landing
+  // (único lugar donde existía ese link). Mismo criterio que
+  // components/landing/Nav.tsx.
+  const ownStore = buyer ? await getStoreByUserId(buyer.id) : null;
   const theme = themeForCategory(store.category);
 
   // Personalización por tienda: sobreescribimos las variables CSS que ya
@@ -74,6 +81,15 @@ export default async function StoreLayout({
             <div className="flex items-center gap-3">
               {buyer ? (
                 <>
+                  {ownStore && (
+                    <Link
+                      href="/admin"
+                      className="store-accent-soft-bg store-accent-text flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
+                    >
+                      <span aria-hidden="true">🛠️</span>
+                      <span>Mi panel</span>
+                    </Link>
+                  )}
                   <Link
                     href="/mis-pedidos"
                     className="store-text-soft hidden text-xs font-semibold uppercase tracking-wider hover:opacity-80 sm:inline"
