@@ -6,7 +6,7 @@ import CartHeaderBadge from "@/components/CartHeaderBadge";
 import AccountMenu from "@/components/AccountMenu";
 import { fontStack } from "@/lib/utils";
 import { readableAccentText, readableOnAccent } from "@/lib/color";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requirePlatformAdmin } from "@/lib/auth";
 import { themeForCategory } from "@/lib/storeTheme";
 
 export default async function StoreLayout({
@@ -17,7 +17,12 @@ export default async function StoreLayout({
   params: { slug: string };
 }) {
   const store = await getStoreBySlug(params.slug);
-  if (!store || store.status !== "aprobada") notFound();
+  if (!store) notFound();
+  // Una tienda no aprobada (pendiente, rechazada, suspendida) no existe para
+  // el público, pero el admin de plataforma sí puede abrirla desde el
+  // directorio de /plataforma para revisarla antes de decidir.
+  const adminPreview = store.status !== "aprobada";
+  if (adminPreview && !(await requirePlatformAdmin())) notFound();
 
   // Cuenta del comprador (opcional): si ya tiene sesión, le mostramos un
   // acceso directo a "Mis pedidos" en vez de forzarlo a buscar el link de
@@ -61,6 +66,15 @@ export default async function StoreLayout({
   return (
     <CartProvider storeSlug={params.slug}>
       <div className="store-bg store-text min-h-screen font-sans" style={themeStyle} data-store-theme={theme}>
+        {adminPreview && (
+          <div className="bg-amber-400 px-5 py-2 text-center font-sans text-xs font-semibold text-ink">
+            Vista de administrador · Esta tienda está <span className="uppercase">{store.status}</span> y
+            el público no puede verla.{" "}
+            <Link href="/plataforma#directorio" className="underline">
+              Volver al panel
+            </Link>
+          </div>
+        )}
         <header className="store-header-bg store-border sticky top-0 z-10 border-b backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 md:px-8">
             <Link href={`/${params.slug}`} className="flex items-center gap-2.5">

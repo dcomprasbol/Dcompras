@@ -13,6 +13,7 @@ import {
   listDeletedStores,
   getPendingBalance,
   listPayoutsByStore,
+  listStoreActivity,
 } from "@/lib/repo";
 import { formatBs } from "@/lib/utils";
 import { commissionPercent } from "@/lib/commission";
@@ -26,6 +27,7 @@ import SupportInbox from "@/components/platform/SupportInbox";
 import PayoutsPanel from "@/components/platform/PayoutsPanel";
 import ReportsPanel from "@/components/platform/ReportsPanel";
 import DeletedStoresPanel from "@/components/platform/DeletedStoresPanel";
+import StoreDirectory from "@/components/platform/StoreDirectory";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function PlataformaPage() {
   const admin = await requirePlatformAdmin();
   if (!admin) redirect("/");
 
-  const [stores, metrics, dailySales, topStores, alerts, supportMessages, pendingPayouts, reports, warnings, deletedStores] =
+  const [stores, metrics, dailySales, topStores, alerts, supportMessages, pendingPayouts, reports, warnings, deletedStores, activity] =
     await Promise.all([
       listAllStores(),
       getPlatformMetrics(),
@@ -45,7 +47,27 @@ export default async function PlataformaPage() {
       listAllReports(),
       listAllStoreWarnings(),
       listDeletedStores(30),
+      listStoreActivity(),
     ]);
+  const activityByStore = new Map(activity.map((a) => [a.storeId, a]));
+  const directoryStores = stores.map((s) => {
+    const a = activityByStore.get(s.id);
+    return {
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      ownerName: s.ownerName,
+      city: s.city,
+      category: s.category,
+      status: s.status,
+      themeColor: s.themeColor,
+      logoUrl: s.logoUrl,
+      createdAt: s.createdAt,
+      products: a?.products ?? 0,
+      orders: a?.orders ?? 0,
+      sales: Number(a?.sales ?? 0),
+    };
+  });
   const openSupportCount = supportMessages.filter((m) => m.status === "abierto").length;
   const totalPendingPayout = pendingPayouts.reduce((s, p) => s + Number(p.netAmount), 0);
   const openReportsCount = reports.filter((r) => r.status === "abierto").length;
@@ -100,6 +122,17 @@ export default async function PlataformaPage() {
             sublabel={`${metrics.storesByStatus.pendiente} pendientes · ${metrics.storesByStatus.rechazada} rechazadas`}
             accent="amber"
           />
+        </div>
+
+        <div className="mb-6" id="directorio">
+          <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+            <h2 className="mb-1 text-sm font-bold text-ink">Todas las tiendas</h2>
+            <p className="mb-4 text-xs text-ink/50">
+              Haz clic en una tienda para verla en una pestaña nueva. Las que todavía no están
+              aprobadas solo las puedes ver tú, como administrador.
+            </p>
+            <StoreDirectory stores={directoryStores} />
+          </div>
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">

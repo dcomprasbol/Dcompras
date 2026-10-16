@@ -816,6 +816,23 @@ export async function getTopStoresBySales(limit: number): Promise<TopStore[]> {
   `;
 }
 
+// Actividad de cada tienda para el directorio del admin (/plataforma):
+// productos activos, pedidos y monto vendido. Mismo criterio que
+// getTopStoresBySales (todos los pedidos, cualquier estado).
+export type StoreActivity = { storeId: string; products: number; orders: number; sales: number };
+
+export async function listStoreActivity(): Promise<StoreActivity[]> {
+  await dbReady;
+  return sql<StoreActivity[]>`
+    SELECT s.id AS store_id,
+      (SELECT COUNT(*)::int FROM products p WHERE p.store_id = s.id AND p.active) AS products,
+      (SELECT COUNT(*)::int FROM orders o WHERE o.store_id = s.id) AS orders,
+      (SELECT COALESCE(SUM(o.total), 0)::float FROM orders o WHERE o.store_id = s.id) AS sales
+    FROM stores s
+    WHERE s.deleted_at IS NULL
+  `;
+}
+
 export type CategoryRankedStore = {
   slug: string;
   name: string;
