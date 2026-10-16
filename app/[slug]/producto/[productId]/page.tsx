@@ -68,7 +68,13 @@ export default async function ProductPage({
                   ? "font-display store-text text-3xl leading-tight md:text-4xl"
                   : theme === "tecnologia"
                     ? "font-impact store-text text-3xl uppercase leading-[0.95] md:text-4xl"
-                    : "font-impact text-3xl uppercase leading-[0.95] text-ink md:text-4xl"
+                    : theme === "atelier"
+                      ? "store-headline store-text text-4xl italic leading-tight md:text-6xl"
+                      : theme === "pop"
+                        ? "store-headline store-text text-4xl font-bold leading-[0.95] md:text-6xl"
+                        : theme === "galeria"
+                          ? "store-text text-3xl font-semibold uppercase leading-[0.9] tracking-[-0.04em] md:text-5xl"
+                          : "font-impact text-3xl uppercase leading-[0.95] text-ink md:text-4xl"
               }
             >
               {product.name}

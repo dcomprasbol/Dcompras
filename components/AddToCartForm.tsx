@@ -105,6 +105,39 @@ export default function AddToCartForm({
         >
           {buttonLabel}
         </MotionButton>
+      ) : theme === "atelier" ? (
+        <MotionButton
+          type="button"
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className={`w-full border border-[var(--store-accent)] py-4 text-xs uppercase tracking-[0.3em] transition-colors duration-500 disabled:opacity-50 ${
+            added ? "animate-confirm-pulse" : ""
+          } ${outOfStock ? "store-text-soft" : "store-text hover:bg-[var(--store-accent)] hover:text-[var(--store-accent-ink)]"}`}
+        >
+          {buttonLabel}
+        </MotionButton>
+      ) : theme === "pop" ? (
+        <MotionButton
+          type="button"
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className={`pop-shadow w-full rounded-full border-[3px] border-[var(--store-text)] py-3.5 text-base font-bold transition disabled:opacity-50 ${
+            added ? "animate-confirm-pulse" : ""
+          } ${outOfStock ? "bg-white store-text-soft" : "store-accent-bg"}`}
+        >
+          {buttonLabel}
+        </MotionButton>
+      ) : theme === "galeria" ? (
+        <MotionButton
+          type="button"
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className={`w-full bg-[var(--store-text)] py-4 text-sm font-medium tracking-wide text-[var(--store-bg)] transition hover:opacity-85 disabled:opacity-40 ${
+            added ? "animate-confirm-pulse" : ""
+          }`}
+        >
+          {buttonLabel}
+        </MotionButton>
       ) : theme === "tecnologia" ? (
         <MotionButton
           type="button"

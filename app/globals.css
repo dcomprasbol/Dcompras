@@ -5,6 +5,14 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "@fontsource/anton/400.css";
+/* Tipografías de los estilos de tienda Atelier y Pop (ver lib/storeTheme.ts). */
+@import "@fontsource/cormorant-garamond/400.css";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/400-italic.css";
+@import "@fontsource/cormorant-garamond/500-italic.css";
+@import "@fontsource/fredoka/500.css";
+@import "@fontsource/fredoka/600.css";
+@import "@fontsource/fredoka/700.css";
 
 @tailwind base;
 @tailwind components;
@@ -66,6 +74,76 @@
   --store-border: rgba(242, 242, 242, 0.14);
   --store-radius: 10px;
   --store-radius-lg: 20px;
+}
+
+/* Atelier: lujo oscuro, serif fino, sin esquinas — joyería, accesorios,
+   perfumes. El color de marca del vendedor se usa como "dorado". */
+[data-store-theme="atelier"] {
+  --store-bg: #0e0d0b;
+  --store-surface: #16140f;
+  --store-header-bg: rgba(14, 13, 11, 0.85);
+  --store-card-bg: #1b1814;
+  --store-text: #f3ede2;
+  --store-text-soft: rgba(243, 237, 226, 0.6);
+  --store-border: rgba(243, 237, 226, 0.12);
+  --store-radius: 0px;
+  --store-radius-lg: 0px;
+  --store-headline: "Cormorant Garamond", Georgia, serif;
+}
+
+/* Pop: crema, colores vivos, bordes gruesos con sombra dura — comida,
+   dulces, belleza joven, regalos. */
+[data-store-theme="pop"] {
+  --store-bg: #fff8ec;
+  --store-surface: #ffffff;
+  --store-header-bg: rgba(255, 248, 236, 0.92);
+  --store-card-bg: #ffffff;
+  --store-text: #1a1423;
+  --store-text-soft: rgba(26, 20, 35, 0.62);
+  --store-border: #1a1423;
+  --store-radius: 14px;
+  --store-radius-lg: 24px;
+  --store-headline: "Fredoka", "Space Grotesk", sans-serif;
+}
+
+/* Galería: blanco roto de museo, tipografía enorme, casi sin adornos —
+   hogar, decoración, arte, artesanías. */
+[data-store-theme="galeria"] {
+  --store-bg: #f4f3ef;
+  --store-surface: #ffffff;
+  --store-header-bg: rgba(244, 243, 239, 0.88);
+  --store-card-bg: #e7e5df;
+  --store-text: #111111;
+  --store-text-soft: rgba(17, 17, 17, 0.55);
+  --store-border: rgba(17, 17, 17, 0.12);
+  --store-radius: 2px;
+  --store-radius-lg: 2px;
+  --store-headline: "Inter", sans-serif;
+}
+
+/* Estilos oscuros (Estudio, Atelier): las páginas internas de la tienda
+   (carrito, checkout, seguimiento, mi pedido) están armadas con los colores
+   fijos claros de la plataforma (text-ink, bg-white...). Sobre fondo negro
+   quedaban títulos invisibles, así que acá se remapean a los tokens del
+   estilo. El selector de atributo le gana en especificidad a la utilidad. */
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) .text-ink {
+  color: var(--store-text);
+}
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) [class*="text-ink/"] {
+  color: var(--store-text-soft);
+}
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) .bg-white {
+  background-color: var(--store-surface);
+}
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) .bg-paper {
+  background-color: var(--store-bg);
+}
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) [class*="border-ink"] {
+  border-color: var(--store-border);
+}
+:is([data-store-theme="tecnologia"], [data-store-theme="atelier"]) :is(input, select, textarea) {
+  background-color: var(--store-surface);
+  color: var(--store-text);
 }
 
 html {
@@ -296,5 +374,15 @@ body {
   }
   .store-border {
     border-color: var(--store-border);
+  }
+  .store-headline {
+    font-family: var(--store-headline, var(--font-display));
+  }
+  /* Sombra dura del estilo Pop. */
+  .pop-shadow {
+    box-shadow: 4px 4px 0 0 var(--store-text);
+  }
+  .pop-shadow-lg {
+    box-shadow: 7px 7px 0 0 var(--store-text);
   }
 }

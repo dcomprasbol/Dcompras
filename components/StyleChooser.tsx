@@ -1,6 +1,6 @@
 "use client";
 
-import { STORE_STYLES, type StoreTheme } from "@/lib/storeTheme";
+import { FULL_PAGE_STYLES, STORE_STYLES, type StoreTheme } from "@/lib/storeTheme";
 import Icon from "@/components/Icon";
 
 // Selector de estilo de la tienda (crear tienda y panel del vendedor). Cada
@@ -9,6 +9,57 @@ import Icon from "@/components/Icon";
 // antes de decidir.
 
 function Preview({ style, accent }: { style: StoreTheme; accent: string }) {
+  if (style === "atelier") {
+    return (
+      <div className="flex h-full flex-col items-center bg-[#0e0d0b] px-2 pt-2.5">
+        <span className="h-0.5 w-6 rounded-full" style={{ backgroundColor: accent }} />
+        <span className="mt-1.5 font-serif text-[13px] italic leading-none text-[#f3ede2]">Atelier</span>
+        <span className="mt-1.5 h-px w-8 animate-pulse" style={{ backgroundColor: accent }} />
+        <div className="mt-auto grid w-full grid-cols-3 gap-1.5 pb-1.5">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="aspect-[3/4] bg-[#1b1814]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (style === "pop") {
+    return (
+      <div className="relative flex h-full flex-col overflow-hidden bg-[#fff8ec] p-1.5">
+        <span
+          className="absolute -right-3 -top-3 h-12 w-12 animate-[spin_8s_linear_infinite] rounded-[40%_60%_55%_45%] opacity-40"
+          style={{ backgroundColor: accent }}
+        />
+        <span className="relative mt-1 text-center text-[13px] font-bold leading-none text-[#1a1423]">¡Hola!</span>
+        <span
+          className="relative mx-auto mt-1 h-2 w-10 rounded-full border border-[#1a1423]"
+          style={{ backgroundColor: accent }}
+        />
+        <div className="relative mt-auto grid grid-cols-3 gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={`aspect-square rounded-md border-2 border-[#1a1423] bg-white shadow-[2px_2px_0_0_#1a1423] ${i === 1 ? "-rotate-6" : ""}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (style === "galeria") {
+    return (
+      <div className="flex h-full flex-col bg-[#f4f3ef] p-1.5">
+        <span className="text-[20px] font-semibold uppercase leading-[0.85] tracking-[-0.06em] text-[#111]">Tienda</span>
+        <div className="mt-1.5 grid flex-1 grid-cols-4 grid-rows-2 gap-1">
+          <span className="col-span-2 row-span-2 bg-[#d9d6ce]" />
+          <span className="bg-[#e7e5df]" />
+          <span className="bg-[#e7e5df]" />
+          <span className="bg-[#e7e5df]" />
+          <span className="bg-[#e7e5df]" />
+        </div>
+      </div>
+    );
+  }
   if (style === "moda") {
     return (
       <div className="flex h-full flex-col bg-[#f6f1e7] p-1.5">
@@ -122,6 +173,11 @@ export default function StyleChooser({
                   <span className="h-5 w-5 rounded-full border-2 border-ink/15" />
                 )}
               </div>
+              {FULL_PAGE_STYLES.includes(s.value) && (
+                <span className="self-start rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Con animaciones
+                </span>
+              )}
               <span className="text-xs leading-snug text-ink/60">{s.description}</span>
               <span className="mt-auto pt-1 text-[11px] font-medium text-jade-700">
                 Ideal para: {s.idealFor}

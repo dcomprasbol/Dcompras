@@ -138,7 +138,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
       {!hasBankInfo && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <Icon name="qr" mono className="mr-1.5 h-4 w-4" />Todavía no cargaste tu QR: sin eso no podés agendar una liquidación.{" "}
-          <span className="font-medium">Agrégalo en la pestaña Cuenta.</span>
+          <span className="font-medium">Agrégalo en la sección Datos y cobros.</span>
         </div>
       )}
 

@@ -819,6 +819,32 @@ export async function getTopStoresBySales(limit: number): Promise<TopStore[]> {
   `;
 }
 
+// Resumen para la pantalla de Inicio del panel del vendedor.
+// "Por atender" = pedidos que todavía le piden algo al vendedor (confirmar
+// pago, preparar o despachar). Ventas del mes: pedidos que salieron de
+// 'pendiente' (pagados en adelante) desde el día 1 del mes.
+export type SellerOverview = {
+  products: number;
+  ordersToHandle: number;
+  ordersTotal: number;
+  salesMonth: number;
+};
+
+export async function getSellerOverview(storeId: string): Promise<SellerOverview> {
+  await dbReady;
+  const [row] = await sql<SellerOverview[]>`
+    SELECT
+      (SELECT COUNT(*)::int FROM products WHERE store_id = ${storeId} AND active) AS products,
+      (SELECT COUNT(*)::int FROM orders WHERE store_id = ${storeId}
+         AND status IN ('pendiente', 'pagado', 'en_preparacion')) AS orders_to_handle,
+      (SELECT COUNT(*)::int FROM orders WHERE store_id = ${storeId}) AS orders_total,
+      (SELECT COALESCE(SUM(total), 0)::float FROM orders WHERE store_id = ${storeId}
+         AND status <> 'pendiente'
+         AND created_at::timestamptz >= date_trunc('month', now())) AS sales_month
+  `;
+  return row;
+}
+
 // Actividad de cada tienda para el directorio del admin (/plataforma):
 // productos activos, pedidos y monto vendido. Mismo criterio que
 // getTopStoresBySales (todos los pedidos, cualquier estado).

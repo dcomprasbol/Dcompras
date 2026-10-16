@@ -7,6 +7,10 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import DropCountdown from "@/components/DropCountdown";
 import ProductCard from "@/components/ProductCard";
 import HeroCarousel from "@/components/HeroCarousel";
+import AtelierHome from "@/components/store/themes/AtelierHome";
+import PopHome from "@/components/store/themes/PopHome";
+import GaleriaHome from "@/components/store/themes/GaleriaHome";
+import type { ThemeHomeProps } from "@/components/store/themes/types";
 import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +60,77 @@ export default async function StoreCatalogPage({
         </span>
       </Link>
 
+      {theme === "atelier" || theme === "pop" || theme === "galeria" ? (
+        <FullPageTheme
+          theme={theme}
+          slug={params.slug}
+          eyebrow={eyebrow}
+          tagline={tagline}
+          store={{
+            name: store.name,
+            logoUrl: store.logoUrl,
+            dropAt: store.dropAt,
+            city: store.city,
+            whatsapp: store.whatsapp,
+          }}
+          products={products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            compareAtPrice: p.compareAtPrice,
+            imageUrl: p.imageUrl,
+            images: p.images ?? [],
+            isNew: Date.now() - new Date(p.createdAt).getTime() < NEW_PRODUCT_WINDOW_MS,
+          }))}
+        />
+      ) : (
+        <ClassicHome
+          theme={theme}
+          slug={params.slug}
+          store={store}
+          eyebrow={eyebrow}
+          tagline={tagline}
+          products={products}
+          heroProduct={heroProduct}
+          heroProducts={heroProducts}
+        />
+      )}
+    </div>
+  );
+}
+
+// Atelier, Pop y Galería arman la página entera (hero, secciones y
+// catálogo) con su propio orden y animaciones.
+function FullPageTheme({ theme, ...props }: ThemeHomeProps & { theme: "atelier" | "pop" | "galeria" }) {
+  if (theme === "atelier") return <AtelierHome {...props} />;
+  if (theme === "pop") return <PopHome {...props} />;
+  return <GaleriaHome {...props} />;
+}
+
+// Editorial, Boutique y Estudio: mismo esqueleto (hero + catálogo en grilla)
+// con variaciones por estilo.
+function ClassicHome({
+  theme,
+  slug,
+  store,
+  eyebrow,
+  tagline,
+  products,
+  heroProduct,
+  heroProducts,
+}: {
+  theme: "default" | "moda" | "tecnologia";
+  slug: string;
+  store: NonNullable<Awaited<ReturnType<typeof getStoreBySlug>>>;
+  eyebrow: string;
+  tagline: string;
+  products: Awaited<ReturnType<typeof listActiveProducts>>;
+  heroProduct: HeroProduct;
+  heroProducts: HeroProductItem[];
+}) {
+  const params = { slug };
+  return (
+    <>
       {theme === "moda" ? (
         <HeroModa
           slug={params.slug}
@@ -162,7 +237,7 @@ export default async function StoreCatalogPage({
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 

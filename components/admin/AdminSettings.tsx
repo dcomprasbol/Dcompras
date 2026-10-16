@@ -12,7 +12,17 @@ import { resolveStoreTheme, type StoreTheme } from "@/lib/storeTheme";
 import StyleChooser from "@/components/StyleChooser";
 import Icon from "@/components/Icon";
 
-export default function AdminSettings({ slug }: { slug: string }) {
+// El panel muestra la configuración en dos secciones: "diseno" (estilo,
+// personalización, lanzamiento) y "datos" (datos de contacto, redes y QR de
+// cobro). Las dos cargan y guardan la tienda completa, así que guardar en
+// una nunca pisa lo de la otra con valores viejos.
+export default function AdminSettings({
+  slug,
+  section,
+}: {
+  slug: string;
+  section: "diseno" | "datos";
+}) {
   const [ownerName, setOwnerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [city, setCity] = useState("");
@@ -132,6 +142,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
+      {section === "datos" && (
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-bold text-ink">Datos de la tienda</h2>
         <div className="mb-3">
@@ -192,7 +203,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
           </div>
         </div>
       </div>
+      )}
 
+      {section === "diseno" && (
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-ink">Estilo de tu tienda</h2>
@@ -211,7 +224,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
         </p>
         <StyleChooser value={storeStyle} onChange={setStoreStyle} accent={themeColor} />
       </div>
+      )}
 
+      {section === "diseno" && (
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-ink">Personalización</h2>
         <p className="mb-3 text-xs text-ink/50">
@@ -304,7 +319,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
           />
         </div>
       </div>
+      )}
 
+      {section === "diseno" && (
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-ink">Lanzamiento programado (drop)</h2>
         <p className="mb-3 text-xs text-ink/50">
@@ -319,7 +336,9 @@ export default function AdminSettings({ slug }: { slug: string }) {
           className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
         />
       </div>
+      )}
 
+      {section === "datos" && (
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-ink"><Icon name="wallet" className="mr-1.5 h-4 w-4" />Ingresa tu QR para que te depositemos tus ganancias</h2>
         <p className="mb-3 text-xs text-ink/50">
@@ -377,6 +396,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
           )}
         </div>
       </div>
+      )}
 
       <button
         type="submit"

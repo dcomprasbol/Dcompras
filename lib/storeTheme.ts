@@ -10,7 +10,7 @@
 // sume un tema puntual para cada uno. Los tokens de "default" en
 // globals.css son un calco exacto del look actual, así que ningún vendedor
 // existente ve un cambio salvo que su categoría entre a un tema nuevo acá.
-export type StoreTheme = "default" | "moda" | "tecnologia";
+export type StoreTheme = "default" | "moda" | "tecnologia" | "atelier" | "pop" | "galeria";
 
 export function themeForCategory(category: string | null | undefined): StoreTheme {
   switch (category) {
@@ -53,7 +53,30 @@ export const STORE_STYLES: {
     description: "Fondo negro y productos como en vitrina. Moderno y minimalista.",
     idealFor: "Tecnología, gadgets, gaming y electrónica",
   },
+  // Los tres siguientes son páginas completas con su propio orden de
+  // secciones y animaciones (components/store/themes/*), no solo colores.
+  {
+    value: "atelier",
+    label: "Atelier",
+    description: "Lujo oscuro con letras elegantes, portada en movimiento y una pieza destacada.",
+    idealFor: "Joyería, accesorios, perfumes y relojes",
+  },
+  {
+    value: "pop",
+    label: "Pop",
+    description: "Colorido y divertido: letras que rebotan, productos como stickers y mucha energía.",
+    idealFor: "Comida, dulces, regalos y belleza joven",
+  },
+  {
+    value: "galeria",
+    label: "Galería",
+    description: "Minimalista como un museo: tu nombre en gigante y fotos que se revelan al bajar.",
+    idealFor: "Hogar, decoración, arte y artesanías",
+  },
 ];
+
+// Estilos que arman su propia página de inicio completa (con animaciones).
+export const FULL_PAGE_STYLES: StoreTheme[] = ["atelier", "pop", "galeria"];
 
 export function isValidStoreStyle(value: unknown): value is StoreTheme {
   return STORE_STYLES.some((s) => s.value === value);
@@ -71,9 +94,14 @@ export function resolveStoreTheme(
 export function suggestedStyleForCategory(category: string | null | undefined): StoreTheme {
   switch (category) {
     case "ropa":
-    case "joyeria":
     case "belleza":
       return "moda";
+    case "joyeria":
+      return "atelier";
+    case "comida":
+      return "pop";
+    case "hogar":
+      return "galeria";
     case "electronicos":
       return "tecnologia";
     default:

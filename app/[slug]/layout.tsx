@@ -19,17 +19,19 @@ export default async function StoreLayout({
 }) {
   const store = await getStoreBySlug(params.slug);
   if (!store) notFound();
-  // Una tienda no aprobada (pendiente, rechazada, suspendida) no existe para
-  // el público, pero el admin de plataforma sí puede abrirla desde el
-  // directorio de /plataforma para revisarla antes de decidir.
-  const adminPreview = store.status !== "aprobada";
-  if (adminPreview && !(await requirePlatformAdmin())) notFound();
-
   // Cuenta del comprador (opcional): si ya tiene sesión, le mostramos un
   // acceso directo a "Mis pedidos" en vez de forzarlo a buscar el link de
   // seguimiento que le llegó por WhatsApp. Nunca es obligatorio para
   // comprar — el checkout como invitado sigue funcionando igual.
   const buyer = await getCurrentUser();
+
+  // Una tienda no aprobada (pendiente, rechazada, suspendida) no existe para
+  // el público. Solo la pueden abrir su dueño ("Vista previa" desde su
+  // panel, para ver cómo queda antes de que la aprueben) y el admin de
+  // plataforma (desde el directorio de /plataforma, para revisarla).
+  const preview = store.status !== "aprobada";
+  const isOwner = Boolean(buyer && buyer.id === store.userId);
+  if (preview && !isOwner && !(await requirePlatformAdmin())) notFound();
   // Si el que está logueado es un vendedor (tiene su propia tienda en
   // Dcompras, sea esta o cualquier otra), le mostramos acceso directo a "Mi
   // panel" acá mismo — antes, si entraba a ver cómo se veía SU tienda como
@@ -69,11 +71,12 @@ export default async function StoreLayout({
   return (
     <CartProvider storeSlug={params.slug}>
       <div className="store-bg store-text min-h-screen font-sans" style={themeStyle} data-store-theme={theme}>
-        {adminPreview && (
+        {preview && (
           <div className="bg-amber-400 px-5 py-2 text-center font-sans text-xs font-semibold text-ink">
-            Vista de administrador · Esta tienda está <span className="uppercase">{store.status}</span> y
-            el público no puede verla.{" "}
-            <Link href="/plataforma?seccion=tiendas" className="underline">
+            {isOwner ? "Vista previa · Así se verá tu tienda. " : "Vista de administrador · "}
+            Esta tienda está <span className="uppercase">{store.status}</span> y el público todavía no
+            puede verla.{" "}
+            <Link href={isOwner ? `/admin/${params.slug}` : "/plataforma?seccion=tiendas"} className="underline">
               Volver al panel
             </Link>
           </div>

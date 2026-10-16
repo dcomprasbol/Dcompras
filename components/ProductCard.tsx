@@ -14,6 +14,9 @@ const PLACEHOLDER_ICON: Record<StoreTheme, IconName> = {
   default: "bag",
   moda: "bag",
   tecnologia: "box",
+  atelier: "bag",
+  pop: "bag",
+  galeria: "bag",
 };
 
 export default function ProductCard({
