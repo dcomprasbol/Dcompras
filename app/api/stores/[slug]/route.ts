@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStoreBySlug, updateStoreSettings, deleteStore } from "@/lib/repo";
 import { requireStoreAdmin, getCurrentUser } from "@/lib/auth";
 import { STORE_CATEGORIES, STORE_FONTS, isValidHexColor } from "@/lib/utils";
+import { isValidStoreStyle } from "@/lib/storeTheme";
 
 // Esta ruta no exige sesión (el checkout público la usa para leer el QR/
 // instrucciones de pago) — por default nunca devuelve el userId ni los
@@ -56,6 +57,7 @@ export async function PATCH(
     bankAccountHolder,
     bankAccountType,
     dropAt,
+    storeStyle,
   } = body;
 
   if (category !== undefined && category && !STORE_CATEGORIES.some((c) => c.value === category)) {
@@ -66,6 +68,9 @@ export async function PATCH(
   }
   if (fontChoice !== undefined && !STORE_FONTS.some((f) => f.value === fontChoice)) {
     return NextResponse.json({ error: "Tipografía inválida" }, { status: 400 });
+  }
+  if (storeStyle !== undefined && !isValidStoreStyle(storeStyle)) {
+    return NextResponse.json({ error: "Estilo de tienda inválido" }, { status: 400 });
   }
 
   await updateStoreSettings(store.id, {
@@ -95,6 +100,7 @@ export async function PATCH(
       : {}),
     ...(bankAccountType !== undefined ? { bankAccountType: bankAccountType || null } : {}),
     ...(dropAt !== undefined ? { dropAt: dropAt || null } : {}),
+    ...(storeStyle !== undefined ? { storeStyle } : {}),
   });
 
   // PATCH ya está protegido por requireStoreAdmin (solo la dueña de la

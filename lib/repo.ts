@@ -27,6 +27,7 @@ export type Store = {
   bankAccountType: string | null;
   dropAt: string | null;
   deletedAt: string | null;
+  storeStyle: string | null;
   createdAt: string;
 };
 
@@ -114,6 +115,7 @@ export async function createStore(input: {
   instagramUrl: string | null;
   tiktokUrl: string | null;
   facebookUrl: string | null;
+  storeStyle: string | null;
 }): Promise<Store> {
   await dbReady;
   const id = newId();
@@ -122,12 +124,12 @@ export async function createStore(input: {
     INSERT INTO stores (
       id, slug, name, owner_name, whatsapp, city, user_id,
       category, theme_color, logo_url, font_choice, tagline,
-      instagram_url, tiktok_url, facebook_url, created_at
+      instagram_url, tiktok_url, facebook_url, store_style, created_at
     )
     VALUES (
       ${id}, ${input.slug}, ${input.name}, ${input.ownerName}, ${input.whatsapp}, ${input.city}, ${input.userId},
       ${input.category}, ${input.themeColor}, ${input.logoUrl}, ${input.fontChoice}, ${input.tagline},
-      ${input.instagramUrl}, ${input.tiktokUrl}, ${input.facebookUrl}, ${createdAt}
+      ${input.instagramUrl}, ${input.tiktokUrl}, ${input.facebookUrl}, ${input.storeStyle}, ${createdAt}
     )
   `;
   return (await getStoreBySlug(input.slug))!;
@@ -231,6 +233,7 @@ export async function updateStoreSettings(
       | "bankAccountHolder"
       | "bankAccountType"
       | "dropAt"
+      | "storeStyle"
     >
   >
 ): Promise<void> {

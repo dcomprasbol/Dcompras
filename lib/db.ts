@@ -112,6 +112,10 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- Así el admin puede seguir viendo sus datos de facturación por un tiempo
   -- después de borrarla, por si queda una liquidación pendiente.
   ALTER TABLE stores ADD COLUMN IF NOT EXISTS deleted_at TEXT;
+  -- Estilo de la vidriera que eligió el vendedor ('moda' | 'default' |
+  -- 'tecnologia', ver STORE_STYLES en lib/storeTheme.ts). NULL = nunca
+  -- eligió: se usa el estilo por rubro de siempre.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_style TEXT;
   CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id);
 
   CREATE TABLE IF NOT EXISTS products (

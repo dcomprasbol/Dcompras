@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleButton from "@/components/GoogleButton";
 import LogoutButton from "@/components/LogoutButton";
+import StyleChooser from "@/components/StyleChooser";
+import { suggestedStyleForCategory, type StoreTheme } from "@/lib/storeTheme";
 import {
   STORE_CATEGORIES,
   STORE_FONTS,
@@ -70,6 +72,11 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
     if (logoFileInputRef.current) logoFileInputRef.current.value = "";
   }
   const [fontChoice, setFontChoice] = useState<string>(STORE_FONTS[0].value);
+  // null = todavía no eligió: usamos el sugerido para su rubro, que se
+  // actualiza solo si cambia "¿Qué vendes?".
+  const [chosenStyle, setChosenStyle] = useState<StoreTheme | null>(null);
+  const suggestedStyle = suggestedStyleForCategory(category);
+  const storeStyle = chosenStyle ?? suggestedStyle;
   const [tagline, setTagline] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
@@ -147,6 +154,7 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
           themeColor,
           logoUrl,
           fontChoice,
+          storeStyle,
           tagline,
           instagramUrl,
           tiktokUrl,
@@ -413,6 +421,22 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
             >
               ← Volver a los datos de tu tienda
             </button>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ink/70">
+                Elige el estilo de tu tienda
+              </label>
+              <p className="mb-3 text-xs text-ink/40">
+                Puedes cambiarlo cuando quieras desde tu panel.
+              </p>
+              <StyleChooser
+                value={storeStyle}
+                onChange={setChosenStyle}
+                accent={themeColor}
+                suggested={suggestedStyle}
+                stacked
+              />
+            </div>
 
             <div className="flex items-end gap-3">
               <div className="flex-1">

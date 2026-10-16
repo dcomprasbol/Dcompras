@@ -1,7 +1,7 @@
 import { getStoreBySlug, getProductById } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import { formatBs } from "@/lib/utils";
-import { themeForCategory } from "@/lib/storeTheme";
+import { resolveStoreTheme } from "@/lib/storeTheme";
 import AddToCartForm from "@/components/AddToCartForm";
 import ProductGallery from "@/components/ProductGallery";
 import ReportButton from "@/components/ReportButton";
@@ -28,7 +28,7 @@ export default async function ProductPage({
 
   const onSale = product.compareAtPrice != null && product.compareAtPrice > product.price;
   const discountPct = onSale ? Math.round((1 - product.price / product.compareAtPrice!) * 100) : 0;
-  const theme = themeForCategory(store.category);
+  const theme = resolveStoreTheme(store.storeStyle, store.category);
   const themedImage = theme !== "default";
   const placeholderIcon = theme === "moda" ? "👗" : theme === "tecnologia" ? "📦" : "🛍️";
 

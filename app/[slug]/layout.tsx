@@ -7,7 +7,7 @@ import AccountMenu from "@/components/AccountMenu";
 import { fontStack } from "@/lib/utils";
 import { readableAccentText, readableOnAccent } from "@/lib/color";
 import { getCurrentUser, requirePlatformAdmin } from "@/lib/auth";
-import { themeForCategory } from "@/lib/storeTheme";
+import { resolveStoreTheme } from "@/lib/storeTheme";
 
 export default async function StoreLayout({
   children,
@@ -36,7 +36,7 @@ export default async function StoreLayout({
   // (único lugar donde existía ese link). Mismo criterio que
   // components/landing/Nav.tsx.
   const ownStore = buyer ? await getStoreByUserId(buyer.id) : null;
-  const theme = themeForCategory(store.category);
+  const theme = resolveStoreTheme(store.storeStyle, store.category);
 
   // Personalización por tienda: sobreescribimos las variables CSS que ya
   // usa el resto de la plataforma (--font-display / --font-body) y

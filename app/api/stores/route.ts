@@ -8,6 +8,7 @@ import {
   isValidHexColor,
 } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { isValidStoreStyle } from "@/lib/storeTheme";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     instagramUrl,
     tiktokUrl,
     facebookUrl,
+    storeStyle,
   } = body;
 
   if (!name || !whatsapp) {
@@ -62,6 +64,9 @@ export async function POST(req: NextRequest) {
   }
   if (fontChoice && !STORE_FONTS.some((f) => f.value === fontChoice)) {
     return NextResponse.json({ error: "Tipografía inválida" }, { status: 400 });
+  }
+  if (storeStyle && !isValidStoreStyle(storeStyle)) {
+    return NextResponse.json({ error: "Estilo de tienda inválido" }, { status: 400 });
   }
 
   // Si el dueño se registró con Google, tomamos su nombre del perfil de
@@ -99,6 +104,7 @@ export async function POST(req: NextRequest) {
     instagramUrl: (instagramUrl && String(instagramUrl).trim()) || null,
     tiktokUrl: (tiktokUrl && String(tiktokUrl).trim()) || null,
     facebookUrl: (facebookUrl && String(facebookUrl).trim()) || null,
+    storeStyle: storeStyle || null,
   });
 
   return NextResponse.json({ slug: store.slug });

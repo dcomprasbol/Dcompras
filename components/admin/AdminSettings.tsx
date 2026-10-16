@@ -8,6 +8,8 @@ import {
   BOLIVIA_DEPARTMENTS,
   fileToResizedDataUrl,
 } from "@/lib/utils";
+import { resolveStoreTheme, type StoreTheme } from "@/lib/storeTheme";
+import StyleChooser from "@/components/StyleChooser";
 
 export default function AdminSettings({ slug }: { slug: string }) {
   const [ownerName, setOwnerName] = useState("");
@@ -29,6 +31,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [dropAt, setDropAt] = useState("");
+  const [storeStyle, setStoreStyle] = useState<StoreTheme>("default");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -50,6 +53,8 @@ export default function AdminSettings({ slug }: { slug: string }) {
         setTiktokUrl(d.store.tiktokUrl || "");
         setFacebookUrl(d.store.facebookUrl || "");
         setDropAt(d.store.dropAt || "");
+        // Si nunca eligió estilo, mostramos marcado el que hoy ve el público.
+        setStoreStyle(resolveStoreTheme(d.store.storeStyle, d.store.category));
         setLoading(false);
       });
   }, [slug]);
@@ -74,6 +79,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
         tiktokUrl,
         facebookUrl,
         dropAt: dropAt || null,
+        storeStyle,
       }),
     });
     setSaving(false);
@@ -187,7 +193,29 @@ export default function AdminSettings({ slug }: { slug: string }) {
       </div>
 
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-ink">Personalización</h2>
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-ink">Estilo de tu tienda</h2>
+          <a
+            href={`/${slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-jade-600 hover:underline"
+          >
+            Ver mi tienda ↗
+          </a>
+        </div>
+        <p className="mb-3 text-xs text-ink/50">
+          Elige el diseño que mejor va con lo que vendes. Puedes cambiarlo cuando quieras: tus
+          productos, pedidos y datos no cambian. Después de elegir, toca "Guardar cambios".
+        </p>
+        <StyleChooser value={storeStyle} onChange={setStoreStyle} accent={themeColor} />
+      </div>
+
+      <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
+        <h2 className="mb-1 text-sm font-bold text-ink">Personalización</h2>
+        <p className="mb-3 text-xs text-ink/50">
+          Dale tu toque a cualquier estilo: tu color, tu logo, tu tipografía y tu frase de portada.
+        </p>
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-ink/70">¿Qué vendes?</label>
           <select

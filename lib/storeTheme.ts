@@ -22,3 +22,61 @@ export function themeForCategory(category: string | null | undefined): StoreThem
       return "default";
   }
 }
+
+// Ahora el vendedor elige el estilo (columna stores.store_style) al crear
+// la tienda y lo puede cambiar desde su panel. Las tiendas que nunca
+// eligieron (store_style NULL) siguen con el estilo que les tocaba por
+// rubro, así ninguna tienda existente cambia de look sin que su dueño lo
+// decida. Los valores internos no cambian (los usa el CSS de globals.css
+// vía data-store-theme); solo los nombres que ve el vendedor.
+export const STORE_STYLES: {
+  value: StoreTheme;
+  label: string;
+  description: string;
+  idealFor: string;
+}[] = [
+  {
+    value: "moda",
+    label: "Boutique",
+    description: "Cálido y elegante, con fotos grandes que van rotando y esquinas suaves.",
+    idealFor: "Accesorios, joyería, belleza y ropa",
+  },
+  {
+    value: "default",
+    label: "Editorial",
+    description: "Portada oscura con títulos grandes y en mayúsculas. Directo y con actitud.",
+    idealFor: "Moda urbana, calzado, comida y marcas con carácter",
+  },
+  {
+    value: "tecnologia",
+    label: "Estudio",
+    description: "Fondo negro y productos como en vitrina. Moderno y minimalista.",
+    idealFor: "Tecnología, gadgets, gaming y electrónica",
+  },
+];
+
+export function isValidStoreStyle(value: unknown): value is StoreTheme {
+  return STORE_STYLES.some((s) => s.value === value);
+}
+
+export function resolveStoreTheme(
+  storeStyle: string | null | undefined,
+  category: string | null | undefined
+): StoreTheme {
+  return isValidStoreStyle(storeStyle) ? storeStyle : themeForCategory(category);
+}
+
+// Estilo que le sugerimos a una tienda nueva según lo que vende (solo es el
+// preseleccionado en el formulario; el vendedor puede elegir otro).
+export function suggestedStyleForCategory(category: string | null | undefined): StoreTheme {
+  switch (category) {
+    case "ropa":
+    case "joyeria":
+    case "belleza":
+      return "moda";
+    case "electronicos":
+      return "tecnologia";
+    default:
+      return "default";
+  }
+}

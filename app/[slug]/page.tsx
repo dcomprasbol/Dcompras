@@ -2,7 +2,7 @@ import { getStoreBySlug, listActiveProducts } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatBs, categoryLabel } from "@/lib/utils";
-import { themeForCategory } from "@/lib/storeTheme";
+import { resolveStoreTheme } from "@/lib/storeTheme";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import DropCountdown from "@/components/DropCountdown";
 import ProductCard from "@/components/ProductCard";
@@ -35,7 +35,7 @@ export default async function StoreCatalogPage({
   // vez de mostrar una sola fija — hasta 6, y solo las que tienen foto.
   const heroProducts = products.slice(0, 6);
   const eyebrow = [categoryLabel(store.category), store.city].filter(Boolean).join(" · ");
-  const theme = themeForCategory(store.category);
+  const theme = resolveStoreTheme(store.storeStyle, store.category);
   const tagline = store.tagline || `Bienvenido a ${store.name}`;
 
   return (
