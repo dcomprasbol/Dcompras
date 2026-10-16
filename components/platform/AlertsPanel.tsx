@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StatusDot } from "@/components/Icon";
 
 type PlatformAlert = {
   type: string;
@@ -7,10 +8,10 @@ type PlatformAlert = {
   href?: string;
 };
 
-const SEVERITY_STYLES: Record<PlatformAlert["severity"], { icon: string; classes: string }> = {
-  danger: { icon: "🔴", classes: "border-coral-200 bg-coral-50" },
-  warning: { icon: "🟡", classes: "border-amber-200 bg-amber-50" },
-  info: { icon: "🔵", classes: "border-jade-200 bg-jade-50" },
+const SEVERITY_STYLES: Record<PlatformAlert["severity"], { classes: string }> = {
+  danger: { classes: "border-coral-200 bg-coral-50" },
+  warning: { classes: "border-amber-200 bg-amber-50" },
+  info: { classes: "border-jade-200 bg-jade-50" },
 };
 
 export default function AlertsPanel({ alerts }: { alerts: PlatformAlert[] }) {
@@ -25,7 +26,9 @@ export default function AlertsPanel({ alerts }: { alerts: PlatformAlert[] }) {
             const style = SEVERITY_STYLES[alert.severity];
             const content = (
               <div className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs text-ink/80 ${style.classes}`}>
-                <span>{style.icon}</span>
+                <span className="mt-0.5">
+                  <StatusDot tone={alert.severity} />
+                </span>
                 <span>{alert.message}</span>
               </div>
             );

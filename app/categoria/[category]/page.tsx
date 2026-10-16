@@ -3,10 +3,11 @@ import Link from "next/link";
 import { listStoresByCategoryRanked } from "@/lib/repo";
 import { STORE_CATEGORIES, categoryLabel, startOfWeekISO } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
+import { RankBadge } from "@/components/Icon";
+import BrandMark from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
 
 // Ranking público de tiendas por categoría: solo posición, nunca el monto
 // vendido (ver lib/repo.ts → listStoresByCategoryRanked) — la idea es que
@@ -39,7 +40,7 @@ export default async function CategoryPage({
 
       <main className="mx-auto max-w-3xl px-5 py-10 md:px-8">
         <RevealOnScroll>
-          <span className="section-mark mb-2 text-ink" aria-hidden="true" />
+          <BrandMark className="mb-3 block h-8 w-auto" />
           <h1 className="font-impact text-3xl uppercase tracking-tight text-ink">
             {category.label}
           </h1>
@@ -66,9 +67,7 @@ export default async function CategoryPage({
                   href={`/${s.slug}`}
                   className="flex items-center gap-4 border border-ink/10 bg-white p-4 transition hover:border-ink/25"
                 >
-                  <span className="w-7 shrink-0 text-center text-lg font-bold text-ink/30">
-                    {MEDALS[i] || `#${i + 1}`}
-                  </span>
+                  <RankBadge position={i + 1} />
                   {s.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

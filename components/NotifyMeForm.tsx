@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Icon from "@/components/Icon";
 
 export default function NotifyMeForm({
   slug,
@@ -43,7 +44,7 @@ export default function NotifyMeForm({
   if (sent) {
     return (
       <p className="border border-jade-500 bg-jade-50 px-3 py-2.5 text-center text-xs font-semibold text-jade-700">
-        ¡Listo! Te avisamos apenas haya stock ✓
+        ¡Listo! Te avisamos apenas haya stock <Icon name="check" mono className="ml-1 h-4 w-4" />
       </p>
     );
   }

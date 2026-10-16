@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { formatBs } from "@/lib/utils";
+import { RankBadge } from "@/components/Icon";
 
 type TopStore = { slug: string; name: string; total: number; orders: number };
 
-const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function TopStores({ stores }: { stores: TopStore[] }) {
   return (
@@ -20,7 +20,7 @@ export default function TopStores({ stores }: { stores: TopStore[] }) {
                 className="flex items-center justify-between rounded-xl px-2 py-1.5 text-sm transition hover:bg-paper"
               >
                 <span className="flex items-center gap-2 text-ink/80">
-                  <span className="w-5 text-center">{MEDALS[i] || `#${i + 1}`}</span>
+                  <RankBadge position={i + 1} />
                   {store.name}
                 </span>
                 <span className="text-right font-mono text-xs text-ink/50">

@@ -15,6 +15,7 @@ import {
   BOLIVIA_DEPARTMENTS,
   fileToResizedDataUrl,
 } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type Step = "cuenta" | "tienda" | "personalizacion";
 type InitialSession = { email: string | null; ownerName: string } | null;
@@ -179,7 +180,7 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
     return (
       <main className="flex min-h-screen items-center justify-center bg-ink px-5">
         <div className="ticket mx-auto max-w-sm p-8 text-center text-ink">
-          <p className="text-2xl">📬</p>
+          <Icon name="mail" className="mx-auto h-8 w-8" />
           <h1 className="mt-2 font-display text-lg font-bold">Confirma tu correo</h1>
           <p className="mt-2 text-sm text-ink/60">
             Te enviamos un link de confirmación a <strong>{email}</strong>. Ábrelo y luego

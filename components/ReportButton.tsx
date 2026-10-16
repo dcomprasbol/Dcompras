@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PRODUCT_REPORT_REASONS, ORDER_REPORT_REASONS } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 // Botón de "reportar" reutilizable — un mismo componente para la ficha de
 // producto (reason: ilegal/sospechoso/otro) y para el seguimiento de un
@@ -69,6 +70,7 @@ export default function ReportButton({
         onClick={() => setOpen(true)}
         className="text-xs font-medium text-ink/35 underline decoration-dotted hover:text-coral-600"
       >
+        <Icon name="alert" className="mr-1 h-3.5 w-3.5" />
         {label}
       </button>
     );

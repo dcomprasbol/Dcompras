@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { reportReasonLabel } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type Report = {
   id: string;
@@ -136,19 +137,29 @@ export default function ReportsPanel({
                   onClick={() => notifySeller(store, storeReports)}
                   className="rounded-lg border border-amber-500 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
                 >
-                  📣 Notificar al vendedor
+                  <Icon name="megaphone" mono className="mr-1 h-3.5 w-3.5" />Notificar al vendedor
                 </button>
                 <button
                   onClick={() => toggleSuspended(store)}
                   className="rounded-lg border border-ink/20 px-2.5 py-1 text-xs font-medium text-ink/70"
                 >
-                  {store.status === "suspendida" ? "▶ Reactivar tienda" : "⏸ Suspender tienda"}
+                  {store.status === "suspendida" ? (
+                    <>
+                      <Icon name="play" mono className="mr-1 h-3 w-3" />
+                      Reactivar tienda
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="pause" mono className="mr-1 h-3 w-3" />
+                      Suspender tienda
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setDeleteModalStoreId(storeId)}
                   className="rounded-lg border border-coral-500 bg-coral-50 px-2.5 py-1 text-xs font-medium text-coral-600"
                 >
-                  🗑 Eliminar tienda
+                  <Icon name="trash" mono className="mr-1 h-3.5 w-3.5" />Eliminar tienda
                 </button>
               </div>
             </div>

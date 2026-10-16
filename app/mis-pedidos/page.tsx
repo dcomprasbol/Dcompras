@@ -5,6 +5,7 @@ import { listOrdersByBuyerId, getStoreByUserId } from "@/lib/repo";
 import { formatBs, statusLabel } from "@/lib/utils";
 import AccountMenu from "@/components/AccountMenu";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
+import BrandMark from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function MisPedidosPage() {
 
       <main className="mx-auto max-w-3xl px-5 py-10 md:px-8">
         <RevealOnScroll>
-          <span className="section-mark mb-2 text-ink" aria-hidden="true" />
+          <BrandMark className="mb-3 block h-8 w-auto" />
           <h1 className="font-impact text-3xl uppercase tracking-tight text-ink">Mis pedidos</h1>
           <p className="mt-2 text-sm text-ink/50">
             Todas tus compras en Dcompras, de cualquier tienda, en un solo lugar.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatBs } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
+import Icon from "@/components/Icon";
 
 export default function CartPage({ params }: { params: { slug: string } }) {
   const { items, updateQuantity, removeItem, total } = useCart();
@@ -37,7 +38,7 @@ export default function CartPage({ params }: { params: { slug: string } }) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xl">🛍️</div>
+                <div className="flex h-full w-full items-center justify-center text-ink/30"><Icon name="bag" className="h-6 w-6" /></div>
               )}
             </div>
             <div className="flex-1">

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatBs, BANK_ACCOUNT_TYPES, fileToResizedDataUrl } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type PendingPayout = {
   id: string; // id del payout, no de la tienda
@@ -238,7 +239,7 @@ export default function PayoutsPanel({ initialPending }: { initialPending: Pendi
                 // hacer acá.
                 <div className="space-y-2 border-t border-ink/5 pt-3">
                   <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800">
-                    ⏳ Esperando que el vendedor confirme que le llegó la plata.
+                    <Icon name="clock" mono className="h-3.5 w-3.5" />Esperando que el vendedor confirme que le llegó la plata.
                   </div>
                   {open.reference && (
                     <p className="text-xs text-ink/50">Referencia: {open.reference}</p>

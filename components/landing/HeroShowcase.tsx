@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import Icon from "@/components/Icon";
 
 // El lado derecho del Hero: una tienda Dcompras representada con
 // componentes reales (no una captura, no un ícono de bolsa) + tarjetas de
@@ -56,7 +57,7 @@ export default function HeroShowcase() {
         <div className="flex items-center gap-2 border-b border-ink/5 px-4 py-3">
           <span className="h-2 w-2 rounded-full bg-jade-500" aria-hidden="true" />
           <span className="font-display text-sm font-bold">Luna Studio</span>
-          <span className="ml-auto text-xs text-ink/30">🛒</span>
+          <span className="ml-auto text-ink/30"><Icon name="cart" className="h-3.5 w-3.5" /></span>
         </div>
         <div className="aspect-[4/3] w-full overflow-hidden bg-jade-500">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -106,7 +107,7 @@ export default function HeroShowcase() {
       >
         <p className="text-[11px] font-semibold text-ink/40">PAGO CONFIRMADO</p>
         <p className="flex items-center gap-1 font-mono text-sm font-bold text-jade-600">
-          ✓ QR
+          <Icon name="check" mono className="h-3.5 w-3.5" /> QR
         </p>
       </motion.div>
 

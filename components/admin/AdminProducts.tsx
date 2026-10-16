@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatBs, fileToResizedDataUrl, MAX_PRODUCT_IMAGES } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type Variant = { id?: string; label: string; stock: number };
 type Product = {
@@ -467,7 +468,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
           {outOfStockProducts.length > 0 && (
             <details className="mt-4 group">
               <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-ink/40 hover:text-ink/60">
-                <span className="inline-block transition group-open:rotate-90">▶</span>{" "}
+                <span className="inline-block transition group-open:rotate-90"><Icon name="chevron" className="h-3 w-3" /></span>{" "}
                 Agotados ({outOfStockProducts.length})
               </summary>
               {/* Estos productos ya no se ven ni en el catálogo ni en la ficha
@@ -524,7 +525,7 @@ function ProductRow({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-lg">🛍️</div>
+              <div className="flex h-full w-full items-center justify-center text-ink/30"><Icon name="bag" className="h-5 w-5" /></div>
             )}
           </div>
           <div>
@@ -567,7 +568,8 @@ function ProductRow({
       {productNotifications.length > 0 && (
         <div className="mt-2 border-t border-ink/5 pt-2">
           <p className="text-xs font-medium text-ink/60">
-            🔔 {productNotifications.length}{" "}
+            <Icon name="bell" className="mr-1 h-3.5 w-3.5" />
+            {productNotifications.length}{" "}
             {productNotifications.length === 1 ? "persona quiere" : "personas quieren"} que avises
             cuando haya stock:
           </p>

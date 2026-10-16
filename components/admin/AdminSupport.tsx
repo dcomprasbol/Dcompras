@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Icon from "@/components/Icon";
 
 type SupportMessage = {
   id: string;
@@ -96,7 +97,7 @@ export default function AdminSupport({ slug }: { slug: string }) {
               sent ? "animate-confirm-pulse" : ""
             }`}
           >
-            {sending ? "Enviando..." : sent ? "¡Enviado! ✓" : "Enviar mensaje"}
+            {sending ? "Enviando..." : sent ? <>¡Enviado! <Icon name="check" mono className="ml-1 h-4 w-4" /></> : "Enviar mensaje"}
           </button>
         </form>
       </div>

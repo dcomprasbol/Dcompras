@@ -9,6 +9,7 @@ import { formatBs, DELIVERY_TYPES } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import LocationField from "@/components/LocationField";
 import type { LatLng } from "@/components/LocationPicker";
+import Icon, { type IconName } from "@/components/Icon";
 
 export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const { items, total, clear } = useCart();
@@ -136,7 +137,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
                   el historial, futuros descuentos), no solo ofrecer
                   loguearse a quien ya tiene una. */}
               <p className="text-ink/70">
-                💡 Creá tu cuenta gratis y guardá el historial de tus pedidos.
+                <Icon name="spark" className="mr-1.5 h-4 w-4" />Creá tu cuenta gratis y guardá el historial de tus pedidos.
               </p>
               <Link
                 href={`/login?mode=signup&next=${encodeURIComponent(`/${params.slug}/checkout`)}`}
@@ -183,7 +184,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
                       : "border-ink/15 text-ink/60"
                   }`}
                 >
-                  {d.icon} {d.label}
+                  <Icon name={d.icon as IconName} className="mr-1.5 h-4 w-4" />{d.label}
                 </button>
               ))}
             </div>

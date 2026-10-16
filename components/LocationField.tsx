@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { LatLng } from "@/components/LocationPicker";
 import { parseLatLngFromText, isShortenedMapsLink } from "@/lib/geo";
+import Icon from "@/components/Icon";
 
 // Leaflet toca `window`/`document` al montar el mapa, así que solo puede
 // vivir en el navegador — se carga con ssr:false para que Next no intente
@@ -164,7 +165,14 @@ export default function LocationField({
           disabled={geoLoading}
           className="store-accent-text text-xs font-semibold disabled:opacity-50"
         >
-          {geoLoading ? "Buscando..." : "📍 Usar mi ubicación"}
+          {geoLoading ? (
+            "Buscando..."
+          ) : (
+            <>
+              <Icon name="pin" className="mr-1 h-3.5 w-3.5" />
+              Usar mi ubicación
+            </>
+          )}
         </button>
       </div>
 
@@ -201,7 +209,8 @@ export default function LocationField({
           onClick={() => onUseSuggestedAddress(suggestedAddress)}
           className="store-accent-soft-bg store-accent-text block w-full rounded-lg px-3 py-2 text-left text-xs"
         >
-          📍 {suggestedAddress} <span className="font-semibold">· Usar esta dirección</span>
+          <Icon name="pin" className="mr-1 h-3.5 w-3.5" />
+          {suggestedAddress} <span className="font-semibold">· Usar esta dirección</span>
         </button>
       )}
     </div>

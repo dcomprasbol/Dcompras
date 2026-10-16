@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatBs } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type Pending = { grossAmount: number; commissionAmount: number; netAmount: number; orderCount: number };
 type SalesReportProduct = { label: string; quantity: number; total: number };
@@ -136,7 +137,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     <div className="space-y-5">
       {!hasBankInfo && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          📋 Todavía no cargaste tu QR: sin eso no podés agendar una liquidación.{" "}
+          <Icon name="qr" mono className="mr-1.5 h-4 w-4" />Todavía no cargaste tu QR: sin eso no podés agendar una liquidación.{" "}
           <span className="font-medium">Agrégalo en la pestaña Cuenta.</span>
         </div>
       )}
@@ -189,7 +190,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
                     {formatBs(p.netAmount)}
                   </p>
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    ⏳ Esperando transferencia
+                    <Icon name="clock" mono className="mr-1 h-3.5 w-3.5" />Esperando transferencia
                   </span>
                 </div>
                 <p className="text-xs text-amber-700/70">

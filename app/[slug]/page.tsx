@@ -7,6 +7,7 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import DropCountdown from "@/components/DropCountdown";
 import ProductCard from "@/components/ProductCard";
 import HeroCarousel from "@/components/HeroCarousel";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export default async function StoreCatalogPage({
         href={`/${params.slug}/mi-pedido`}
         className="store-accent-soft-bg store-accent-text flex items-center justify-center gap-2 px-5 py-2.5 text-center text-sm font-medium transition hover:opacity-90"
       >
-        <span aria-hidden="true">📦</span>
+        <Icon name="box" className="h-4 w-4" />
         <span>
           ¿Ya hiciste un pedido acá? <span className="underline underline-offset-2">Mirá en qué va →</span>
         </span>

@@ -9,6 +9,7 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
 import ReportButton from "@/components/ReportButton";
+import Icon, { Rating } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -189,7 +190,7 @@ export default async function OrderTrackingPage({
                     } ${i < currentStep ? "animate-pop" : ""}`}
                     style={i < currentStep ? { animationDelay: `${i * 150}ms` } : undefined}
                   >
-                    {i < currentStep ? "✓" : i + 1}
+                    {i < currentStep ? <Icon name="check" mono className="h-4 w-4" /> : i + 1}
                   </div>
                 </div>
                 <p
@@ -225,9 +226,8 @@ export default async function OrderTrackingPage({
             })}
           </p>
           {order.rating && (
-            <p className="mt-2 text-center text-amber-400">
-              {"★".repeat(order.rating)}
-              <span className="text-ink/15">{"★".repeat(5 - order.rating)}</span>
+            <p className="mt-2 flex justify-center text-ink">
+              <Rating value={order.rating} />
             </p>
           )}
         </RevealOnScroll>
@@ -302,7 +302,7 @@ export default async function OrderTrackingPage({
         <RevealOnScroll delay={220} className="mt-6">
           <div className="store-accent-soft-bg flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
             <p className="store-accent-text">
-              💡 Creá tu cuenta gratis: guardás este pedido y los que vengan, sin buscar por
+              <Icon name="spark" className="mr-1.5 h-4 w-4" />Creá tu cuenta gratis: guardás este pedido y los que vengan, sin buscar por
               teléfono cada vez.
             </p>
             <Link

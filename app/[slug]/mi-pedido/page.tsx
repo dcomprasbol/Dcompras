@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MotionButton } from "@/components/MotionCta";
 import { formatBs, statusLabel } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
+import Icon from "@/components/Icon";
 
 type FoundOrder = {
   id: string;
@@ -186,7 +187,7 @@ function MiPedidoForm({ slug }: { slug: string }) {
                   paso extra al azar. */}
               <div className="store-accent-soft-bg mt-4 flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                 <p className="store-accent-text">
-                  💡 Creá tu cuenta y vas a ver todos tus pedidos sin buscarlos por teléfono.
+                  <Icon name="spark" className="mr-1.5 h-4 w-4" />Creá tu cuenta y vas a ver todos tus pedidos sin buscarlos por teléfono.
                 </p>
                 <Link
                   href={`/login?mode=signup&next=${encodeURIComponent(`/${slug}/mi-pedido`)}`}

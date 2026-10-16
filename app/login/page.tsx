@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleButton from "@/components/GoogleButton";
+import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   return (
@@ -83,7 +84,7 @@ function LoginForm() {
     return (
       <main className="relative flex min-h-screen items-center justify-center bg-ink px-5 py-16">
         <div className="w-full max-w-md rounded-3xl bg-white p-7 text-center shadow-2xl">
-          <p className="text-2xl">📬</p>
+          <Icon name="mail" className="mx-auto h-8 w-8" />
           <h1 className="mt-2 font-display text-xl font-bold text-ink">Revisa tu correo</h1>
           <p className="mt-2 text-sm text-ink/60">
             Te mandamos un link a <span className="font-medium">{email}</span> para confirmar tu

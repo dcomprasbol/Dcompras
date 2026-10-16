@@ -8,6 +8,7 @@ import { fontStack } from "@/lib/utils";
 import { readableAccentText, readableOnAccent } from "@/lib/color";
 import { getCurrentUser, requirePlatformAdmin } from "@/lib/auth";
 import { resolveStoreTheme } from "@/lib/storeTheme";
+import Icon from "@/components/Icon";
 
 export default async function StoreLayout({
   children,
@@ -52,6 +53,8 @@ export default async function StoreLayout({
   const themeStyle = {
     "--store-accent": store.themeColor,
     "--store-accent-text": readableAccentText(store.themeColor),
+    // Los íconos (components/Icon.tsx) toman el color de la tienda, no el jade de Dcompras.
+    "--icon-accent": readableAccentText(store.themeColor),
     "--store-accent-ink": readableOnAccent(store.themeColor),
     "--font-display": fontStack(store.fontChoice),
     "--font-body": fontStack(store.fontChoice),
@@ -100,7 +103,7 @@ export default async function StoreLayout({
                       href="/admin"
                       className="store-accent-soft-bg store-accent-text flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
                     >
-                      <span aria-hidden="true">🛠️</span>
+                      <Icon name="panel" className="h-3.5 w-3.5" />
                       <span>Mi panel</span>
                     </Link>
                   )}
@@ -128,7 +131,7 @@ export default async function StoreLayout({
                     href={`/${params.slug}/mi-pedido`}
                     className="store-accent-soft-bg store-accent-text flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-80"
                   >
-                    <span aria-hidden="true">📦</span>
+                    <Icon name="box" className="h-3.5 w-3.5" />
                     <span>Mis pedidos</span>
                   </Link>
                   <Link
@@ -154,7 +157,7 @@ export default async function StoreLayout({
               </div>
               <div className="store-text-soft flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider">
                 <Link href={`/${params.slug}/mi-pedido`} className="nav-sweep hover:opacity-80">
-                  📦 Mi pedido
+                  <Icon name="box" className="mr-1 h-3.5 w-3.5" />Mi pedido
                 </Link>
                 {store.whatsapp && (
                   <a

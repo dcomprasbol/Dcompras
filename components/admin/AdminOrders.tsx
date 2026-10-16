@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatBs, ORDER_STATUSES, statusLabel, deliveryTypeLabel } from "@/lib/utils";
+import Icon, { Rating } from "@/components/Icon";
 
 type OrderItem = {
   id: string;
@@ -132,7 +133,7 @@ export default function AdminOrders({ slug }: { slug: string }) {
                   target="_blank"
                   className="text-xs font-medium text-jade-600 underline"
                 >
-                  📍 Ver ubicación en el mapa
+                  <Icon name="pin" className="mr-1 h-3.5 w-3.5" />Ver ubicación en el mapa
                 </a>
               )}
               <p className="text-xs text-ink/40">
@@ -191,15 +192,14 @@ export default function AdminOrders({ slug }: { slug: string }) {
           </div>
           {order.paymentMethod === "qr" && order.status === "pendiente" && (
             <p className="mb-3 -mt-2 text-xs text-amber-600">
-              ⏳ Esperando confirmación de pago. No se puede preparar ni enviar todavía.
+              <Icon name="clock" mono className="mr-1 h-3.5 w-3.5" />Esperando confirmación de pago. No se puede preparar ni enviar todavía.
             </p>
           )}
           {order.status === "recibido" && (order.rating || order.review) && (
             <div className="mb-3 border-t border-ink/5 pt-3">
               {order.rating && (
-                <p className="text-sm text-amber-500">
-                  {"★".repeat(order.rating)}
-                  <span className="text-ink/15">{"★".repeat(5 - order.rating)}</span>
+                <p className="text-sm text-ink">
+                  <Rating value={order.rating} />
                 </p>
               )}
               {order.review && <p className="mt-1 text-sm text-ink/60">"{order.review}"</p>}
@@ -231,7 +231,16 @@ export default function AdminOrders({ slug }: { slug: string }) {
                 copiedId === order.id ? "animate-confirm-pulse border-jade-300 text-jade-600" : ""
               }`}
             >
-              {copiedId === order.id ? "¡Copiado! ✓" : "🔗 Copiar link de seguimiento"}
+              {copiedId === order.id ? (
+                <>
+                  ¡Copiado! <Icon name="check" mono className="ml-1 h-3.5 w-3.5" />
+                </>
+              ) : (
+                <>
+                  <Icon name="link" className="mr-1 h-3.5 w-3.5" />
+                  Copiar link de seguimiento
+                </>
+              )}
             </button>
           </div>
         </div>

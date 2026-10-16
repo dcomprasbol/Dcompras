@@ -1,4 +1,5 @@
 import { formatBs } from "@/lib/utils";
+import Icon from "@/components/Icon";
 
 type DeletedStoreSummary = {
   id: string;
@@ -47,7 +48,7 @@ export default function DeletedStoresPanel({ stores }: { stores: DeletedStoreSum
               </div>
               {hasPending && (
                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                  ⚠️ Tiene {formatBs(store.pendingBalance.netAmount)} sin liquidar
+                  <Icon name="alert" mono className="mr-1 h-3.5 w-3.5" />Tiene {formatBs(store.pendingBalance.netAmount)} sin liquidar
                 </span>
               )}
             </div>

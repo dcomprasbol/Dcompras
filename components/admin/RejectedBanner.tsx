@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Icon from "@/components/Icon";
 
 export default function RejectedBanner({
   slug,
@@ -48,7 +49,7 @@ export default function RejectedBanner({
 
   return (
     <div className="mb-5 rounded-2xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-coral-700">
-      <p className="font-medium">❌ Tu tienda fue rechazada y no es visible al público.</p>
+      <p className="font-medium"><Icon name="x" mono className="mr-1.5 h-4 w-4" />Tu tienda fue rechazada y no es visible al público.</p>
 
       {rejectionNote && (
         <p className="mt-1.5 text-coral-600">

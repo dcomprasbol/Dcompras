@@ -119,8 +119,8 @@ export function reportReasonLabel(value: string): string {
 }
 
 export const DELIVERY_TYPES = [
-  { value: "domicilio", label: "Entrega a domicilio", icon: "🏠" },
-  { value: "punto_encuentro", label: "Punto de encuentro", icon: "🤝" },
+  { value: "domicilio", label: "Entrega a domicilio", icon: "home" },
+  { value: "punto_encuentro", label: "Punto de encuentro", icon: "meet" },
 ] as const;
 
 export function deliveryTypeLabel(value: string): string {

@@ -1,6 +1,7 @@
 "use client";
 
 import { STORE_STYLES, type StoreTheme } from "@/lib/storeTheme";
+import Icon from "@/components/Icon";
 
 // Selector de estilo de la tienda (crear tienda y panel del vendedor). Cada
 // opción muestra una miniatura dibujada con los colores reales del estilo y
@@ -114,8 +115,8 @@ export default function StyleChooser({
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-bold text-ink">{s.label}</span>
                 {selected ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-jade-500 text-[11px] font-bold text-white">
-                    ✓
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-jade-500 text-white">
+                    <Icon name="check" mono className="h-3 w-3" />
                   </span>
                 ) : (
                   <span className="h-5 w-5 rounded-full border-2 border-ink/15" />

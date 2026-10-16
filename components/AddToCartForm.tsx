@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import { MotionButton } from "@/components/MotionCta";
 import type { StoreTheme } from "@/lib/storeTheme";
+import Icon from "@/components/Icon";
 
 type Variant = { id: string; label: string; stock: number };
 type Product = {
@@ -53,7 +54,15 @@ export default function AddToCartForm({
   }
 
   const isThemed = theme !== "default";
-  const buttonLabel = outOfStock ? "Sin stock" : added ? "¡Agregado! ✓" : "Agregar al carrito";
+  const buttonLabel = outOfStock ? (
+    "Sin stock"
+  ) : added ? (
+    <>
+      ¡Agregado! <Icon name="check" mono className="ml-1 h-4 w-4" />
+    </>
+  ) : (
+    "Agregar al carrito"
+  );
 
   return (
     <div className="mt-5 space-y-3">

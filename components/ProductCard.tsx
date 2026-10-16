@@ -4,15 +4,16 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatBs } from "@/lib/utils";
 import type { StoreTheme } from "@/lib/storeTheme";
+import Icon, { type IconName } from "@/components/Icon";
 
 const MotionLink = motion(Link);
 
 // Placeholder cuando el producto no tiene foto — distinto por rubro para
 // que hasta las fichas vacías se sientan hechas para ese tipo de tienda.
-const PLACEHOLDER_ICON: Record<StoreTheme, string> = {
-  default: "🛍️",
-  moda: "👗",
-  tecnologia: "📦",
+const PLACEHOLDER_ICON: Record<StoreTheme, IconName> = {
+  default: "bag",
+  moda: "bag",
+  tecnologia: "box",
 };
 
 export default function ProductCard({
@@ -67,7 +68,7 @@ export default function ProductCard({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-4xl">
-              {PLACEHOLDER_ICON.moda}
+              <Icon name={PLACEHOLDER_ICON.moda} className="h-10 w-10 opacity-30" />
             </div>
           )}
         </div>
@@ -117,7 +118,7 @@ export default function ProductCard({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-3xl">
-              {PLACEHOLDER_ICON.tecnologia}
+              <Icon name={PLACEHOLDER_ICON.tecnologia} className="h-10 w-10 opacity-30" />
             </div>
           )}
         </div>
@@ -168,7 +169,7 @@ export default function ProductCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl">
-            {PLACEHOLDER_ICON.default}
+            <Icon name={PLACEHOLDER_ICON.default} className="h-10 w-10 opacity-30" />
           </div>
         )}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/0 transition-colors duration-300 group-hover:bg-ink/10">

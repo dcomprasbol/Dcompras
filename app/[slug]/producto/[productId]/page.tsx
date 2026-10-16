@@ -6,6 +6,7 @@ import AddToCartForm from "@/components/AddToCartForm";
 import ProductGallery from "@/components/ProductGallery";
 import ReportButton from "@/components/ReportButton";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,9 @@ export default async function ProductPage({
   const discountPct = onSale ? Math.round((1 - product.price / product.compareAtPrice!) * 100) : 0;
   const theme = resolveStoreTheme(store.storeStyle, store.category);
   const themedImage = theme !== "default";
-  const placeholderIcon = theme === "moda" ? "👗" : theme === "tecnologia" ? "📦" : "🛍️";
+  const placeholderIcon = (
+    <Icon name={theme === "tecnologia" ? "box" : "bag"} className="h-16 w-16 opacity-30" />
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-10 md:px-8">
@@ -116,7 +119,7 @@ export default async function ProductPage({
               slug={params.slug}
               type="product"
               productId={product.id}
-              label="⚠️ Reportar este producto"
+              label="Reportar este producto"
             />
           </div>
         </div>

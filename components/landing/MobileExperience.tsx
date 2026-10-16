@@ -1,4 +1,5 @@
 import RevealOnScroll from "./RevealOnScroll";
+import Icon from "@/components/Icon";
 
 // Casi todo el tráfico entra desde el link que el vendedor pega en su bio o
 // su estado — por eso la tienda pública ya está construida mobile-first
@@ -15,7 +16,7 @@ export default function MobileExperience() {
               <div className="flex items-center gap-1.5 bg-white px-3 py-2.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-jade-500" />
                 <span className="text-[10px] font-bold text-ink">Luna Studio</span>
-                <span className="ml-auto text-[10px] text-ink/30">🛒</span>
+                <span className="ml-auto text-ink/30"><Icon name="cart" className="h-3 w-3" /></span>
               </div>
               <div className="grid grid-cols-2 gap-1 p-1.5">
                 {["/landing/moda.jpg", "/landing/tecnologia.jpg", "/landing/belleza.jpg", "/landing/comida.jpg"].map(

@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils";
 import { resolveStoreTheme, type StoreTheme } from "@/lib/storeTheme";
 import StyleChooser from "@/components/StyleChooser";
+import Icon from "@/components/Icon";
 
 export default function AdminSettings({ slug }: { slug: string }) {
   const [ownerName, setOwnerName] = useState("");
@@ -320,7 +321,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
       </div>
 
       <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-sm font-bold text-ink">💰 Ingresa tu QR para que te depositemos tus ganancias</h2>
+        <h2 className="mb-1 text-sm font-bold text-ink"><Icon name="wallet" className="mr-1.5 h-4 w-4" />Ingresa tu QR para que te depositemos tus ganancias</h2>
         <p className="mb-3 text-xs text-ink/50">
           Es el QR de cualquier cuenta tuya (banco o billetera móvil) donde quieras recibir la
           plata de tus ventas. Así funciona cuando agendes una liquidación desde la pestaña
@@ -384,7 +385,7 @@ export default function AdminSettings({ slug }: { slug: string }) {
           saved ? "animate-confirm-pulse" : ""
         }`}
       >
-        {saving ? "Guardando..." : saved ? "¡Guardado! ✓" : "Guardar cambios"}
+        {saving ? "Guardando..." : saved ? <>¡Guardado! <Icon name="check" mono className="ml-1 h-4 w-4" /></> : "Guardar cambios"}
       </button>
     </form>
   );

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MotionButton } from "@/components/MotionCta";
+import Icon, { RatingMark } from "@/components/Icon";
 
 // Se muestra cuando el vendedor ya marcó el pedido como "Entregado" — recién
 // acá el comprador confirma que de verdad lo tiene en la mano, con
@@ -57,7 +58,7 @@ export default function ConfirmReceivedButton({
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="border border-jade-500 bg-jade-50 px-4 py-3 text-center text-sm font-semibold text-jade-700"
         >
-          ¡Gracias por confirmar! ✓
+          ¡Gracias por confirmar! <Icon name="check" mono className="ml-1 h-4 w-4" />
         </motion.p>
       ) : showReview ? (
         <motion.div key="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
@@ -73,10 +74,10 @@ export default function ConfirmReceivedButton({
                   onClick={() => setRating(rating === n ? null : n)}
                   aria-label={`${n} estrella${n === 1 ? "" : "s"}`}
                   className={`text-2xl transition ${
-                    rating != null && n <= rating ? "text-amber-400" : "text-ink/15"
+                    rating != null && n <= rating ? "store-accent-text" : "text-ink/15"
                   }`}
                 >
-                  ★
+                  <RatingMark className="h-7 w-7" />
                 </button>
               ))}
             </div>

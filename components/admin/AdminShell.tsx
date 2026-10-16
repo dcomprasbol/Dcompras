@@ -10,15 +10,16 @@ import AdminSupport from "@/components/admin/AdminSupport";
 import RejectedBanner from "@/components/admin/RejectedBanner";
 import LogoutButton from "@/components/LogoutButton";
 import AccountMenu from "@/components/AccountMenu";
+import Icon, { type IconName } from "@/components/Icon";
 
 type Tab = "cuenta" | "productos" | "pedidos" | "ganancias" | "soporte";
 
-const NAV: { key: Tab; label: string; icon: string }[] = [
-  { key: "cuenta", label: "Cuenta", icon: "⚙️" },
-  { key: "productos", label: "Productos", icon: "🛍️" },
-  { key: "pedidos", label: "Pedidos", icon: "📦" },
-  { key: "ganancias", label: "Billetera", icon: "💰" },
-  { key: "soporte", label: "Soporte", icon: "💬" },
+const NAV: { key: Tab; label: string; icon: IconName }[] = [
+  { key: "cuenta", label: "Cuenta", icon: "settings" },
+  { key: "productos", label: "Productos", icon: "bag" },
+  { key: "pedidos", label: "Pedidos", icon: "box" },
+  { key: "ganancias", label: "Billetera", icon: "wallet" },
+  { key: "soporte", label: "Soporte", icon: "chat" },
 ];
 
 function LogoutIcon() {
@@ -75,7 +76,7 @@ export default function AdminShell({
                   : "text-ink/60 hover:bg-paper hover:text-ink"
               }`}
             >
-              <span>{item.icon}</span>
+              <Icon name={item.icon} className="h-4 w-4" />
               {item.label}
             </button>
           ))}
@@ -113,7 +114,7 @@ export default function AdminShell({
                 tab === item.key ? "bg-jade-500 text-white" : "bg-paper text-ink/60"
               }`}
             >
-              {item.icon}
+              <Icon name={item.icon} mono={tab === item.key} className="h-4 w-4" label={item.label} />
             </button>
           ))}
           <LogoutButton
@@ -138,7 +139,7 @@ export default function AdminShell({
 
           {status === "pendiente" && (
             <div className="mb-5 rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-              🕐 Tu tienda está en revisión. Todavía no es visible al público ni puede recibir
+              <Icon name="clock" mono className="mr-1.5 h-4 w-4" />Tu tienda está en revisión. Todavía no es visible al público ni puede recibir
               pedidos. Te avisaremos por WhatsApp cuando esté aprobada.
             </div>
           )}

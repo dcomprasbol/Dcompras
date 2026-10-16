@@ -74,7 +74,7 @@ export default function LocationPicker({
     // Control nativo de Leaflet para alternar entre mapa normal y
     // satelital — colapsado, solo un ícono en la esquina hasta que se abre.
     L.control
-      .layers({ "🗺️ Normal": streets, "🛰️ Satélite": satellite }, undefined, {
+      .layers({ Normal: streets, "Satélite": satellite }, undefined, {
         position: "topright",
         collapsed: true,
       })

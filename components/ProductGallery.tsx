@@ -13,7 +13,7 @@ export default function ProductGallery({
   images: string[];
   alt: string;
   theme?: StoreTheme;
-  placeholderIcon: string;
+  placeholderIcon: React.ReactNode;
   badge?: React.ReactNode;
 }) {
   const [active, setActive] = useState(0);
