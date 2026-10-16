@@ -1,5 +1,6 @@
 import RevealOnScroll from "./RevealOnScroll";
 import { MotionLinkButton } from "@/components/MotionCta";
+import BrandMark from "@/components/BrandMark";
 
 // Íconos propios en línea (trazo jade sobre tile tinta), sin emojis.
 const stroke = {
@@ -79,10 +80,13 @@ export default function Features() {
     <section className="bg-white px-5 py-20">
       <div className="mx-auto max-w-4xl">
         <RevealOnScroll className="mx-auto max-w-3xl text-center">
-          <h2 className="font-display text-2xl font-bold leading-tight text-ink md:text-3xl">
-            Tu negocio sigue en WhatsApp. El desorden, no.
+          <BrandMark className="mx-auto mb-5 h-10 w-auto" bg="#FFFFFF" />
+          <h2 className="font-impact text-3xl uppercase leading-[0.95] tracking-tight text-ink md:text-5xl">
+            Tu negocio sigue en WhatsApp.
+            <br />
+            <span className="text-jade-500">El desorden, no.</span>
           </h2>
-          <p className="mt-3 text-base leading-relaxed text-ink/70 md:text-lg">
+          <p className="mt-5 text-base leading-relaxed text-ink/70 md:text-lg">
             Convierte tu catálogo, tus cobros y tus pedidos en una tienda
             organizada, sin cambiar la forma en que hablas con tus clientes.
           </p>
@@ -105,7 +109,7 @@ export default function Features() {
         <RevealOnScroll className="mt-8 flex flex-col items-center text-center">
           <MotionLinkButton
             href="/crear-tienda"
-            className="inline-flex items-center gap-3 rounded-lg bg-ink px-7 py-4 font-display text-base font-bold text-white"
+            className="btn-editorial btn-editorial-solid"
           >
             Crear mi tienda gratis
             <span className="text-jade-400" aria-hidden="true">→</span>

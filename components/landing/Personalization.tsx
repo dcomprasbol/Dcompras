@@ -1,5 +1,6 @@
 import Link from "next/link";
 import RevealOnScroll from "./RevealOnScroll";
+import BrandMark from "@/components/BrandMark";
 
 // Vitrina de personalización: cada tienda en Dcompras elige su propio color
 // de marca, tipografía y logo — ver STORE_FONTS / themeColor en
@@ -23,7 +24,7 @@ export default function Personalization() {
     <section className="px-5 py-20">
       <div className="mx-auto max-w-6xl">
         <RevealOnScroll className="mx-auto max-w-xl text-center">
-          <span className="section-mark mb-4 text-ink" aria-hidden="true" />
+          <BrandMark className="mx-auto mb-5 h-10 w-auto" />
           <h2 className="font-impact text-3xl uppercase leading-[0.95] tracking-tight text-ink md:text-5xl">
             Dcompras es la plataforma.
             <br />

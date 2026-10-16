@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 // Acordeón con altura animada de verdad (Framer Motion anima el "auto"
 // interpolando la altura real del contenido), no el salto instantáneo de
-// <details>. El "+" gira a "×" al abrir.
+// <details>. El "+" (en su cuadro) gira a "×" y se pinta de jade al abrir.
 export default function Accordion({
   question,
   answer,
@@ -31,14 +31,25 @@ export default function Accordion({
         >
           {question}
         </span>
-        <motion.span
-          animate={{ rotate: open ? 45 : 0 }}
-          transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 20 }}
-          className={`shrink-0 font-impact text-xl leading-none ${dark ? "text-white" : "text-ink"}`}
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center border transition-colors ${
+            open
+              ? "border-jade-400 bg-jade-400 text-ink"
+              : dark
+                ? "border-white/25 text-jade-400"
+                : "border-ink/20 text-jade-600"
+          }`}
           aria-hidden="true"
         >
-          +
-        </motion.span>
+          <motion.svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            animate={{ rotate: open ? 45 : 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+          </motion.svg>
+        </span>
       </button>
       <AnimatePresence initial={false}>
         {open && (

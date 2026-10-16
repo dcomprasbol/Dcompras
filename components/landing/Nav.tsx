@@ -27,10 +27,19 @@ export default async function Nav() {
 
         <Link
           href="/"
-          className="flex items-center md:absolute md:left-1/2 md:-translate-x-1/2"
+          className="group relative flex items-center md:absolute md:left-1/2 md:-translate-x-1/2"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Dcompras" className="h-6 w-auto md:h-7" />
+          <img
+            src="/logo.png"
+            alt="Dcompras"
+            className="h-6 w-auto transition-transform duration-300 ease-out group-hover:-translate-y-0.5 md:h-7"
+          />
+          {/* Subrayado jade que se dibuja de izquierda a derecha al pasar el mouse. */}
+          <span
+            className="absolute -bottom-1.5 left-0 h-[2px] w-full origin-left scale-x-0 bg-jade-400 transition-transform duration-300 ease-out group-hover:scale-x-100"
+            aria-hidden="true"
+          />
         </Link>
 
         <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
