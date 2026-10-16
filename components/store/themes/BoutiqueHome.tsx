@@ -118,7 +118,7 @@ function Hero({ store, tagline, eyebrow, products }: {
             className="mb-5 inline-flex rounded-2xl bg-white p-2.5 shadow-lg"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={store.logoUrl} alt={store.name} className="h-14 w-14 rounded-xl object-cover md:h-16 md:w-16" />
+            <img src={store.logoUrl} alt={store.name} className="h-20 w-20 rounded-xl object-cover md:h-24 md:w-24" />
           </motion.div>
         )}
         {eyebrow && (

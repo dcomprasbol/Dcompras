@@ -79,6 +79,22 @@ function Hero({ store, tagline, eyebrow, products }: {
     <section className="relative overflow-hidden bg-ink px-5 pb-20 pt-14 text-white md:px-8 md:pb-28 md:pt-20">
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
         <div>
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: SNAP }}
+            className="mb-6 flex items-center gap-3"
+          >
+            {store.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={store.logoUrl} alt={store.name} className="h-16 w-16 border-2 border-white bg-white object-cover md:h-20 md:w-20" />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center bg-[var(--store-accent)] font-impact text-3xl text-[var(--store-accent-ink)] md:h-20 md:w-20">
+                {store.name.trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="font-impact text-2xl uppercase tracking-tight md:text-3xl">{store.name}</span>
+          </motion.div>
           {eyebrow && (
             <motion.span
               initial={reduce ? false : { opacity: 0, x: -20 }}

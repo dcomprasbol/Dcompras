@@ -70,7 +70,7 @@ function Hero({ store, tagline, eyebrow, cover, hasProducts }: {
             initial={reduce ? false : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, ease: EASE }}
-            className="mx-auto mb-8 h-20 w-20 overflow-hidden rounded-full border border-[var(--store-accent)] p-1"
+            className="mx-auto mb-8 h-24 w-24 overflow-hidden rounded-full border border-[var(--store-accent)] p-1 md:h-28 md:w-28"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={store.logoUrl} alt={store.name} className="h-full w-full rounded-full object-cover" />

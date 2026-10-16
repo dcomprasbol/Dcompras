@@ -77,8 +77,14 @@ function Hero({ store, tagline, eyebrow, hasProducts }: {
     name.length <= 6 ? "text-[22vw]" : name.length <= 10 ? "text-[15vw]" : name.length <= 16 ? "text-[10vw]" : "text-[7vw]";
   return (
     <section className="px-5 pb-10 pt-12 md:px-10 md:pt-16">
-      <div className="flex flex-wrap items-start justify-between gap-4 text-[11px] uppercase tracking-[0.25em] text-[var(--store-text-soft)]">
-        <FadeUp>{eyebrow || "Colección"}</FadeUp>
+      <div className="flex flex-wrap items-center justify-between gap-4 text-[11px] uppercase tracking-[0.25em] text-[var(--store-text-soft)]">
+        <FadeUp className="flex items-center gap-4">
+          {store.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={store.logoUrl} alt={store.name} className="h-16 w-16 border border-[var(--store-border)] bg-white object-cover md:h-20 md:w-20" />
+          ) : null}
+          <span>{eyebrow || "Colección"}</span>
+        </FadeUp>
         <FadeUp delay={0.1}>{store.city ?? "Bolivia"}</FadeUp>
       </div>
       <motion.h1

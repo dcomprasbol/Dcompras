@@ -134,6 +134,21 @@ function Hero({ store, tagline, eyebrow, products }: {
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2 lg:gap-20">
         <motion.div variants={reduce ? undefined : stagger} initial={reduce ? false : "hidden"} animate="show">
+          <motion.div variants={rise} className="mb-6 flex items-center gap-3">
+            {store.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={store.logoUrl}
+                alt={store.name}
+                className="h-14 w-14 rounded-[var(--store-radius)] object-cover ring-2 ring-[var(--store-accent)] ring-offset-4 ring-offset-[var(--store-bg)] md:h-16 md:w-16"
+              />
+            ) : (
+              <span className="flex h-14 w-14 items-center justify-center rounded-[var(--store-radius)] bg-[var(--store-accent)] font-impact text-2xl text-[var(--store-accent-ink)] md:h-16 md:w-16">
+                {store.name.trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="store-text text-xl font-bold tracking-tight md:text-2xl">{store.name}</span>
+          </motion.div>
           {eyebrow && (
             <motion.span variants={rise} className="store-border store-text-soft inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--store-accent)]" />

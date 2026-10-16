@@ -89,10 +89,10 @@ export default async function StoreLayout({
                 <img
                   src={store.logoUrl}
                   alt={store.name}
-                  className="h-8 w-8 rounded-[var(--store-radius)] object-cover"
+                  className="store-border h-11 w-11 rounded-[var(--store-radius)] border object-cover md:h-12 md:w-12"
                 />
               ) : (
-                <span className="store-accent-bg flex h-8 w-8 items-center justify-center rounded-[var(--store-radius)] font-display text-sm font-bold">
+                <span className="store-accent-bg flex h-11 w-11 items-center justify-center rounded-[var(--store-radius)] font-display text-base font-bold md:h-12 md:w-12">
                   {store.name.charAt(0).toUpperCase()}
                 </span>
               )}

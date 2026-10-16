@@ -98,7 +98,7 @@ function Hero({ store, tagline, eyebrow, products }: {
             initial={reduce ? false : { scale: 0, rotate: -30 }}
             animate={{ scale: 1, rotate: -6 }}
             transition={SPRING}
-            className="mx-auto mb-6 h-20 w-20 overflow-hidden rounded-[var(--store-radius-lg)] border-[3px] border-[var(--store-text)] bg-white pop-shadow"
+            className="mx-auto mb-6 h-24 w-24 overflow-hidden md:h-28 md:w-28 rounded-[var(--store-radius-lg)] border-[3px] border-[var(--store-text)] bg-white pop-shadow"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={store.logoUrl} alt={store.name} className="h-full w-full object-cover" />
