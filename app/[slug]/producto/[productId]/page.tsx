@@ -7,8 +7,25 @@ import ProductGallery from "@/components/ProductGallery";
 import ReportButton from "@/components/ReportButton";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import Icon from "@/components/Icon";
+import Link from "next/link";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+// La pestaña muestra "Producto · Tienda" (el layout pone el sufijo con el
+// nombre de la tienda y su logo como ícono).
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string; productId: string };
+}): Promise<Metadata> {
+  const product = await getProductById(params.productId);
+  if (!product) return {};
+  return {
+    title: product.name,
+    description: product.description?.slice(0, 160) || undefined,
+  };
+}
 
 export default async function ProductPage({
   params,
@@ -62,6 +79,23 @@ export default async function ProductPage({
 
         <div className="lg:pt-4">
           <RevealOnScroll delay={80}>
+            <Link href={`/${params.slug}`} className="group mb-4 inline-flex items-center gap-2.5">
+              {store.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={store.logoUrl}
+                  alt=""
+                  className="store-border h-9 w-9 rounded-[var(--store-radius)] border object-cover"
+                />
+              ) : (
+                <span className="store-accent-bg flex h-9 w-9 items-center justify-center rounded-[var(--store-radius)] text-sm font-bold">
+                  {store.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="store-accent-text text-xs font-semibold uppercase tracking-wider group-hover:underline">
+                {store.name}
+              </span>
+            </Link>
             <h1
               className={
                 theme === "moda"

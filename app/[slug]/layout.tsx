@@ -9,6 +9,51 @@ import { readableAccentText, readableOnAccent } from "@/lib/color";
 import { getCurrentUser, requirePlatformAdmin } from "@/lib/auth";
 import { resolveStoreTheme } from "@/lib/storeTheme";
 import Icon from "@/components/Icon";
+import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+
+function siteOrigin() {
+  if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, "");
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "www.dcompras.shop";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+// La marca del vendedor también fuera de la página: pestaña del navegador
+// (nombre + logo), vista previa del link al compartirlo por WhatsApp o
+// Facebook (nombre, frase y logo) y color de la barra del navegador en el
+// celular. Antes todas las tiendas mostraban "Dcompras" ahí.
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const store = await getStoreBySlug(params.slug);
+  if (!store || store.status !== "aprobada") return { title: "Tienda en Dcompras" };
+  const origin = siteOrigin();
+  const name = store.name.trim();
+  const description =
+    store.tagline?.trim() || `Compra en ${name}: catálogo en línea, pago por QR o contra entrega.`;
+  const logo = store.logoUrl ? `${origin}/${store.slug}/logo` : undefined;
+  return {
+    metadataBase: new URL(origin),
+    title: { default: name, template: `%s · ${name}` },
+    description,
+    icons: logo ? { icon: logo, apple: logo } : undefined,
+    openGraph: {
+      type: "website",
+      locale: "es_BO",
+      url: `${origin}/${store.slug}`,
+      siteName: name,
+      title: name,
+      description,
+      images: logo ? [{ url: logo, alt: name }] : undefined,
+    },
+    twitter: { card: "summary", title: name, description, images: logo ? [logo] : undefined },
+  };
+}
+
+export async function generateViewport({ params }: { params: { slug: string } }): Promise<Viewport> {
+  const store = await getStoreBySlug(params.slug);
+  return store ? { themeColor: store.themeColor } : {};
+}
 
 export default async function StoreLayout({
   children,
@@ -82,21 +127,29 @@ export default async function StoreLayout({
           </div>
         )}
         <header className="store-header-bg store-border sticky top-0 z-10 border-b backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 md:px-8">
-            <Link href={`/${params.slug}`} className="flex items-center gap-2.5">
+          <div className="h-1 bg-[var(--store-accent)]" aria-hidden="true" />
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3 md:px-8">
+            <Link href={`/${params.slug}`} className="flex min-w-0 items-center gap-3">
               {store.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={store.logoUrl}
                   alt={store.name}
-                  className="store-border h-11 w-11 rounded-[var(--store-radius)] border object-cover md:h-12 md:w-12"
+                  className="store-border h-12 w-12 shrink-0 rounded-[var(--store-radius)] border object-cover md:h-14 md:w-14"
                 />
               ) : (
-                <span className="store-accent-bg flex h-11 w-11 items-center justify-center rounded-[var(--store-radius)] font-display text-base font-bold md:h-12 md:w-12">
+                <span className="store-accent-bg flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--store-radius)] font-display text-lg font-bold md:h-14 md:w-14">
                   {store.name.charAt(0).toUpperCase()}
                 </span>
               )}
-              <span className="font-display store-text text-lg font-bold">{store.name}</span>
+              <span className="min-w-0">
+                <span className="font-display store-text block truncate text-lg font-bold leading-tight md:text-xl">
+                  {store.name}
+                </span>
+                {store.tagline && (
+                  <span className="store-text-soft hidden max-w-xs truncate text-xs md:block">{store.tagline}</span>
+                )}
+              </span>
             </Link>
             <div className="flex items-center gap-3">
               {buyer ? (
@@ -152,22 +205,39 @@ export default async function StoreLayout({
         <main>{children}</main>
 
         <footer className="store-border mt-10 border-t">
-          <div className="mx-auto max-w-7xl px-5 py-8 md:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="font-display store-text text-sm font-bold">{store.name}</p>
-                {store.city && <p className="store-text-soft mt-1 text-xs">{store.city}</p>}
+          <div className="h-1 bg-[var(--store-accent)]" aria-hidden="true" />
+          <div className="mx-auto max-w-7xl px-5 py-10 md:px-8">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-4">
+                {store.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={store.logoUrl}
+                    alt={store.name}
+                    className="store-border h-20 w-20 shrink-0 rounded-[var(--store-radius-lg)] border object-cover md:h-24 md:w-24"
+                  />
+                ) : (
+                  <span className="store-accent-bg flex h-20 w-20 shrink-0 items-center justify-center rounded-[var(--store-radius-lg)] font-display text-3xl font-bold md:h-24 md:w-24">
+                    {store.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="font-display store-text text-2xl font-bold leading-tight">{store.name}</p>
+                  {store.tagline && <p className="store-text-soft mt-1 text-sm">{store.tagline}</p>}
+                  {store.city && (
+                    <p className="store-accent-text mt-1 text-xs font-semibold uppercase tracking-wider">{store.city}</p>
+                  )}
+                </div>
               </div>
-              <div className="store-text-soft flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider">
-                <Link href={`/${params.slug}/mi-pedido`} className="nav-sweep hover:opacity-80">
-                  <Icon name="box" className="mr-1 h-3.5 w-3.5" />Mi pedido
-                </Link>
+              <div className="flex flex-wrap items-center gap-2">
                 {store.whatsapp && (
                   <a
                     href={`https://wa.me/591${store.whatsapp.replace(/\D/g, "")}`}
                     target="_blank"
-                    className="nav-sweep hover:opacity-80"
+                    rel="noopener noreferrer"
+                    className="store-accent-bg inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90"
                   >
+                    <Icon name="chat" mono className="h-4 w-4" />
                     WhatsApp
                   </a>
                 )}
@@ -177,11 +247,18 @@ export default async function StoreLayout({
                     href={s.href!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nav-sweep hover:opacity-80"
+                    className="store-border store-text inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-[var(--store-accent)]"
                   >
                     {s.label}
                   </a>
                 ))}
+                <Link
+                  href={`/${params.slug}/mi-pedido`}
+                  className="store-text-soft inline-flex items-center gap-1.5 px-2 py-2 text-sm font-semibold hover:opacity-80"
+                >
+                  <Icon name="box" className="h-4 w-4" />
+                  Mi pedido
+                </Link>
               </div>
             </div>
             <p className="store-text-soft mt-6 text-[11px] opacity-50">
@@ -196,7 +273,7 @@ export default async function StoreLayout({
             </p>
           </div>
           <div className="store-border overflow-hidden border-t px-4 py-2" aria-hidden="true">
-            <p className="wordmark-crop store-text text-center text-[13vw] opacity-[0.05] sm:text-[7vw]">
+            <p className="wordmark-crop text-center text-[13vw] text-[var(--store-accent-text)] opacity-25 sm:text-[7vw]">
               {store.name}
             </p>
           </div>
