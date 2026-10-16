@@ -893,7 +893,7 @@ export async function getPlatformAlerts(): Promise<PlatformAlert[]> {
       type: "tienda_pendiente",
       severity: "warning",
       message: `"${s.name}" lleva ${s.days} día(s) esperando revisión`,
-      href: "/plataforma#tiendas",
+      href: "/plataforma?seccion=solicitudes",
     });
   }
 

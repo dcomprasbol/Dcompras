@@ -73,7 +73,7 @@ export default async function StoreLayout({
           <div className="bg-amber-400 px-5 py-2 text-center font-sans text-xs font-semibold text-ink">
             Vista de administrador · Esta tienda está <span className="uppercase">{store.status}</span> y
             el público no puede verla.{" "}
-            <Link href="/plataforma#directorio" className="underline">
+            <Link href="/plataforma?seccion=tiendas" className="underline">
               Volver al panel
             </Link>
           </div>
