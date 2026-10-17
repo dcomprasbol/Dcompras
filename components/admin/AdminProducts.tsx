@@ -38,6 +38,9 @@ export default function AdminProducts({ slug }: { slug: string }) {
   // campos del formulario originó cada valor.
   const [price, setPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
+  // El campo de descuento solo aparece si el vendedor lo pide (botón "¿Quieres
+  // agregarle un descuento?"): así nadie llena un precio de oferta sin querer.
+  const [showDiscount, setShowDiscount] = useState(false);
   // Hasta MAX_PRODUCT_IMAGES fotos por producto; la primera es la portada
   // (la que se ve en el catálogo y el carrito).
   const [images, setImages] = useState<string[]>([]);
@@ -116,6 +119,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     setDescription("");
     setPrice("");
     setSalePrice("");
+    setShowDiscount(false);
     setImages([]);
     setImageError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -136,6 +140,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     // p.price y el campo de descuento queda vacío.
     setPrice(String(onSale ? p.compareAtPrice : p.price));
     setSalePrice(onSale ? String(p.price) : "");
+    setShowDiscount(onSale);
     setImages(p.images && p.images.length > 0 ? p.images : p.imageUrl ? [p.imageUrl] : []);
     setError(null);
     setShowForm(true);
@@ -150,7 +155,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     // traduce a lo que la API siempre espera: price = lo que se cobra,
     // compareAtPrice = el normal tachado (o null si no hay oferta).
     const normalPrice = Number(price);
-    const saleNum = salePrice === "" ? null : Number(salePrice);
+    const saleNum = !showDiscount || salePrice === "" ? null : Number(salePrice);
     if (saleNum != null && saleNum >= normalPrice) {
       setError("El precio con descuento tiene que ser menor al precio normal de arriba.");
       return;
@@ -256,47 +261,71 @@ export default function AdminProducts({ slug }: { slug: string }) {
               className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ink/70">Precio normal (Bs)</label>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ink/70">Precio normal (Bs)</label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            />
+          </div>
+
+          {!showDiscount ? (
+            <button
+              type="button"
+              onClick={() => setShowDiscount(true)}
+              className="flex w-full items-center gap-2 rounded-lg border border-dashed border-jade-300 bg-jade-50/50 px-3 py-2.5 text-left text-sm font-medium text-jade-700 transition hover:bg-jade-50"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-jade-500 text-xs font-bold text-white">
+                +
+              </span>
+              ¿Quieres agregarle un descuento a este producto?
+            </button>
+          ) : (
+            <div className="rounded-xl border border-jade-200 bg-jade-50/40 p-3">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label htmlFor="sale-price" className="text-sm font-medium text-ink/70">
+                  Precio con descuento (Bs)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDiscount(false);
+                    setSalePrice("");
+                  }}
+                  className="text-xs font-medium text-coral-600 hover:underline"
+                >
+                  Quitar descuento
+                </button>
+              </div>
+              {/* Es el precio NUEVO, más bajo, que se le cobra al cliente; el
+                  normal de arriba queda tachado al lado como etiqueta de
+                  oferta. Por eso tiene que ser menor, no mayor. */}
               <input
-                required
+                id="sale-price"
                 type="number"
                 step="0.01"
                 min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ink/70">
-                Precio con descuento
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+                autoFocus
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
-                placeholder="Poné acá el nuevo precio"
-                className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+                placeholder="Escribe el nuevo precio, más bajo que el normal"
+                className="w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm"
               />
+              {salePrice && Number(salePrice) > 0 && (
+                <p className="mt-1.5 text-xs text-ink/50">
+                  {Number(salePrice) < Number(price || 0)
+                    ? `Tu cliente ve: Bs ${Number(salePrice).toFixed(2)} y, tachado al lado, Bs ${Number(price || 0).toFixed(2)}, con la etiqueta "Oferta -${Math.round(
+                        (1 - Number(salePrice) / Number(price || 0)) * 100
+                      )}%".`
+                    : "El precio con descuento tiene que ser menor al precio normal."}
+                </p>
+              )}
             </div>
-          </div>
-          {/* "Precio (Bs)" de arriba es el precio normal — nunca hay que
-              tocarlo para armar una oferta. Este campo es el precio NUEVO,
-              más bajo, que se le cobra al cliente; el normal queda tachado
-              al lado como etiqueta de descuento. Por eso tiene que ser
-              menor, no mayor. */}
-          {salePrice && Number(salePrice) > 0 && (
-            <p className="-mt-2 text-xs text-ink/40">
-              {Number(salePrice) < Number(price || 0)
-                ? `Tu cliente ve: Bs ${Number(salePrice).toFixed(2)} y, tachado al lado, Bs ${Number(price || 0).toFixed(2)}, con la etiqueta "Oferta -${Math.round(
-                    (1 - Number(salePrice) / Number(price || 0)) * 100
-                  )}%".`
-                : "Este precio se va a mostrar como oferta con etiqueta de descuento, tiene que ser menor al precio normal de arriba."}
-            </p>
           )}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink/70">
