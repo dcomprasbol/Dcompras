@@ -22,6 +22,7 @@ const PLATFORM_ROOTS = new Set([
   "plataforma",
   "privacidad",
   "terminos",
+  "tiendas",
 ]);
 
 function isPlatformPath(pathname: string) {

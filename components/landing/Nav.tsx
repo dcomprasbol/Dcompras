@@ -14,6 +14,9 @@ export default async function Nav() {
     <header className="sticky top-0 z-50 border-b border-ink/10 bg-paper/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <nav className="hidden items-center gap-6 text-xs font-semibold uppercase tracking-wider text-ink/70 md:flex">
+          <Link href="/tiendas" className="nav-sweep hover:text-ink">
+            Tiendas
+          </Link>
           <a href="#como-funciona" className="nav-sweep hover:text-ink">
             Cómo funciona
           </a>

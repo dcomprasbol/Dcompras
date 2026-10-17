@@ -929,6 +929,48 @@ export async function getSellerOverview(storeId: string): Promise<SellerOverview
   return row;
 }
 
+// Directorio público de tiendas (landing, /tiendas, /categoria/[x]): solo
+// aprobadas, con lo justo para una tarjeta. No trae el logo ni las fotos
+// (son base64 pesados): trae si hay logo y los ids de hasta 3 productos con
+// foto, que la página carga por /[slug]/logo y /api/img/product/[id].
+// Productos "disponibles" = activos y con stock (mismo criterio que el
+// catálogo público, que oculta los agotados).
+export type PublicStore = {
+  slug: string;
+  name: string;
+  tagline: string | null;
+  category: string | null;
+  city: string | null;
+  themeColor: string;
+  hasLogo: boolean;
+  productCount: number;
+  previewIds: string[];
+};
+
+export async function listPublicStores(): Promise<PublicStore[]> {
+  await dbReady;
+  return sql<PublicStore[]>`
+    WITH available AS (
+      SELECT p.id, p.store_id, p.image_url, p.created_at
+      FROM products p
+      WHERE p.active AND EXISTS (SELECT 1 FROM variants v WHERE v.product_id = p.id AND v.stock > 0)
+    )
+    SELECT s.slug, s.name, s.tagline, s.category, s.city, s.theme_color,
+      (s.logo_url IS NOT NULL AND s.logo_url <> '') AS has_logo,
+      (SELECT COUNT(*)::int FROM available a WHERE a.store_id = s.id) AS product_count,
+      COALESCE((
+        SELECT json_agg(x.id) FROM (
+          SELECT a.id FROM available a
+          WHERE a.store_id = s.id AND a.image_url IS NOT NULL AND a.image_url <> ''
+          ORDER BY a.created_at DESC LIMIT 3
+        ) x
+      ), '[]'::json) AS preview_ids
+    FROM stores s
+    WHERE s.status = 'aprobada' AND s.deleted_at IS NULL
+    ORDER BY product_count DESC, s.created_at ASC
+  `;
+}
+
 // Actividad de cada tienda para el directorio del admin (/plataforma):
 // productos activos, pedidos y monto vendido. Mismo criterio que
 // getTopStoresBySales (todos los pedidos, cualquier estado).

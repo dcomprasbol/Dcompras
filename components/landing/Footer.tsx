@@ -3,6 +3,7 @@ import Link from "next/link";
 // Solo enlaces a secciones/rutas que existen de verdad — nada de columnas
 // "Sobre nosotros / Blog / Carreras" apuntando a páginas que no existen.
 const PRODUCT_LINKS = [
+  { href: "/tiendas", label: "Todas las tiendas" },
   { href: "#como-funciona", label: "Cómo funciona" },
   { href: "#precios", label: "Precios" },
   { href: "#preguntas", label: "Preguntas frecuentes" },
