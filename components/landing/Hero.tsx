@@ -65,7 +65,7 @@ export default function Hero() {
           </motion.div>
 
           <motion.p variants={item} className="mt-5 text-xs uppercase tracking-wider text-white/35">
-            Gratis para publicar · comisión solo cuando vendes
+            Gratis para publicar · sin mensualidades · recibes el 100 % de tu precio
           </motion.p>
         </motion.div>
 

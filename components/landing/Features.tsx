@@ -1,6 +1,7 @@
 import RevealOnScroll from "./RevealOnScroll";
 import { MotionLinkButton } from "@/components/MotionCta";
 import BrandMark from "@/components/BrandMark";
+import { commissionPercent } from "@/lib/commission";
 
 // Íconos propios en línea (trazo jade sobre tile tinta), sin emojis.
 const stroke = {
@@ -115,7 +116,7 @@ export default function Features() {
             <span className="text-jade-400" aria-hidden="true">→</span>
           </MotionLinkButton>
           <p className="mt-3 text-sm text-ink/60">
-            Sin instalación ni mensualidades · 1 % por venta
+            Sin mensualidades · Recibes el 100 % de tu precio · Con QR automático, el comprador suma un {commissionPercent()} %
           </p>
         </RevealOnScroll>
       </div>

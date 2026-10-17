@@ -1,5 +1,6 @@
 import RevealOnScroll from "./RevealOnScroll";
 import Accordion from "@/components/Accordion";
+import { commissionPercent } from "@/lib/commission";
 
 // Objeciones reales de alguien que nunca vendió fuera de WhatsApp: dinero,
 // confianza, esfuerzo. Todas las respuestas describen lo que Dcompras hace de
@@ -7,7 +8,7 @@ import Accordion from "@/components/Accordion";
 const FAQS = [
   {
     q: "¿Es gratis de verdad?",
-    a: "Sí. Publicar tu catálogo y recibir pedidos por contra entrega no cuesta nada. Solo cobramos una comisión pequeña cuando activas el cobro automático por QR; si no lo usas, no pagas nada.",
+    a: `Sí. Crear tu tienda, publicar y recibir pedidos no te cuesta nada, y siempre recibes el 100 % de tu precio. Cuando tu cliente paga con el cobro automático por QR, a él se le suma un ${commissionPercent()} % al total (lo ve antes de pagar). Contra entrega no tiene ningún recargo.`,
   },
   {
     q: "¿Necesito saber de diseño o tecnología?",
@@ -15,7 +16,7 @@ const FAQS = [
   },
   {
     q: "¿Cómo recibo el pago de mis clientes?",
-    a: "Por QR (el mismo que ya usas para cobrar) o contra entrega en efectivo. Vos decides cuál ofrecer, o los dos.",
+    a: "Tus clientes pagan con QR o contra entrega. Con el QR automático, el pago entra a Dcompras, el pedido se marca pagado solo y después te transferimos el 100 % de tu precio a la cuenta que registres. Contra entrega, te pagan directo al recibir.",
   },
   {
     q: "¿Tengo que dejar de usar WhatsApp?",

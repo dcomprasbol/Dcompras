@@ -338,4 +338,22 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
       FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE SET NULL;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$;
+
+  -- Seguridad: Supabase publica el esquema "public" por su API REST, y la
+  -- clave "anon" (NEXT_PUBLIC_SUPABASE_ANON_KEY) viaja en el navegador. Sin
+  -- RLS, cualquiera con esa clave podía leer y modificar tiendas, pedidos y
+  -- liquidaciones desde internet. Con RLS activado y SIN políticas, la API
+  -- pública no ve ni toca nada. La app no se ve afectada: se conecta directo
+  -- con el rol "postgres" (dueño de las tablas, con BYPASSRLS). Toda tabla
+  -- nueva tiene que sumarse a esta lista.
+  ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE variants ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE stock_notifications ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE store_warnings ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 `);

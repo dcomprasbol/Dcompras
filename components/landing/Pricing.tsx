@@ -1,5 +1,6 @@
 import RevealOnScroll from "./RevealOnScroll";
 import Link from "next/link";
+import { commissionPercent } from "@/lib/commission";
 
 export default function Pricing() {
   return (
@@ -32,9 +33,10 @@ export default function Pricing() {
                 <li>Integración con WhatsApp</li>
                 <li>Pago contra entrega</li>
               </ul>
-              <p className="mt-5 text-xs text-ink/40">
-                Cuando activas el cobro automático por QR, aplicamos una comisión pequeña solo
-                sobre esa venta. Si vendes por contra entrega, no cobramos nada.
+              <p className="mt-5 text-xs text-ink/50">
+                Tú recibes siempre el <strong className="text-ink/70">100 % de tu precio</strong>. Si
+                tu cliente paga con el cobro automático por QR, se le suma un {commissionPercent()} %
+                al total y lo ve antes de pagar. Contra entrega: sin ningún recargo.
               </p>
               <Link href="/crear-tienda" className="btn-editorial btn-editorial-solid mt-6 w-full">
                 Empezar gratis
