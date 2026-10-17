@@ -9,6 +9,7 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import Icon from "@/components/Icon";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { tagLabels } from "@/lib/productTags";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,18 @@ export default async function ProductPage({
             >
               {product.name}
             </h1>
+            {tagLabels(product.tags).length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Etiquetas del producto">
+                {tagLabels(product.tags).map((label) => (
+                  <li
+                    key={label}
+                    className="store-border store-text rounded-full border px-2.5 py-1 text-xs font-medium"
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="mt-3 flex items-baseline gap-2">
               <p
                 className={`font-mono text-2xl font-bold ${onSale ? "text-coral-600" : themedImage ? "store-accent-text" : "store-accent-text"}`}

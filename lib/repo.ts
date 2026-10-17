@@ -46,6 +46,7 @@ export type Product = {
   compareAtPrice: number | null;
   imageUrl: string | null;
   images: string[];
+  tags: string[];
   active: boolean;
   createdAt: string;
   variants: Variant[];
@@ -348,6 +349,7 @@ export async function createProduct(input: {
   compareAtPrice: number | null;
   imageUrl: string | null;
   images?: string[];
+  tags?: string[];
   variants: { label: string; stock: number }[];
 }): Promise<Product> {
   await dbReady;
@@ -364,8 +366,8 @@ export async function createProduct(input: {
   ).slice(0, 5);
   const coverImage = images[0] ?? null;
   await sql`
-    INSERT INTO products (id, store_id, name, description, price, compare_at_price, image_url, images, active, created_at)
-    VALUES (${id}, ${input.storeId}, ${input.name}, ${input.description}, ${input.price}, ${input.compareAtPrice}, ${coverImage}, ${sql.json(images)}, true, ${createdAt})
+    INSERT INTO products (id, store_id, name, description, price, compare_at_price, image_url, images, tags, active, created_at)
+    VALUES (${id}, ${input.storeId}, ${input.name}, ${input.description}, ${input.price}, ${input.compareAtPrice}, ${coverImage}, ${sql.json(images)}, ${sql.json(input.tags ?? [])}, true, ${createdAt})
   `;
 
   for (const v of input.variants) {
@@ -383,10 +385,16 @@ export async function setProductActive(productId: string, active: boolean): Prom
 export async function updateProduct(
   productId: string,
   fields: Partial<
-    Pick<Product, "name" | "description" | "price" | "compareAtPrice" | "imageUrl" | "images">
+    Pick<Product, "name" | "description" | "price" | "compareAtPrice" | "imageUrl" | "images" | "tags">
   >
 ): Promise<void> {
   await dbReady;
+  // "tags" (jsonb) también va aparte, por la misma razón que "images".
+  const { tags, ...withoutTags } = fields;
+  if (tags !== undefined) {
+    await sql`UPDATE products SET tags = ${sql.json(tags)} WHERE id = ${productId}`;
+  }
+  fields = withoutTags;
   // "images" (jsonb) va aparte del resto: sql() no sabe serializar un array
   // de strings a jsonb en un SET dinámico, y además la portada (image_url)
   // siempre tiene que quedar igual a images[0] — ver createProduct.

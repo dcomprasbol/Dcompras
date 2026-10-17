@@ -85,6 +85,7 @@ export default async function StoreCatalogPage({
           compareAtPrice: p.compareAtPrice,
           imageUrl: p.imageUrl,
           images: p.images ?? [],
+          tags: p.tags ?? [],
           isNew: Date.now() - new Date(p.createdAt).getTime() < NEW_PRODUCT_WINDOW_MS,
         }))}
       />

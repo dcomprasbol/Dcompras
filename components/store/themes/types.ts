@@ -8,6 +8,7 @@ export type ThemeProduct = {
   compareAtPrice: number | null;
   imageUrl: string | null;
   images: string[];
+  tags: string[];
   isNew: boolean;
 };
 

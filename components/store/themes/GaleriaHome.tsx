@@ -7,6 +7,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Galería": como entrar a un museo. Blanco roto, el nombre de la
 // tienda gigante que sube letra por letra detrás de una máscara, una tira de
@@ -188,6 +189,7 @@ function Artwork({ slug, product, index }: { slug: string; product: ThemeProduct
           {formatBs(product.price)}
         </span>
       </div>
+      <CardTags tags={product.tags} className="mt-1 font-mono text-[11px] text-[var(--store-text-soft)]" />
     </Link>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatBs, fileToResizedDataUrl, MAX_PRODUCT_IMAGES } from "@/lib/utils";
 import Icon from "@/components/Icon";
+import { MAX_PRODUCT_TAGS, tagGroupsForCategory, tagLabels, type TagGroup } from "@/lib/productTags";
 
 type Variant = { id?: string; label: string; stock: number };
 type Product = {
@@ -13,6 +14,7 @@ type Product = {
   compareAtPrice: number | null;
   imageUrl: string | null;
   images: string[];
+  tags?: string[];
   variants: Variant[];
 };
 type StockNotification = {
@@ -41,6 +43,10 @@ export default function AdminProducts({ slug }: { slug: string }) {
   // El campo de descuento solo aparece si el vendedor lo pide (botón "¿Quieres
   // agregarle un descuento?"): así nadie llena un precio de oferta sin querer.
   const [showDiscount, setShowDiscount] = useState(false);
+  // Etiquetas del producto (lib/productTags.ts): las opciones dependen del
+  // rubro de la tienda, que se lee al abrir la pestaña.
+  const [tags, setTags] = useState<string[]>([]);
+  const [category, setCategory] = useState<string | null>(null);
   // Hasta MAX_PRODUCT_IMAGES fotos por producto; la primera es la portada
   // (la que se ve en el catálogo y el carrito).
   const [images, setImages] = useState<string[]>([]);
@@ -69,7 +75,20 @@ export default function AdminProducts({ slug }: { slug: string }) {
   useEffect(() => {
     loadProducts();
     loadNotifications();
+    fetch(`/api/stores/${slug}`)
+      .then((r) => r.json())
+      .then((d) => setCategory(d.store?.category ?? null))
+      .catch(() => {});
   }, [slug]);
+
+  function toggleTag(group: TagGroup, value: string) {
+    setTags((prev) => {
+      if (prev.includes(value)) return prev.filter((t) => t !== value);
+      // En un grupo de una sola opción (ej. "Estado"), elegir una reemplaza a la otra.
+      const base = group.single ? prev.filter((t) => !group.options.some((o) => o.value === t)) : prev;
+      return base.length >= MAX_PRODUCT_TAGS ? base : [...base, value];
+    });
+  }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -120,6 +139,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     setPrice("");
     setSalePrice("");
     setShowDiscount(false);
+    setTags([]);
     setImages([]);
     setImageError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -141,6 +161,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
     setPrice(String(onSale ? p.compareAtPrice : p.price));
     setSalePrice(onSale ? String(p.price) : "");
     setShowDiscount(onSale);
+    setTags(p.tags ?? []);
     setImages(p.images && p.images.length > 0 ? p.images : p.imageUrl ? [p.imageUrl] : []);
     setError(null);
     setShowForm(true);
@@ -173,6 +194,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
           body: JSON.stringify({
             name,
             description,
+            tags,
             price: finalPrice,
             compareAtPrice: finalCompareAtPrice,
             images,
@@ -396,6 +418,49 @@ export default function AdminProducts({ slug }: { slug: string }) {
             />
           </div>
 
+          <div>
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <span className="text-sm font-medium text-ink/70">Etiquetas (opcional)</span>
+              <span className="text-[11px] text-ink/40">
+                {tags.length}/{MAX_PRODUCT_TAGS}
+              </span>
+            </div>
+            <p className="mb-2 text-xs text-ink/40">
+              Ayudan a tu cliente a decidir rápido: se ven en tu catálogo y en la ficha del producto.
+            </p>
+            <div className="space-y-3 rounded-xl border border-ink/10 p-3">
+              {tagGroupsForCategory(category).map((group) => (
+                <div key={group.id}>
+                  <p className="mb-1.5 text-xs font-semibold text-ink/60">
+                    {group.label}
+                    {group.single && <span className="font-normal text-ink/40"> · elige una</span>}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.options.map((o) => {
+                      const on = tags.includes(o.value);
+                      return (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => toggleTag(group, o.value)}
+                          aria-pressed={on}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                            on
+                              ? "border-jade-500 bg-jade-500 text-white"
+                              : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
+                          }`}
+                        >
+                          {on && <Icon name="check" mono className="mr-1 h-3 w-3" />}
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {!editingId && (
             <>
               <div>
@@ -582,6 +647,9 @@ function ProductRow({
               )}{" "}
               · {totalStock} en stock
             </p>
+            {tagLabels(p.tags).length > 0 && (
+              <p className="mt-0.5 truncate text-[11px] text-jade-700">{tagLabels(p.tags).join(" · ")}</p>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">

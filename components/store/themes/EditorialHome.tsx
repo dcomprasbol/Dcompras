@@ -7,6 +7,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Editorial": revista de moda urbana. Portada tinta con titulares
 // impact en mayúsculas que suben desde una máscara, fotos en abanico con un
@@ -250,6 +251,7 @@ function Card({ slug, product, index }: { slug: string; product: ThemeProduct; i
       </div>
       <div className="p-3">
         <p className="line-clamp-1 text-sm font-medium text-ink transition-colors group-hover:text-white">{product.name}</p>
+        <CardTags tags={product.tags} className="mt-0.5 text-[11px] text-ink/45 transition-colors group-hover:text-white/60" />
         <p className="mt-0.5 font-mono text-sm font-bold text-ink transition-colors group-hover:text-white">
           {formatBs(product.price)}
           {off > 0 && (

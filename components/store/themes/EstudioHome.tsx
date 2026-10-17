@@ -15,6 +15,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon, { type IconName } from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Estudio": presentación de producto tech. Negro, cuadrícula de
 // fondo que se desplaza, una luz que sigue al cursor, el producto estrella
@@ -265,6 +266,7 @@ function Card({ slug, product }: { slug: string; product: ThemeProduct }) {
         <div className="flex items-end justify-between gap-3 p-4">
           <div className="min-w-0">
             <p className="store-text truncate text-sm font-semibold">{product.name}</p>
+            <CardTags tags={product.tags} className="store-text-soft mt-0.5 text-[11px] uppercase tracking-wide" />
             <p className="mt-1 font-mono text-sm font-bold text-[var(--store-accent)]">{formatBs(product.price)}</p>
           </div>
           <span className="store-border store-text flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition group-hover:border-[var(--store-accent)] group-hover:bg-[var(--store-accent)] group-hover:text-[var(--store-accent-ink)]">

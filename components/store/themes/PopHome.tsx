@@ -6,6 +6,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon, { type IconName } from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Pop": tienda alegre y con energía. Crema de fondo, el color de
 // marca a pantalla completa, letra redonda gigante que entra rebotando,
@@ -205,7 +206,10 @@ function PopCard({ slug, product, index }: { slug: string; product: ThemeProduct
           )}
         </div>
         <div className="flex flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="store-headline line-clamp-2 text-base font-semibold leading-tight">{product.name}</span>
+          <div className="min-w-0">
+            <span className="store-headline line-clamp-2 text-base font-semibold leading-tight">{product.name}</span>
+            <CardTags tags={product.tags} className="store-accent-text mt-0.5 text-xs font-semibold" />
+          </div>
           <span className="shrink-0 rounded-full bg-[var(--store-text)] px-2.5 py-1 text-xs font-bold text-white">
             {formatBs(product.price)}
           </span>

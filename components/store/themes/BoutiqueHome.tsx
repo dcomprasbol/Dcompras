@@ -7,6 +7,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, secondImage, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Boutique": tienda de moda cálida y femenina. Portada a pantalla
 // completa con las fotos del catálogo fundiéndose y acercándose despacio,
@@ -253,6 +254,7 @@ function Card({ slug, product }: { slug: string; product: ThemeProduct }) {
           <p className="store-text truncate text-sm">{product.name}</p>
           <p className="store-text shrink-0 text-sm font-medium">{formatBs(product.price)}</p>
         </div>
+        <CardTags tags={product.tags} className="store-text-soft mt-0.5 text-xs" />
       </Link>
     </motion.div>
   );

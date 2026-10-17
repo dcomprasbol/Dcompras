@@ -7,6 +7,7 @@ import { formatBs } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, secondImage, type ThemeHomeProps, type ThemeProduct } from "./types";
+import CardTags from "./CardTags";
 
 // Estilo "Atelier": casa de lujo. Negro cálido, serif fino en cursiva, mucho
 // aire y movimiento lento (nada rebota): la portada entra palabra por
@@ -240,6 +241,7 @@ function PieceCard({ slug, product, index }: { slug: string; product: ThemeProdu
           {formatBs(product.price)}
         </span>
       </div>
+      <CardTags tags={product.tags} className="mt-1.5 pl-9 text-[10px] uppercase tracking-[0.25em] text-[var(--store-text-soft)]" />
     </Link>
   );
 }

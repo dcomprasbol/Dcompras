@@ -152,6 +152,9 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- de producto en el catálogo, pedidos del admin); la ficha de producto es
   -- la única que muestra la galería completa.
   ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'::jsonb;
+  -- Etiquetas del producto (valores de lib/productTags.ts: estado, dieta,
+  -- material…), según el rubro de la tienda.
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSONB NOT NULL DEFAULT '[]'::jsonb;
 
   CREATE TABLE IF NOT EXISTS variants (
     id TEXT PRIMARY KEY,
