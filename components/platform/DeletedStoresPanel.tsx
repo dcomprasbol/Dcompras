@@ -1,4 +1,4 @@
-import { formatBs } from "@/lib/utils";
+import { closeReasonLabel, formatBs } from "@/lib/utils";
 import Icon from "@/components/Icon";
 
 type DeletedStoreSummary = {
@@ -6,6 +6,9 @@ type DeletedStoreSummary = {
   slug: string;
   name: string;
   deletedAt: string;
+  deletedBy: string | null;
+  deletionReason: string | null;
+  deletionNote: string | null;
   pendingBalance: { grossAmount: number; netAmount: number; orderCount: number };
   payouts: {
     id: string;
@@ -44,7 +47,23 @@ export default function DeletedStoresPanel({ stores }: { stores: DeletedStoreSum
                 </p>
                 <p className="text-xs text-ink/40">
                   Eliminada hace {daysAgo === 0 ? "hoy" : `${daysAgo} día${daysAgo === 1 ? "" : "s"}`}
+                  {store.deletedBy && (
+                    <> · por {store.deletedBy === "vendedor" ? "el propio vendedor" : "el equipo (admin)"}</>
+                  )}
                 </p>
+                {(store.deletionReason || store.deletionNote) && (
+                  <p className="mt-1.5 max-w-xl rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink/70">
+                    {store.deletedBy === "vendedor" && (
+                      <span className="font-semibold">{closeReasonLabel(store.deletionReason)}</span>
+                    )}
+                    {store.deletionNote && (
+                      <>
+                        {store.deletedBy === "vendedor" ? " — " : "Motivo: "}
+                        {store.deletionNote}
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
               {hasPending && (
                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">

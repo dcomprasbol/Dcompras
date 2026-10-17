@@ -17,6 +17,7 @@ export default async function AdminPage({
 }) {
   const store = await requireStoreAdmin(params.slug);
   if (!store) redirect("/login");
+  if (store.deletedAt) redirect("/crear-tienda");
   const [user, overview] = await Promise.all([getCurrentUser(), getSellerOverview(store.id)]);
   const initialTab = TABS.find((t) => t === searchParams.tab) ?? "inicio";
 
@@ -26,6 +27,7 @@ export default async function AdminPage({
       status={store.status}
       email={user?.email ?? ""}
       rejectionNote={store.rejectionNote}
+      suspensionNote={store.suspensionNote}
       store={{
         name: store.name,
         ownerName: store.ownerName,

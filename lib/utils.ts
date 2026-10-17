@@ -197,3 +197,22 @@ export const DEFAULT_STORE_COLOR = "#0EA57A";
 export function isValidHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(value);
 }
+
+// Encuesta al cerrar la tienda (lo ve el admin en Reportes → Tiendas
+// eliminadas). "otro" exige escribir el motivo.
+export const SELLER_CLOSE_REASONS = [
+  { value: "pocas_ventas", label: "No vendí lo suficiente" },
+  { value: "dificil", label: "Me resultó difícil de usar" },
+  { value: "costos", label: "Las comisiones o los costos" },
+  { value: "otra_plataforma", label: "Me cambio a otra plataforma" },
+  { value: "cierre_negocio", label: "Cerré mi negocio o ya no vendo" },
+  { value: "problemas_tecnicos", label: "Tuve problemas técnicos" },
+  { value: "otro", label: "Otro motivo" },
+] as const;
+
+export function closeReasonLabel(value: string | null): string {
+  return SELLER_CLOSE_REASONS.find((r) => r.value === value)?.label ?? "Sin motivo";
+}
+
+// Frase que el vendedor escribe dos veces para confirmar que cierra su tienda.
+export const SELLER_CLOSE_PHRASE = "eliminar cuenta";

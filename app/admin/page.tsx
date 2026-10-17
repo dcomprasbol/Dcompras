@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, requirePlatformAdmin } from "@/lib/auth";
-import { getStoreByUserId } from "@/lib/repo";
+import { getStoreByUserId, getRecentAdminClosedStore } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,9 @@ export default async function AdminIndexPage() {
 
   const store = await getStoreByUserId(user.id);
   if (store) redirect(`/admin/${store.slug}`);
+  // Vendedor cuya tienda eliminó el equipo: le mostramos el motivo (y la
+  // opción de crear otra) en /crear-tienda.
+  if (await getRecentAdminClosedStore(user.id)) redirect("/crear-tienda");
 
   // Cuentas de administrador de plataforma no tienen tienda propia: van a
   // la cola de revisión en vez de al flujo de "crear tienda".

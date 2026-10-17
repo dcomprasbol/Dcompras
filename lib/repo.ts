@@ -28,6 +28,11 @@ export type Store = {
   dropAt: string | null;
   deletedAt: string | null;
   storeStyle: string | null;
+  deletedBy: string | null;
+  deletionReason: string | null;
+  deletionNote: string | null;
+  originalSlug: string | null;
+  suspensionNote: string | null;
   createdAt: string;
 };
 
@@ -94,9 +99,45 @@ export async function getStoreBySlug(slug: string): Promise<Store | null> {
   return rows[0] || null;
 }
 
+// La tienda ACTIVA de un usuario (no cuenta las eliminadas): así, después
+// de cerrar su tienda, el mismo correo puede crear una nueva sin conflicto.
 export async function getStoreByUserId(userId: string): Promise<Store | null> {
   await dbReady;
-  const rows = await sql<Store[]>`SELECT * FROM stores WHERE user_id = ${userId}`;
+  const rows = await sql<Store[]>`
+    SELECT * FROM stores WHERE user_id = ${userId} AND deleted_at IS NULL
+    ORDER BY created_at DESC LIMIT 1
+  `;
+  return rows[0] || null;
+}
+
+// Última tienda de este usuario que eliminó el admin (en los últimos 30
+// días), para mostrarle el motivo cuando vuelve a entrar.
+export async function getRecentAdminClosedStore(userId: string): Promise<Store | null> {
+  await dbReady;
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const rows = await sql<Store[]>`
+    SELECT * FROM stores
+    WHERE user_id = ${userId} AND deleted_by = 'admin' AND deleted_at >= ${cutoff}
+    ORDER BY deleted_at DESC LIMIT 1
+  `;
+  const latest = rows[0];
+  if (!latest) return null;
+  // Si ya creó otra tienda después, el aviso ya no hace falta.
+  const active = await getStoreByUserId(userId);
+  return active ? null : latest;
+}
+
+// Correo de la cuenta dueña de la tienda (Supabase Auth), para avisarle de
+// una suspensión o eliminación.
+export async function getUserEmail(userId: string): Promise<string | null> {
+  await dbReady;
+  const rows = await sql<{ email: string | null }[]>`SELECT email FROM auth.users WHERE id = ${userId}`;
+  return rows[0]?.email ?? null;
+}
+
+export async function getStoreById(storeId: string): Promise<Store | null> {
+  await dbReady;
+  const rows = await sql<Store[]>`SELECT * FROM stores WHERE id = ${storeId}`;
   return rows[0] || null;
 }
 
@@ -188,11 +229,46 @@ export async function deleteStore(storeId: string): Promise<void> {
 // público la deja de mostrar solo (exige status = 'aprobada'), pero el
 // admin de plataforma la sigue viendo en "Tiendas eliminadas" con todos sus
 // datos de facturación intactos, por si queda algo pendiente de liquidar.
-export async function softDeleteStore(storeId: string): Promise<void> {
+export async function softDeleteStore(
+  storeId: string,
+  info: { by: "vendedor" | "admin"; reason?: string | null; note?: string | null }
+): Promise<void> {
+  await dbReady;
+  // El slug se renombra para liberarlo: el dueño (o cualquiera) puede volver
+  // a usar ese nombre/link en una tienda nueva.
+  await sql`
+    UPDATE stores SET
+      status = 'eliminada',
+      deleted_at = ${nowISO()},
+      deleted_by = ${info.by},
+      deletion_reason = ${info.reason ?? null},
+      deletion_note = ${info.note ?? null},
+      original_slug = COALESCE(original_slug, slug),
+      slug = slug || '--eliminada-' || substr(id, 1, 8),
+      suspension_note = NULL
+    WHERE id = ${storeId} AND deleted_at IS NULL
+  `;
+}
+
+export async function setStoreSuspended(storeId: string, suspended: boolean, note: string | null): Promise<void> {
   await dbReady;
   await sql`
-    UPDATE stores SET status = 'eliminada', deleted_at = ${nowISO()}
-    WHERE id = ${storeId}
+    UPDATE stores SET
+      status = ${suspended ? "suspendida" : "aprobada"},
+      suspension_note = ${suspended ? note : null}
+    WHERE id = ${storeId} AND deleted_at IS NULL
+  `;
+}
+
+// Resumen de por qué los vendedores cierran su tienda (encuesta al cerrar).
+export async function listCloseFeedback(): Promise<
+  { storeName: string; reason: string | null; note: string | null; deletedAt: string }[]
+> {
+  await dbReady;
+  return sql`
+    SELECT name AS store_name, deletion_reason AS reason, deletion_note AS note, deleted_at
+    FROM stores WHERE deleted_by = 'vendedor'
+    ORDER BY deleted_at DESC LIMIT 200
   `;
 }
 

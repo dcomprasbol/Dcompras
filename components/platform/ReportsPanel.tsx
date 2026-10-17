@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { reportReasonLabel } from "@/lib/utils";
 import Icon from "@/components/Icon";
+import { DeleteStoreModal, SuspendStoreModal } from "@/components/platform/StoreModerationModals";
 
 type Report = {
   id: string;
@@ -28,8 +29,6 @@ const REPORT_STATUS_COLORS: Record<string, string> = {
   descartado: "bg-gray-100 text-ink/50",
 };
 
-const CONFIRM_PHRASE = "D_compras_delete";
-
 export default function ReportsPanel({
   initialReports,
   warningCounts,
@@ -45,6 +44,7 @@ export default function ReportsPanel({
   );
   const [warnings, setWarnings] = useState<Record<string, number>>(warningCounts);
   const [deleteModalStoreId, setDeleteModalStoreId] = useState<string | null>(null);
+  const [suspendModalStoreId, setSuspendModalStoreId] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Report[]>();
@@ -82,22 +82,6 @@ export default function ReportsPanel({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note: `Motivos: ${reasons}` }),
-    });
-  }
-
-  async function toggleSuspended(store: StoreInfo) {
-    const nextStatus = store.status === "suspendida" ? "aprobada" : "suspendida";
-    if (
-      nextStatus === "suspendida" &&
-      !window.confirm(`¿Suspender "${store.name}"? Su tienda pública deja de verse hasta que la reactives.`)
-    ) {
-      return;
-    }
-    setStoreState((prev) => ({ ...prev, [store.id]: { ...store, status: nextStatus } }));
-    await fetch(`/api/platform/stores/${store.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
     });
   }
 
@@ -140,7 +124,7 @@ export default function ReportsPanel({
                   <Icon name="megaphone" mono className="mr-1 h-3.5 w-3.5" />Notificar al vendedor
                 </button>
                 <button
-                  onClick={() => toggleSuspended(store)}
+                  onClick={() => setSuspendModalStoreId(storeId)}
                   className="rounded-lg border border-ink/20 px-2.5 py-1 text-xs font-medium text-ink/70"
                 >
                   {store.status === "suspendida" ? (
@@ -229,98 +213,26 @@ export default function ReportsPanel({
         <DeleteStoreModal
           store={storeState[deleteModalStoreId]}
           onClose={() => setDeleteModalStoreId(null)}
-          onDeleted={() => {
+          onDeleted={() =>
             setStoreState((prev) => ({
               ...prev,
               [deleteModalStoreId]: { ...prev[deleteModalStoreId], status: "eliminada" },
-            }));
-            setDeleteModalStoreId(null);
-          }}
+            }))
+          }
         />
       )}
-    </div>
-  );
-}
-
-function DeleteStoreModal({
-  store,
-  onClose,
-  onDeleted,
-}: {
-  store: StoreInfo;
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
-  const [confirm1, setConfirm1] = useState("");
-  const [confirm2, setConfirm2] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const canDelete = confirm1 === CONFIRM_PHRASE && confirm2 === CONFIRM_PHRASE;
-
-  async function handleDelete() {
-    setDeleting(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/platform/stores/${store.id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm1, confirm2 }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || "No se pudo eliminar");
-        setDeleting(false);
-        return;
-      }
-      onDeleted();
-    } catch {
-      setError("Error de conexión");
-      setDeleting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-5">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
-        <h3 className="text-sm font-bold text-coral-600">Eliminar &quot;{store.name}&quot;</h3>
-        <p className="mt-2 text-xs text-ink/60">
-          Esto esconde la tienda de inmediato (dejan de verla los compradores), pero{" "}
-          <strong>no borra sus datos</strong> — vas a poder ver su facturación en &quot;Tiendas
-          eliminadas&quot; por 30 días, por si queda una liquidación pendiente.
-        </p>
-        <p className="mt-3 text-xs text-ink/60">
-          Para confirmar, escribí <code className="rounded bg-paper px-1 py-0.5 font-mono">{CONFIRM_PHRASE}</code>{" "}
-          dos veces:
-        </p>
-        <input
-          value={confirm1}
-          onChange={(e) => setConfirm1(e.target.value)}
-          placeholder={CONFIRM_PHRASE}
-          className="mt-2 w-full rounded-lg border border-ink/15 px-3 py-2 font-mono text-sm"
+      {suspendModalStoreId && storeState[suspendModalStoreId] && (
+        <SuspendStoreModal
+          store={storeState[suspendModalStoreId]}
+          onClose={() => setSuspendModalStoreId(null)}
+          onChanged={(status) =>
+            setStoreState((prev) => ({
+              ...prev,
+              [suspendModalStoreId]: { ...prev[suspendModalStoreId], status },
+            }))
+          }
         />
-        <input
-          value={confirm2}
-          onChange={(e) => setConfirm2(e.target.value)}
-          placeholder={CONFIRM_PHRASE}
-          className="mt-2 w-full rounded-lg border border-ink/15 px-3 py-2 font-mono text-sm"
-        />
-        {error && <p className="mt-2 text-xs text-coral-600">{error}</p>}
-        <div className="mt-4 flex gap-2">
-          <button
-            onClick={handleDelete}
-            disabled={!canDelete || deleting}
-            className="flex-1 rounded-full bg-coral-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {deleting ? "Eliminando..." : "Eliminar definitivamente"}
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink/60"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

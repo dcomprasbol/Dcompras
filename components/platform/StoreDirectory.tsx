@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { categoryLabel, formatBs } from "@/lib/utils";
+import Icon from "@/components/Icon";
+import { DeleteStoreModal, SuspendStoreModal } from "@/components/platform/StoreModerationModals";
 
 // Directorio de todas las tiendas (menos las eliminadas) para el admin:
 // buscar, filtrar por estado y abrir la tienda con un clic en otra pestaña.
@@ -19,6 +21,8 @@ export type DirectoryStore = {
   themeColor: string;
   logoUrl: string | null;
   createdAt: string;
+  whatsapp: string | null;
+  suspensionNote: string | null;
   products: number;
   orders: number;
   sales: number;
@@ -46,7 +50,10 @@ function normalize(s: string) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-export default function StoreDirectory({ stores }: { stores: DirectoryStore[] }) {
+export default function StoreDirectory({ stores: initialStores }: { stores: DirectoryStore[] }) {
+  const [stores, setStores] = useState(initialStores);
+  const [suspendId, setSuspendId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("todas");
 
@@ -101,12 +108,12 @@ export default function StoreDirectory({ stores }: { stores: DirectoryStore[] })
           {visible.map((s) => {
             const status = STATUS[s.status] ?? { label: s.status, className: "bg-ink/5 text-ink/60" };
             return (
-              <li key={s.id}>
+              <li key={s.id} className="flex flex-col overflow-hidden rounded-xl border border-ink/5 bg-paper transition hover:border-ink/15 hover:bg-white hover:shadow-sm">
                 <a
                   href={`/${s.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex h-full flex-col rounded-xl border border-ink/5 bg-paper p-3.5 transition hover:-translate-y-0.5 hover:border-ink/15 hover:bg-white hover:shadow-sm"
+                  className="group flex flex-1 flex-col p-3.5"
                 >
                   <div className="flex items-start gap-3">
                     {s.logoUrl ? (
@@ -146,11 +153,59 @@ export default function StoreDirectory({ stores }: { stores: DirectoryStore[] })
                       Ver tienda ↗
                     </span>
                   </div>
+                  {s.status === "suspendida" && s.suspensionNote && (
+                    <p className="mt-2 line-clamp-2 rounded-lg bg-ink/5 px-2 py-1.5 text-[11px] text-ink/60">
+                      Motivo: {s.suspensionNote}
+                    </p>
+                  )}
                 </a>
+                <div className="flex border-t border-ink/5 text-xs font-semibold">
+                  {(s.status === "aprobada" || s.status === "suspendida") && (
+                    <button
+                      type="button"
+                      onClick={() => setSuspendId(s.id)}
+                      className="flex flex-1 items-center justify-center gap-1.5 py-2 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
+                    >
+                      <Icon name={s.status === "suspendida" ? "play" : "pause"} mono className="h-3 w-3" />
+                      {s.status === "suspendida" ? "Reactivar" : "Suspender"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDeleteId(s.id)}
+                    className="flex flex-1 items-center justify-center gap-1.5 border-l border-ink/5 py-2 text-coral-600 transition hover:bg-coral-50"
+                  >
+                    <Icon name="trash" mono className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                </div>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {suspendId && stores.find((x) => x.id === suspendId) && (
+        <SuspendStoreModal
+          store={stores.find((x) => x.id === suspendId)!}
+          onClose={() => setSuspendId(null)}
+          onChanged={(status, note) =>
+            setStores((prev) => prev.map((x) => (x.id === suspendId ? { ...x, status, suspensionNote: note } : x)))
+          }
+        />
+      )}
+      {deleteId && stores.find((x) => x.id === deleteId) && (
+        <DeleteStoreModal
+          store={stores.find((x) => x.id === deleteId)!}
+          onClose={() => {
+            // Recién al cerrar la sacamos de la lista, así se puede leer el resultado del correo.
+            setStores((prev) => prev.filter((x) => !(x.id === deleteId && x.status === "eliminada")));
+            setDeleteId(null);
+          }}
+          onDeleted={() =>
+            setStores((prev) => prev.map((x) => (x.id === deleteId ? { ...x, status: "eliminada" } : x)))
+          }
+        />
       )}
     </div>
   );

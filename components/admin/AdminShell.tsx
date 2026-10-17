@@ -8,6 +8,7 @@ import AdminSettings from "@/components/admin/AdminSettings";
 import AdminEarnings from "@/components/admin/AdminEarnings";
 import AdminSupport from "@/components/admin/AdminSupport";
 import RejectedBanner from "@/components/admin/RejectedBanner";
+import CloseStoreSection from "@/components/admin/CloseStoreSection";
 import SellerHome, {
   CopyLinkButton,
   useStoreUrl,
@@ -77,6 +78,7 @@ export default function AdminShell({
   status,
   email,
   rejectionNote,
+  suspensionNote,
   store,
   overview,
   checklist,
@@ -86,6 +88,7 @@ export default function AdminShell({
   status: string;
   email: string;
   rejectionNote?: string | null;
+  suspensionNote?: string | null;
   store: { name: string; ownerName: string | null; logoUrl: string | null; themeColor: string };
   overview: SellerOverview;
   checklist: SellerChecklist;
@@ -262,6 +265,32 @@ export default function AdminShell({
             </div>
           )}
           {status === "rechazada" && <RejectedBanner slug={slug} rejectionNote={rejectionNote ?? null} />}
+          {status === "suspendida" && (
+            <div className="mb-5 rounded-2xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-coral-700">
+              <p className="flex items-center gap-2 font-semibold">
+                <Icon name="pause" mono className="h-4 w-4" />
+                Tu tienda fue suspendida por el equipo de Dcompras
+              </p>
+              <p className="mt-1">
+                Mientras esté suspendida, tus clientes no pueden verla ni hacer pedidos. Tus productos y
+                datos siguen guardados.
+              </p>
+              {suspensionNote && (
+                <div className="mt-3 rounded-xl bg-white/70 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-coral-600">Motivo</p>
+                  <p className="mt-1 whitespace-pre-line text-ink/80">{suspensionNote}</p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setTab("soporte")}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-coral-600 px-4 py-2 text-xs font-semibold text-white"
+              >
+                <Icon name="chat" mono className="h-3.5 w-3.5" />
+                Escribirle al equipo
+              </button>
+            </div>
+          )}
 
           {tab !== "inicio" && (
             <h1 className="mb-5 font-display text-xl font-bold text-ink md:hidden">{current.label}</h1>
@@ -282,7 +311,12 @@ export default function AdminShell({
           {tab === "pedidos" && <AdminOrders slug={slug} />}
           {tab === "diseno" && <AdminSettings slug={slug} section="diseno" />}
           {tab === "billetera" && <AdminEarnings slug={slug} />}
-          {tab === "datos" && <AdminSettings slug={slug} section="datos" />}
+          {tab === "datos" && (
+            <>
+              <AdminSettings slug={slug} section="datos" />
+              <CloseStoreSection slug={slug} storeName={store.name} />
+            </>
+          )}
           {tab === "soporte" && <AdminSupport slug={slug} />}
         </main>
       </div>

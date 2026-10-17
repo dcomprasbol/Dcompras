@@ -26,7 +26,17 @@ const STEP_LABELS: { key: Step; label: string }[] = [
   { key: "personalizacion", label: "Personalización" },
 ];
 
-export default function CrearTiendaForm({ initialSession }: { initialSession: InitialSession }) {
+// Aviso arriba del formulario cuando la cuenta viene de cerrar su tienda
+// (ella misma o el equipo de Dcompras, con el motivo).
+export type ClosedNotice = { by: "vendedor" | "admin"; storeName: string; note: string | null };
+
+export default function CrearTiendaForm({
+  initialSession,
+  closedNotice = null,
+}: {
+  initialSession: InitialSession;
+  closedNotice?: ClosedNotice | null;
+}) {
   const router = useRouter();
 
   // El server component (page.tsx) ya resolvió si hay sesión activa (y si
@@ -205,6 +215,35 @@ export default function CrearTiendaForm({ initialSession }: { initialSession: In
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-light.png" alt="Dcompras" className="h-7 w-auto" />
         </Link>
+
+        {closedNotice && (
+          <div
+            className={`mb-5 rounded-2xl p-4 text-sm ${
+              closedNotice.by === "admin" ? "bg-coral-50 text-coral-700" : "bg-white/10 text-white"
+            }`}
+          >
+            {closedNotice.by === "admin" ? (
+              <>
+                <p className="font-semibold">El equipo de Dcompras eliminó tu tienda &quot;{closedNotice.storeName}&quot;.</p>
+                {closedNotice.note && (
+                  <p className="mt-2 whitespace-pre-line rounded-xl bg-white/70 p-3 text-ink/80">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-coral-600">Motivo</span>
+                    {closedNotice.note}
+                  </p>
+                )}
+                <p className="mt-2">Si crees que es un error, escríbenos. También puedes crear una tienda nueva.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Tu tienda fue eliminada.</p>
+                <p className="mt-1 text-white/70">
+                  Gracias por haber vendido con nosotros. Cuando quieras volver, puedes crear una tienda nueva
+                  aquí mismo, con este mismo correo.
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="mb-5 text-center text-white">
           <h1 className="font-display text-2xl font-bold">Crea tu tienda gratis</h1>

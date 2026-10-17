@@ -15,8 +15,9 @@ import {
   getPendingBalance,
   listPayoutsByStore,
   listStoreActivity,
+  listCloseFeedback,
 } from "@/lib/repo";
-import { formatBs } from "@/lib/utils";
+import { closeReasonLabel, formatBs, SELLER_CLOSE_REASONS } from "@/lib/utils";
 import { commissionPercent } from "@/lib/commission";
 import AccountMenu from "@/components/AccountMenu";
 import Icon, { type IconName } from "@/components/Icon";
@@ -319,6 +320,8 @@ async function TiendasSection({ stores }: { stores: Awaited<ReturnType<typeof li
       themeColor: s.themeColor,
       logoUrl: s.logoUrl,
       createdAt: s.createdAt,
+      whatsapp: s.whatsapp,
+      suspensionNote: s.suspensionNote,
       products: a?.products ?? 0,
       orders: a?.orders ?? 0,
       sales: Number(a?.sales ?? 0),
@@ -342,7 +345,11 @@ async function ModeracionSection({
   stores: Awaited<ReturnType<typeof listAllStores>>;
   reports: Awaited<ReturnType<typeof listAllReports>>;
 }) {
-  const [warnings, deletedStores] = await Promise.all([listAllStoreWarnings(), listDeletedStores(30)]);
+  const [warnings, deletedStores, feedback] = await Promise.all([
+    listAllStoreWarnings(),
+    listDeletedStores(30),
+    listCloseFeedback(),
+  ]);
   const warningCounts: Record<string, number> = {};
   for (const w of warnings) warningCounts[w.storeId] = (warningCounts[w.storeId] || 0) + 1;
   // Facturación de cada tienda eliminada, para que el admin la vea sin
@@ -351,9 +358,12 @@ async function ModeracionSection({
   const deletedStoreSummaries = await Promise.all(
     deletedStores.map(async (s) => ({
       id: s.id,
-      slug: s.slug,
+      slug: s.originalSlug ?? s.slug,
       name: s.name,
       deletedAt: s.deletedAt as string,
+      deletedBy: s.deletedBy,
+      deletionReason: s.deletionReason,
+      deletionNote: s.deletionNote,
       pendingBalance: await getPendingBalance(s.id),
       payouts: await listPayoutsByStore(s.id),
     }))
@@ -378,6 +388,66 @@ async function ModeracionSection({
       >
         <DeletedStoresPanel stores={deletedStoreSummaries} />
       </Section>
+
+      <Section
+        title="¿Por qué cierran su tienda los vendedores?"
+        description="Respuestas de la encuesta que contesta cada vendedor antes de eliminar su tienda."
+      >
+        <CloseFeedback feedback={feedback} />
+      </Section>
     </>
+  );
+}
+
+function CloseFeedback({
+  feedback,
+}: {
+  feedback: { storeName: string; reason: string | null; note: string | null; deletedAt: string }[];
+}) {
+  if (feedback.length === 0) {
+    return <p className="text-sm text-ink/50">Todavía ningún vendedor cerró su tienda.</p>;
+  }
+  const counts = SELLER_CLOSE_REASONS.map((r) => ({
+    ...r,
+    count: feedback.filter((f) => f.reason === r.value).length,
+  }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const max = Math.max(...counts.map((c) => c.count));
+  const comments = feedback.filter((f) => f.note).slice(0, 10);
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <ul className="space-y-2.5">
+        {counts.map((c) => (
+          <li key={c.value}>
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-ink">{c.label}</span>
+              <span className="font-mono text-ink/50">{c.count}</span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-paper">
+              <div className="h-full rounded-full bg-coral-500" style={{ width: `${(c.count / max) * 100}%` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink/40">Últimos comentarios</p>
+        {comments.length === 0 ? (
+          <p className="text-sm text-ink/50">Sin comentarios escritos.</p>
+        ) : (
+          <ul className="space-y-2">
+            {comments.map((f, i) => (
+              <li key={i} className="rounded-xl bg-paper p-3 text-xs">
+                <p className="text-ink/80">&ldquo;{f.note}&rdquo;</p>
+                <p className="mt-1 text-ink/40">
+                  {f.storeName.trim()} · {closeReasonLabel(f.reason)} ·{" "}
+                  {new Date(f.deletedAt).toLocaleDateString("es-BO")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }

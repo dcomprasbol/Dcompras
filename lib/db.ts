@@ -116,6 +116,16 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- 'tecnologia', ver STORE_STYLES en lib/storeTheme.ts). NULL = nunca
   -- eligió: se usa el estilo por rubro de siempre.
   ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_style TEXT;
+  -- Cierre y suspensión de tiendas: quién la eliminó ('vendedor' | 'admin'),
+  -- el motivo (encuesta del vendedor, ver SELLER_CLOSE_REASONS) y el mensaje
+  -- (detalle del vendedor o explicación del admin). Al eliminar, el slug se
+  -- libera (se renombra) para que el mismo dueño pueda crear otra tienda con
+  -- el mismo nombre; original_slug guarda el que tenía.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS deletion_reason TEXT;
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS deletion_note TEXT;
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS original_slug TEXT;
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS suspension_note TEXT;
   CREATE INDEX IF NOT EXISTS idx_stores_user ON stores(user_id);
 
   CREATE TABLE IF NOT EXISTS products (
