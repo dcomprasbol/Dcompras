@@ -7,7 +7,14 @@
 // "Activar voz" prende la narración.
 
 import { motion, useReducedMotion } from "framer-motion";
-import { VideoPlayer } from "@/components/admin/PaymentsGuide";
+import dynamic from "next/dynamic";
+
+// El reproductor se descarga aparte, sin frenar la carga de la portada (muchos
+// visitantes entran con datos móviles).
+const VideoPlayer = dynamic(() => import("@/components/admin/PaymentsGuide").then((m) => m.VideoPlayer), {
+  ssr: false,
+  loading: () => <div className="h-[520px] w-full animate-pulse rounded-2xl bg-white/10" />,
+});
 import { MotionLinkButton } from "@/components/MotionCta";
 
 export default function LandingDemo({ commissionPercent }: { commissionPercent: number }) {
