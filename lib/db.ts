@@ -359,6 +359,11 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   -- Se copia en cada pedido al crearlo: cambiar el ajuste nunca recalcula
   -- pedidos viejos.
   ALTER TABLE stores ADD COLUMN IF NOT EXISTS commission_payer TEXT NOT NULL DEFAULT 'comprador';
+
+  -- Tutorial de bienvenida del panel del vendedor: se muestra solo hasta que
+  -- lo ve (ver components/admin/TutorialModal.tsx). Por tienda, así no
+  -- vuelve a aparecer al entrar desde otro celular.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS tutorial_seen_at TEXT;
   ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_payer TEXT NOT NULL DEFAULT 'comprador';
 
   -- "Mis clientes": el comprador marca en el checkout si quiere recibir

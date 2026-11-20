@@ -36,6 +36,7 @@ export type Store = {
   originalSlug: string | null;
   suspensionNote: string | null;
   commissionPayer: CommissionPayer;
+  tutorialSeenAt: string | null;
   createdAt: string;
 };
 
@@ -1718,4 +1719,10 @@ export async function listStoreCustomers(storeId: string): Promise<StoreCustomer
     FROM agg
     ORDER BY agg.total_spent DESC
   `;
+}
+
+/** El vendedor ya vio el tutorial de bienvenida (no se le vuelve a abrir solo). */
+export async function markTutorialSeen(storeId: string): Promise<void> {
+  await dbReady;
+  await sql`UPDATE stores SET tutorial_seen_at = ${nowISO()} WHERE id = ${storeId} AND tutorial_seen_at IS NULL`;
 }

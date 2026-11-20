@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Accordion from "@/components/Accordion";
+import { narrate, speechSupported, stopNarration, warmUpVoices } from "@/lib/narration";
 import Icon from "@/components/Icon";
 import { formatBs, PAYOUT_PROCESSING_TIME } from "@/lib/utils";
 
@@ -97,6 +98,14 @@ function GuideHero({ autoQrEnabled, payer }: { autoQrEnabled: boolean; payer: Pa
           </motion.div>
         ))}
       </div>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("dcompras:open-tutorial"))}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-sm font-bold text-white transition hover:bg-ink-soft"
+      >
+        <Icon name="play" mono className="h-4 w-4" />
+        Ver el tutorial completo con voz
+      </button>
       {!autoQrEnabled && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <Icon name="clock" mono className="mr-1 h-3.5 w-3.5" />
@@ -115,14 +124,27 @@ function GuideHero({ autoQrEnabled, payer }: { autoQrEnabled: boolean; payer: Pa
 type Scene = { caption: string; duration: number; render: () => ReactNode };
 type Chapter = { id: string; title: string; subtitle: string; videoSrc?: string; scenes: Scene[] };
 
-function buildChapters(commissionPercent: number, payer: Payer): Chapter[] {
+function buildChapters(commissionPercent: number, payer: Payer, includeIntro = false): Chapter[] {
   const price = 150;
   const fee = Math.round(price * commissionPercent) / 100;
   // Mismo cálculo que lib/commission.ts: quién paga cambia lo que paga el
   // cliente y lo que te llega a ti.
   const total = payer === "vendedor" ? price : price + fee;
   const net = payer === "vendedor" ? Math.round((price - fee) * 100) / 100 : price;
+  const intro: Chapter = {
+    id: "panel",
+    title: "Tu panel",
+    subtitle: "Todo en un minuto",
+    scenes: [
+      { caption: "¡Bienvenido a Dcompras! En pocos minutos te mostramos cómo vender, cobrar y recibir tu dinero.", duration: 4200, render: () => <SceneWelcome /> },
+      { caption: "En Productos subes lo que vendes. Con el botón Historia creas una imagen lista para tus estados e historias.", duration: 4600, render: () => <SceneProducts /> },
+      { caption: "En Pedidos ves todo lo que te compran. Si alguien no pagó, se lo recuerdas por WhatsApp con un solo toque.", duration: 4600, render: () => <SceneToCollect /> },
+      { caption: "En Clientes ves quién te compra y qué le gusta, para volver a venderle.", duration: 4200, render: () => <SceneCustomers /> },
+      { caption: "Muy importante: carga tu QR en «Datos y cobros». Es donde te pagamos tu dinero; sin tu QR no puedes pedir tu liquidación.", duration: 5200, render: () => <SceneUploadQr /> },
+    ],
+  };
   return [
+    ...(includeIntro ? [intro] : []),
     {
       id: "cobro",
       title: "Cómo cobras",
@@ -167,29 +189,94 @@ function buildChapters(commissionPercent: number, payer: Payer): Chapter[] {
   ];
 }
 
-function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; payer: Payer }) {
-  const chapters = buildChapters(commissionPercent, payer);
+export type VideoPlayerProps = {
+  commissionPercent: number;
+  payer: Payer;
+  /** Incluye el capítulo "Tu panel" (tutorial de bienvenida). */
+  includeIntro?: boolean;
+  /** Narración por voz activada al empezar (el usuario la puede apagar). */
+  narrate?: boolean;
+  /** Al terminar un capítulo pasa solo al siguiente (modo tutorial). */
+  autoNextChapter?: boolean;
+  /** Se llama cuando termina el último capítulo. */
+  onFinished?: () => void;
+  /** Escenario grande y oscuro para el tutorial a pantalla completa. */
+  cinema?: boolean;
+};
+
+export function VideoPlayer({
+  commissionPercent,
+  payer,
+  includeIntro = false,
+  narrate: narrateInitially = false,
+  autoNextChapter = false,
+  onFinished,
+  cinema = false,
+}: VideoPlayerProps) {
+  const chapters = buildChapters(commissionPercent, payer, includeIntro);
   const reduce = useReducedMotion();
   const [chapterIdx, setChapterIdx] = useState(0);
   const [sceneIdx, setSceneIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [playing, setPlaying] = useState(!reduce);
+  const [playing, setPlaying] = useState(!reduce || narrateInitially);
   const [visible, setVisible] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(narrateInitially);
+  const [speaking, setSpeaking] = useState(false);
+  const [canSpeak, setCanSpeak] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
 
   const chapter = chapters[chapterIdx];
   const scene = chapter.scenes[sceneIdx];
-  const ended = sceneIdx === chapter.scenes.length - 1 && elapsed >= scene.duration;
+
+  // En el celular los capítulos no entran todos: al pasar al siguiente, se
+  // acomoda solo para que se vea cuál está sonando.
+  const firstChapterRender = useRef(true);
+  useEffect(() => {
+    if (firstChapterRender.current) {
+      firstChapterRender.current = false;
+      return;
+    }
+    activeTabRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [chapterIdx]);
+  const sceneId = `${chapter.id}-${sceneIdx + 1}`;
+  const isLastChapter = chapterIdx === chapters.length - 1;
+  const ended = sceneIdx === chapter.scenes.length - 1 && elapsed >= scene.duration && !speaking && !playing;
+
+  useEffect(() => {
+    setCanSpeak(speechSupported() || Boolean(process.env.NEXT_PUBLIC_TUTORIAL_AUDIO_BASE));
+    warmUpVoices();
+    return () => stopNarration();
+  }, []);
 
   // Pausa sola cuando el reproductor sale de la pantalla (no gasta batería
-  // ni avanza escenas que nadie está mirando).
+  // ni avanza escenas que nadie está mirando). En modo cine siempre se ve.
   useEffect(() => {
+    if (cinema) return;
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [cinema]);
+
+  // Narración: cada escena se lee al entrar. La escena no avanza hasta que
+  // termina de hablar (y pasó su duración mínima), así voz y animación van
+  // juntas aunque la voz del dispositivo sea más lenta o más rápida.
+  useEffect(() => {
+    if (!voiceOn || !playing || !visible || chapter.videoSrc) {
+      stopNarration();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    const cancel = narrate(sceneId, scene.caption, () => setSpeaking(false));
+    return () => {
+      cancel();
+    };
+    // Solo al cambiar de escena o al pausar/reanudar/silenciar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneId, voiceOn, playing, visible]);
 
   // El reloj solo suma tiempo; avanzar de escena se decide aparte (abajo),
   // para que el updater de estado sea puro.
@@ -200,15 +287,25 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
   }, [playing, visible, chapter.videoSrc]);
 
   useEffect(() => {
-    if (elapsed < scene.duration) return;
+    if (!playing) return;
+    // Espera a la voz, pero nunca más del triple de la duración (por si el
+    // navegador no avisa que terminó de hablar).
+    const waitingVoice = voiceOn && speaking && elapsed < scene.duration * 3;
+    if (elapsed < scene.duration || waitingVoice) return;
     if (sceneIdx < chapter.scenes.length - 1) {
       setSceneIdx(sceneIdx + 1);
       setElapsed(0);
+    } else if (autoNextChapter && !isLastChapter) {
+      setChapterIdx(chapterIdx + 1);
+      setSceneIdx(0);
+      setElapsed(0);
     } else {
       setPlaying(false);
+      setSpeaking(false);
       setElapsed(scene.duration);
+      if (isLastChapter) onFinished?.();
     }
-  }, [elapsed, scene.duration, sceneIdx, chapter.scenes.length]);
+  }, [elapsed, speaking, playing, voiceOn, scene.duration, sceneIdx, chapter.scenes.length, autoNextChapter, isLastChapter, chapterIdx, onFinished]);
 
   function goChapter(i: number) {
     setChapterIdx(i);
@@ -229,23 +326,44 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
     setPlaying((p) => !p);
   }
 
+  // Progreso de la escena: si hay voz, avanza con el tiempo pero se queda
+  // en 95% hasta que termina de hablar.
+  const sceneProgress = (s: Scene, i: number) => {
+    if (i < sceneIdx) return 100;
+    if (i > sceneIdx) return 0;
+    const p = Math.min(100, (elapsed / s.duration) * 100);
+    return voiceOn && speaking ? Math.min(p, 95) : p;
+  };
+
   return (
-    <div ref={ref} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-sm">
+    <div
+      ref={ref}
+      className={
+        cinema
+          ? "flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+          : "overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-sm"
+      }
+    >
       {/* Capítulos */}
-      <div className="flex gap-1 overflow-x-auto border-b border-ink/5 p-1.5" role="tablist" aria-label="Videos de la guía">
+      <div
+        className="flex gap-1 overflow-x-auto border-b border-ink/5 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Videos de la guía"
+      >
         {chapters.map((c, i) => (
           <button
             key={c.id}
+            ref={i === chapterIdx ? activeTabRef : undefined}
             type="button"
             role="tab"
             aria-selected={i === chapterIdx}
             onClick={() => goChapter(i)}
-            className={`min-w-[9rem] flex-1 rounded-xl px-3 py-2 text-left transition ${
-              i === chapterIdx ? "bg-ink text-white" : "text-ink/60 hover:bg-paper"
+            className={`min-w-[8.5rem] flex-1 rounded-xl px-3 py-2 text-left transition ${
+              i === chapterIdx ? "bg-ink text-white" : i < chapterIdx ? "text-jade-700 hover:bg-paper" : "text-ink/60 hover:bg-paper"
             }`}
           >
             <span className={`block text-[10px] font-bold uppercase tracking-wider ${i === chapterIdx ? "text-jade-400" : "text-ink/35"}`}>
-              Video {i + 1}
+              {i < chapterIdx ? "✓ " : ""}Parte {i + 1}
             </span>
             <span className="block text-sm font-semibold">{c.title}</span>
           </button>
@@ -257,26 +375,54 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
       ) : (
         <>
           {/* Escenario */}
-          <div className="relative flex h-[340px] items-center justify-center bg-gradient-to-b from-paper to-white">
+          <div
+            className={`relative flex items-center justify-center overflow-hidden ${
+              cinema ? "min-h-[300px] flex-1 bg-gradient-to-b from-[#f2fbf7] via-paper to-white" : "h-[340px] bg-gradient-to-b from-paper to-white"
+            }`}
+          >
+            {/* Brillo de fondo animado: da sensación de video, no de diapositiva */}
+            {!reduce && (
+              <motion.div
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-1/4 top-0 h-[120%] w-1/2 rounded-full bg-jade-100/50 blur-3xl"
+                animate={{ x: ["0%", "160%", "0%"] }}
+                transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              />
+            )}
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${chapter.id}-${sceneIdx}`}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: reduce ? 0 : 0.3 }}
-                className="flex h-full w-full items-center justify-center"
+                initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.02, y: -8 }}
+                transition={{ duration: reduce ? 0 : 0.35, ease: "easeOut" }}
+                className="relative flex h-full w-full items-center justify-center"
               >
                 {scene.render()}
               </motion.div>
             </AnimatePresence>
 
+            {canSpeak && (
+              <button
+                type="button"
+                onClick={() => setVoiceOn((v) => !v)}
+                aria-pressed={voiceOn}
+                aria-label={voiceOn ? "Silenciar la voz" : "Activar la voz"}
+                className={`absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow transition ${
+                  voiceOn ? "bg-ink text-white" : "bg-white text-ink/70"
+                }`}
+              >
+                <SpeakerIcon on={voiceOn} />
+                {voiceOn ? (speaking ? "Narrando" : "Voz activada") : "Activar voz"}
+              </button>
+            )}
+
             {ended && (
-              <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2">
+              <div className="absolute inset-x-0 bottom-3 flex flex-wrap justify-center gap-2 px-3">
                 <button type="button" onClick={togglePlay} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow">
                   ↻ Ver de nuevo
                 </button>
-                {chapterIdx < chapters.length - 1 && (
+                {!isLastChapter && (
                   <button
                     type="button"
                     onClick={() => goChapter(chapterIdx + 1)}
@@ -302,9 +448,7 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
                 >
                   <span
                     className="block h-full rounded-full bg-jade-500 transition-[width] duration-100 ease-linear"
-                    style={{
-                      width: i < sceneIdx ? "100%" : i === sceneIdx ? `${Math.min(100, (elapsed / s.duration) * 100)}%` : "0%",
-                    }}
+                    style={{ width: `${sceneProgress(s, i)}%` }}
                   />
                 </button>
               ))}
@@ -324,7 +468,7 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="min-h-[2.5rem] text-sm leading-snug text-ink/80"
+                  className={`min-h-[2.5rem] leading-snug text-ink/80 ${cinema ? "text-base" : "text-sm"}`}
                   aria-live="polite"
                 >
                   {scene.caption}
@@ -351,6 +495,22 @@ function VideoPlayer({ commissionPercent, payer }: { commissionPercent: number; 
         </>
       )}
     </div>
+  );
+}
+
+function SpeakerIcon({ on }: { on: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M3 8v4h3l4 3V5L6 8H3z" fill="currentColor" stroke="none" />
+      {on ? (
+        <>
+          <path d="M13 7.5a3.5 3.5 0 0 1 0 5" />
+          <path d="M15.5 5a7 7 0 0 1 0 10" />
+        </>
+      ) : (
+        <path d="M13 8l4 4M17 8l-4 4" />
+      )}
+    </svg>
   );
 }
 
@@ -1008,5 +1168,164 @@ function PayoutFaq({ commissionPercent, payer }: { commissionPercent: number; pa
         <Accordion key={f.q} question={f.q} answer={f.a} />
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Escenas del capítulo "Tu panel" (tutorial de bienvenida)
+// ---------------------------------------------------------------------------
+
+function SceneWelcome() {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <motion.div
+        initial={{ scale: 0, rotate: -12 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
+        className="flex h-20 w-20 items-center justify-center rounded-3xl bg-ink shadow-xl"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.png" alt="" className="h-12 w-12 object-contain" />
+      </motion.div>
+      <motion.p {...pop(0.5)} className="mt-5 font-display text-2xl font-bold text-ink">
+        ¡Bienvenido a tu panel!
+      </motion.p>
+      <motion.div {...pop(0.9)} className="mt-4 flex flex-wrap justify-center gap-2">
+        {[
+          ["bag", "Vende"],
+          ["qr", "Cobra"],
+          ["wallet", "Recibe tu dinero"],
+        ].map(([icon, label], i) => (
+          <motion.span
+            key={label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1 + i * 0.25 }}
+            className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-sm"
+          >
+            <Icon name={icon as "bag"} className="h-4 w-4" />
+            {label}
+          </motion.span>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function SceneProducts() {
+  return (
+    <div className="flex items-center gap-4">
+      <Phone>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Productos</p>
+        {[
+          ["Chamarra café", "Bs 150", "from-amber-400 to-coral-400"],
+          ["Vestido negro", "Bs 120", "from-ink to-ink/60"],
+          ["Polera básica", "Bs 45", "from-jade-400 to-jade-100"],
+        ].map(([name, price, grad], i) => (
+          <motion.div key={name} {...pop(0.2 + i * 0.2)} className="mt-2 flex items-center gap-2 rounded-lg border border-ink/10 p-1.5">
+            <div className={`h-8 w-8 shrink-0 rounded-md bg-gradient-to-br ${grad}`} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[10px] font-semibold text-ink">{name}</p>
+              <p className="text-[9px] text-ink/50">{price}</p>
+            </div>
+            {i === 0 && (
+              <motion.span
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ delay: 1.4, duration: 0.5 }}
+                className="rounded bg-jade-50 px-1 text-[8px] font-bold text-jade-700"
+              >
+                Historia
+              </motion.span>
+            )}
+          </motion.div>
+        ))}
+      </Phone>
+      <motion.div
+        initial={{ opacity: 0, x: -20, rotate: 6 }}
+        animate={{ opacity: 1, x: 0, rotate: 3 }}
+        transition={{ delay: 1.9, type: "spring", stiffness: 160, damping: 16 }}
+        className="hidden h-[220px] w-[124px] flex-col justify-between rounded-2xl bg-gradient-to-b from-[#8B5CF6] to-[#6D28D9] p-3 text-white shadow-xl sm:flex"
+      >
+        <p className="text-[9px] font-bold">Moda Chapaca</p>
+        <div className="h-24 rounded-lg bg-gradient-to-br from-amber-400 to-coral-400" />
+        <div>
+          <p className="text-[10px] font-bold leading-tight">Chamarra café</p>
+          <p className="text-sm font-black">Bs 150</p>
+          <p className="mt-1 rounded-full bg-white py-0.5 text-center text-[7px] font-bold text-[#6D28D9]">Pide en dcompras.shop</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function SceneToCollect() {
+  return (
+    <Phone>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Por cobrar</p>
+      <motion.div {...pop(0.3)} className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
+        <p className="text-[10px] font-semibold text-ink">#A1B2 · Ana</p>
+        <p className="text-[9px] text-ink/50">Bs 180 · hace 3 h sin pagar</p>
+        <motion.div
+          animate={{ scale: [1, 0.93, 1] }}
+          transition={{ delay: 1.3, duration: 0.3 }}
+          className="mt-1.5 rounded bg-green-500 py-1 text-center text-[9px] font-bold text-white"
+        >
+          <TextSwap from="Recordar por WhatsApp" to="¡Recordatorio enviado!" delay={1.6} />
+        </motion.div>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2.6 }}
+        className="mt-3 rounded-lg bg-jade-500 p-2 text-center text-[10px] font-bold text-white"
+      >
+        ✓ Ana pagó · venta recuperada
+      </motion.div>
+    </Phone>
+  );
+}
+
+function SceneCustomers() {
+  return (
+    <div className="w-full max-w-xs rounded-2xl border border-ink/5 bg-white p-3 shadow-lg">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink/40">Mis clientes</p>
+      {[
+        ["Ana Rojas", "4 compras · Bs 720", true],
+        ["Carla Méndez", "2 compras · Bs 310", false],
+        ["Luis Pérez", "1 compra · Bs 95", false],
+      ].map(([name, info, top], i) => (
+        <motion.div key={String(name)} {...pop(0.3 + i * 0.3)} className="flex items-center justify-between border-b border-ink/5 py-2 last:border-0">
+          <div>
+            <p className="text-xs font-bold text-ink">
+              {name} {top && <span className="ml-1 rounded-full bg-amber-50 px-1.5 text-[9px] text-amber-700">⭐ Top</span>}
+            </p>
+            <p className="text-[10px] text-ink/50">{info}</p>
+          </div>
+          <span className="rounded-md border border-ink/15 px-1.5 py-0.5 text-[9px] font-semibold text-ink/60">WhatsApp</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function SceneUploadQr() {
+  return (
+    <Phone>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Datos y cobros</p>
+      <p className="mt-2 text-[10px] font-semibold text-ink">Tu QR para recibir tu dinero</p>
+      <motion.div
+        initial={{ borderColor: "rgba(20,16,42,0.2)" }}
+        animate={{ borderColor: "#0EA57A" }}
+        transition={{ delay: 1.2 }}
+        className="mx-auto mt-3 flex h-28 w-28 items-center justify-center rounded-xl border-2 border-dashed"
+      >
+        <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.2, type: "spring" }}>
+          <QrGlyph size={84} />
+        </motion.div>
+      </motion.div>
+      <motion.p {...pop(2)} className="mt-3 rounded-lg bg-jade-50 py-1.5 text-center text-[10px] font-bold text-jade-700">
+        ✓ QR cargado: ya puedes cobrar
+      </motion.p>
+    </Phone>
   );
 }

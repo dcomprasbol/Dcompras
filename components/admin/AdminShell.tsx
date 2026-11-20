@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import TutorialModal from "@/components/admin/TutorialModal";
 import Link from "next/link";
 import AdminProducts from "@/components/admin/AdminProducts";
 import AdminOrders from "@/components/admin/AdminOrders";
@@ -86,6 +88,7 @@ export default function AdminShell({
   overview,
   checklist,
   initialTab,
+  showTutorial = false,
 }: {
   slug: string;
   status: string;
@@ -96,8 +99,27 @@ export default function AdminShell({
   overview: SellerOverview;
   checklist: SellerChecklist;
   initialTab: SellerTab;
+  /** Primera vez en el panel: el tutorial se abre solo. */
+  showTutorial?: boolean;
 }) {
   const [tab, setTabState] = useState<SellerTab>(initialTab);
+  const [tutorialOpen, setTutorialOpen] = useState(showTutorial);
+  const [tutorialFirstTime, setTutorialFirstTime] = useState(showTutorial);
+
+  // Cualquier parte del panel (ej. la guía de la Billetera) puede abrir el
+  // tutorial con: window.dispatchEvent(new Event("dcompras:open-tutorial"))
+  useEffect(() => {
+    const open = () => {
+      setTutorialFirstTime(false);
+      setTutorialOpen(true);
+    };
+    window.addEventListener("dcompras:open-tutorial", open);
+    return () => window.removeEventListener("dcompras:open-tutorial", open);
+  }, []);
+  const openTutorial = () => {
+    setTutorialFirstTime(false);
+    setTutorialOpen(true);
+  };
   const url = useStoreUrl(slug);
   const approved = status === "aprobada";
   const current = NAV.find((n) => n.key === tab)!;
@@ -165,6 +187,14 @@ export default function AdminShell({
         </nav>
 
         <div className="border-t border-ink/5 p-3">
+          <button
+            type="button"
+            onClick={openTutorial}
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-jade-100 bg-jade-50 px-3 py-2.5 text-sm font-semibold text-jade-700 transition hover:border-jade-400"
+          >
+            <Icon name="play" mono className="h-4 w-4" />
+            Ver tutorial
+          </button>
           <a
             href={`/${slug}`}
             target="_blank"
@@ -210,6 +240,15 @@ export default function AdminShell({
                 {pill.label}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={openTutorial}
+              aria-label="Ver tutorial"
+              title="Ver tutorial"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-jade-100 bg-jade-50 text-jade-700"
+            >
+              <Icon name="play" mono className="h-3.5 w-3.5" />
+            </button>
             <a
               href={`/${slug}`}
               target="_blank"
@@ -325,6 +364,11 @@ export default function AdminShell({
           {tab === "soporte" && <AdminSupport slug={slug} />}
         </main>
       </div>
+      <AnimatePresence>
+        {tutorialOpen && (
+          <TutorialModal slug={slug} firstTime={tutorialFirstTime} onClose={() => setTutorialOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

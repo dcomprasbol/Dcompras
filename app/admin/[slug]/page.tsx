@@ -43,6 +43,7 @@ export default async function AdminPage({
         hasSocial: Boolean(store.instagramUrl || store.tiktokUrl || store.facebookUrl),
       }}
       initialTab={initialTab}
+      showTutorial={!store.tutorialSeenAt}
     />
   );
 }
