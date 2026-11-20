@@ -9,7 +9,7 @@ export default function Pricing() {
         <RevealOnScroll>
           <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">Precios</p>
           <h2 className="mt-3 font-impact text-3xl uppercase leading-[0.95] tracking-tight text-ink md:text-5xl">
-            Publicar es gratis. Solo ganamos cuando tú ganas.
+            Publicar es gratis. Cobramos solo cuando te pagan con QR automático.
           </h2>
         </RevealOnScroll>
 
@@ -29,14 +29,15 @@ export default function Pricing() {
               <p className="mt-2 font-impact text-6xl text-ink">Bs 0</p>
               <div className="my-6 h-px w-full bg-ink/10" />
               <ul className="space-y-2 text-sm text-ink/70">
-                <li>Catálogo y checkout ilimitado</li>
-                <li>Integración con WhatsApp</li>
-                <li>Pago contra entrega</li>
+                <li>Productos y pedidos sin límite</li>
+                <li>Pedidos que llegan con todos los datos a tu WhatsApp</li>
+                <li>Cobro con QR o contra entrega</li>
               </ul>
               <p className="mt-5 text-xs text-ink/50">
-                Tú recibes siempre el <strong className="text-ink/70">100 % de tu precio</strong>. Si
-                tu cliente paga con el cobro automático por QR, se le suma un {commissionPercent()} %
-                al total y lo ve antes de pagar. Contra entrega: sin ningún recargo.
+                Con el cobro automático por QR hay un cargo de {commissionPercent()} % por pago
+                verificado. <strong className="text-ink/70">Tú eliges quién lo paga</strong>: tu cliente (lo
+                ve antes de pagar y a ti te llega el 100 % de tu precio) o tú, y tu tienda muestra el
+                sello «Sin recargos». Contra entrega no tiene ningún cargo.
               </p>
               <Link href="/crear-tienda" className="btn-editorial btn-editorial-solid mt-6 w-full">
                 Empezar gratis

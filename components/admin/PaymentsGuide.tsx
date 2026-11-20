@@ -613,7 +613,7 @@ function SceneQr({ total }: { total: number }) {
         {formatBs(total)}
       </motion.p>
       <motion.p {...pop(0.9)} className="text-center text-[10px] text-ink/50">
-        Monto exacto · válido solo para este pedido
+        Monto exacto, solo para este pedido
       </motion.p>
     </Phone>
   );
@@ -780,7 +780,7 @@ function ScenePayoutTracker({ step }: { step: 1 | 3 }) {
       </div>
       {step === 3 && (
         <motion.div {...pop(1.4)} className="mt-4 rounded-lg bg-jade-50 p-2 text-center text-xs font-bold text-jade-700">
-          Liquidación cerrada · el dinero está en tu cuenta
+          Liquidación cerrada: el dinero ya está en tu cuenta
         </motion.div>
       )}
       {step === 1 && (

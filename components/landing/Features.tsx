@@ -56,23 +56,23 @@ function ChatIcon() {
 const FEATURES = [
   {
     icon: <BagIcon />,
-    title: "Tu tienda, siempre lista",
-    desc: "Productos, precios y variantes en un solo enlace profesional.",
+    title: "Un link con todo tu catálogo",
+    desc: "Fotos, precios, tallas y stock. Lo pegas en tu bio y tus clientes compran ahí.",
   },
   {
     icon: <QrIcon />,
-    title: "Cobra sin complicarte",
-    desc: "Tus clientes pagan por QR y el pedido se registra automáticamente.",
+    title: "Cobro con QR",
+    desc: "Tu cliente paga desde la app de su banco y el pedido queda marcado como pagado.",
   },
   {
     icon: <ClipboardIcon />,
-    title: "Cada pedido bajo control",
-    desc: "Organiza ventas, pagos y entregas desde un solo lugar.",
+    title: "Pedidos ordenados",
+    desc: "Ves quién pagó, qué falta enviar y a quién recordarle el pago.",
   },
   {
     icon: <ChatIcon />,
-    title: "Sigue usando WhatsApp",
-    desc: "Atiende a tus clientes como siempre, pero con pedidos organizados.",
+    title: "WhatsApp sigue igual",
+    desc: "Cada pedido llega con nombre, dirección y lo que compró. La entrega la coordinas por el chat.",
   },
 ];
 
@@ -83,13 +83,13 @@ export default function Features() {
         <RevealOnScroll className="mx-auto max-w-3xl text-center">
           <BrandMark className="mx-auto mb-5 h-10 w-auto" bg="#FFFFFF" />
           <h2 className="font-impact text-3xl uppercase leading-[0.95] tracking-tight text-ink md:text-5xl">
-            Tu negocio sigue en WhatsApp.
+            Sigue vendiendo por WhatsApp,
             <br />
-            <span className="text-jade-500">El desorden, no.</span>
+            <span className="text-jade-500">pero con los pedidos en orden.</span>
           </h2>
           <p className="mt-5 text-base leading-relaxed text-ink/70 md:text-lg">
-            Convierte tu catálogo, tus cobros y tus pedidos en una tienda
-            organizada, sin cambiar la forma en que hablas con tus clientes.
+            Tus productos, tus cobros y tus pedidos quedan en un solo lugar. Con tus clientes
+            sigues hablando como siempre.
           </p>
         </RevealOnScroll>
 

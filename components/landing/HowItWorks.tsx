@@ -4,22 +4,22 @@ const STEPS = [
   {
     n: "01",
     title: "Crea tu tienda",
-    desc: "Nombre, WhatsApp y ciudad. Sin trámites, sin tarjeta de crédito.",
+    desc: "El nombre de tu tienda, tu WhatsApp y tu ciudad. No te pedimos tarjeta.",
   },
   {
     n: "02",
     title: "Sube tu catálogo",
-    desc: "Fotos, precios, tallas y colores. Cinco minutos y ya está publicado.",
+    desc: "Fotos, precio y tallas o colores. Revisamos tu tienda y queda publicada.",
   },
   {
     n: "03",
     title: "Comparte tu link",
-    desc: "Ponlo en tu bio de TikTok, tu estado de WhatsApp o tu feed de Instagram.",
+    desc: "Ponlo en tu bio de TikTok o Instagram y en tus estados de WhatsApp.",
   },
   {
     n: "04",
     title: "Recibe pedidos y cobra",
-    desc: "Tu cliente paga con QR o contra entrega. Tú solo empacas y envías.",
+    desc: "Tu cliente paga con QR o contra entrega. Tú preparas el pedido y lo entregas.",
   },
 ];
 
@@ -32,7 +32,7 @@ export default function HowItWorks() {
             Cómo funciona
           </p>
           <h2 className="mt-3 font-impact text-3xl uppercase leading-[0.95] tracking-tight md:text-5xl">
-            De tu primer producto a tu primera venta, en un día
+            Así empiezas a vender
           </h2>
         </RevealOnScroll>
 

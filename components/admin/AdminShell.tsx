@@ -363,7 +363,7 @@ export default function AdminShell({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold">¿Dudas sobre cobros, liquidaciones o tu billetera?</span>
-                <span className="block text-xs text-white/60">Mira el tutorial con voz · unos 3 minutos · cuando quieras</span>
+                <span className="block text-xs text-white/60">Un tutorial con voz de unos 3 minutos. Lo puedes ver las veces que quieras.</span>
               </span>
               <span className="text-lg text-jade-400 transition group-hover:translate-x-0.5" aria-hidden="true">
                 →

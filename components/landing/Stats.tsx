@@ -1,10 +1,26 @@
 import RevealOnScroll from "./RevealOnScroll";
 import CountUp from "./CountUp";
 
+// Solo cifras publicadas por el Banco Central de Bolivia, con su fuente a la
+// vista. Antes había tres números sin fuente (US$ 834M de e-commerce, 92% y
+// +4.700%) que no aparecen en ningún informe: no los vuelvas a poner sin
+// una fuente que se pueda citar.
 const STATS = [
-  { value: "US$ 834M", label: "movió el e-commerce boliviano en 2025" },
-  { value: "92%", label: "de los pagos digitales en Bolivia ya son por QR" },
-  { value: "+4.700%", label: "creció el pago por QR en menos de 3 años" },
+  {
+    value: "+131%",
+    label: "crecieron los pagos con QR en Bolivia en 2025, frente a 2024",
+    source: "BCB, Informe de Vigilancia del Sistema de Pagos 2025",
+  },
+  {
+    value: "86%",
+    label: "de las transferencias electrónicas de 2025 fueron pagos inmediatos, como el QR",
+    source: "BCB, 2025",
+  },
+  {
+    value: "28",
+    label: "pagos con QR por segundo se hacen hoy en el país",
+    source: "BCB, junio de 2026",
+  },
 ];
 
 export default function Stats() {
@@ -20,7 +36,7 @@ export default function Stats() {
       <div className="mx-auto max-w-6xl">
         <RevealOnScroll>
           <p className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-ink/40">
-            El mercado ya está listo, solo falta la herramienta
+            En Bolivia ya se paga con QR
           </p>
         </RevealOnScroll>
         <div className="grid gap-px overflow-hidden border border-ink/10 bg-ink/10 sm:grid-cols-3">
@@ -30,7 +46,10 @@ export default function Stats() {
                 <p className="font-impact text-4xl text-ink">
                   <CountUp value={s.value} />
                 </p>
-                <p className="mt-3 text-sm text-ink/60">{s.label}</p>
+                <div>
+                  <p className="mt-3 text-sm text-ink/60">{s.label}</p>
+                  <p className="mt-2 text-[11px] text-ink/35">Fuente: {s.source}</p>
+                </div>
               </div>
             </RevealOnScroll>
           ))}

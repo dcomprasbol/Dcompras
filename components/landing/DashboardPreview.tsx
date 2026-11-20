@@ -18,11 +18,11 @@ export default function DashboardPreview() {
             Gestión
           </span>
           <h2 className="mt-3 font-impact text-3xl uppercase leading-[0.95] tracking-tight text-ink md:text-5xl">
-            Todos tus pedidos, en un solo lugar.
+            Tus pedidos y tus cobros, a la vista.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-ink/60 md:text-base">
-            Estado de cada pedido, cuánto vendiste y qué te queda por cobrar, sin abrir el chat
-            para acordarte quién ya pagó.
+            En qué está cada pedido, cuánto vendiste en el mes y quién todavía no te pagó, sin
+            buscar en el chat.
           </p>
         </RevealOnScroll>
 

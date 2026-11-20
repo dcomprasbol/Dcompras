@@ -8,15 +8,15 @@ import { commissionPercent } from "@/lib/commission";
 const FAQS = [
   {
     q: "¿Es gratis de verdad?",
-    a: `Sí. Crear tu tienda, publicar y recibir pedidos no te cuesta nada, y siempre recibes el 100 % de tu precio. Cuando tu cliente paga con el cobro automático por QR, a él se le suma un ${commissionPercent()} % al total (lo ve antes de pagar). Contra entrega no tiene ningún recargo.`,
+    a: `Sí. Crear tu tienda, publicar y recibir pedidos no te cuesta nada. Solo cuando te pagan con el QR automático hay un cargo de ${commissionPercent()} % por pago verificado, y tú eliges quién lo paga: tu cliente, que lo ve antes de pagar, o tú, y tu tienda muestra el sello «Sin recargos». Contra entrega no tiene ningún cargo.`,
   },
   {
     q: "¿Necesito saber de diseño o tecnología?",
-    a: "No. Eliges el color de tu marca, tu logo (si tienes) y la tipografía desde un menú simple: nosotros armamos el resto de tu tienda.",
+    a: "No. Eliges el color, tu logo (si tienes) y el tipo de letra, y la tienda se arma sola con tus productos.",
   },
   {
     q: "¿Cómo recibo el pago de mis clientes?",
-    a: "Tus clientes pagan con QR o contra entrega. Con el QR automático, el pago entra a Dcompras, el pedido se marca pagado solo y después te transferimos el 100 % de tu precio a la cuenta que registres. Contra entrega, te pagan directo al recibir.",
+    a: "Tus clientes pagan con QR o contra entrega. Con el QR automático, el pago entra a Dcompras, el pedido se marca como pagado y tú pides tu liquidación cuando quieras: te transferimos al QR que cargues en tu panel, con comprobante. Contra entrega, te pagan directo al recibir.",
   },
   {
     q: "¿Tengo que dejar de usar WhatsApp?",
@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "¿Cuánto tarda en estar lista mi tienda?",
-    a: "Unos minutos: creas tu cuenta, subes tus primeros productos, y compartes el link en tu bio o tu estado.",
+    a: "Crear la cuenta y subir tus primeros productos toma unos minutos. Después revisamos tu tienda y, cuando está aprobada, ya puedes compartir tu link.",
   },
 ];
 
@@ -38,9 +38,9 @@ export default function FAQ() {
       <div className="mx-auto max-w-3xl">
         <RevealOnScroll>
           <h2 className="font-impact text-4xl uppercase leading-[0.9] tracking-tight md:text-6xl">
-            Tus preguntas,
+            Preguntas
             <br />
-            respondidas.
+            frecuentes
           </h2>
         </RevealOnScroll>
 

@@ -240,7 +240,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
                   {isNewToWallet ? "¿Primera vez? Mira cómo funciona en 1 minuto" : "QR automático: cobras sin revisar tu banco"}
                 </span>
                 <span className="block text-xs text-ink/55">
-                  Sin capturas falsas · {commissionPayer === "vendedor" ? "sin recargos para tu cliente" : "te llega el 100%"} · liquidación con comprobante
+                  El banco confirma cada pago, así nadie te engaña con una captura. Y cada liquidación llega con su comprobante.
                 </span>
               </span>
               <span className="text-jade-600 transition group-hover:translate-x-0.5">→</span>

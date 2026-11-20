@@ -47,9 +47,9 @@ export default function Hero() {
           </h1>
 
           <motion.p variants={item} className="mt-8 max-w-lg text-balance text-base text-white/60 md:text-lg">
-            Publicitas en redes, pero cobras a mano y coordinas todo por WhatsApp. Dcompras te da
-            catálogo, checkout y cobro por QR en un link, para que vendas mientras duermes, no
-            solo cuando estás en vivo.
+            Muestras tus productos en redes y después respondes precios uno por uno, esperas
+            capturas y anotas pedidos en el chat. Con Dcompras tu cliente ve el catálogo, elige y
+            paga con QR desde un solo link, aunque tú no estés conectado.
           </motion.p>
 
           <motion.div variants={item} className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -57,7 +57,7 @@ export default function Hero() {
               Crear mi tienda gratis →
             </MotionLinkButton>
             <MotionAnchorButton
-              href="#como-funciona"
+              href="#demo"
               className="btn-editorial btn-editorial-ghost border-white/40 text-white hover:border-white"
             >
               Ver cómo funciona
@@ -65,7 +65,7 @@ export default function Hero() {
           </motion.div>
 
           <motion.p variants={item} className="mt-5 text-xs uppercase tracking-wider text-white/35">
-            Gratis para publicar · sin mensualidades · recibes el 100 % de tu precio
+            Publicar es gratis y no hay mensualidad.
           </motion.p>
         </motion.div>
 
