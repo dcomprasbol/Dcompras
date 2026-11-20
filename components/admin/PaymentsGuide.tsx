@@ -267,9 +267,15 @@ export function VideoPlayer({
       return;
     }
     setSpeaking(true);
-    const cancel = narrate(sceneId, scene.caption, () => setSpeaking(false));
+    // Medio segundo de respiro al terminar cada frase antes de pasar a la
+    // siguiente escena: suena como una persona hablando, no como una lista.
+    let breath: number | undefined;
+    const cancel = narrate(sceneId, scene.caption, () => {
+      breath = window.setTimeout(() => setSpeaking(false), 500);
+    });
     return () => {
       cancel();
+      if (breath) window.clearTimeout(breath);
     };
     // Solo al cambiar de escena o al pausar/reanudar/silenciar.
     // eslint-disable-next-line react-hooks/exhaustive-deps

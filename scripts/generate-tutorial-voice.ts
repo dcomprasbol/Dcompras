@@ -7,14 +7,20 @@
 //   npm run voice:tutorial -- --voz=es-BO-MarceloNeural
 //   npm run voice:tutorial -- --rehacer             → regraba todo (otra voz)
 //
-// Lee de .env.local (nunca se sube a Vercel ni al repo):
-//   AZURE_SPEECH_KEY     clave del recurso Speech (Azure Portal → Keys and Endpoint)
-//   AZURE_SPEECH_REGION  región del recurso, ej. eastus, brazilsouth
+// Dos motores (las mismas voces neuronales de Microsoft):
+//  - Azure Speech (oficial): si .env.local tiene AZURE_SPEECH_KEY y
+//    AZURE_SPEECH_REGION (Azure Portal → recurso Speech → Keys and Endpoint).
+//  - edge-tts (sin cuenta): si no hay clave de Azure, o con --motor=edge. Usa
+//    la herramienta de Python edge-tts (pip install edge-tts); su ruta va en
+//    EDGE_TTS_BIN si no está en el PATH. Ojo: es el servicio de "Leer en voz
+//    alta" de Edge, no un servicio oficial para apps; si deja de responder,
+//    lo ya grabado sigue funcionando.
 //
 // El tutorial usa estos MP3 solo (lib/narration.ts lee lib/tutorialVoice.json);
 // las frases sin archivo usan la voz del dispositivo.
 
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { allTutorialLines } from "@/lib/tutorialScript";
 import { narrationFileId, toSpeech } from "@/lib/narration";
@@ -64,13 +70,18 @@ async function synthesize(text: string, voice: string, key: string, region: stri
   return Buffer.from(await res.arrayBuffer());
 }
 
+function synthesizeWithEdge(text: string, voice: string, file: string) {
+  // Argumentos como lista (sin shell): el texto nunca se interpreta como comando.
+  const bin = process.env.EDGE_TTS_BIN || "edge-tts";
+  execFileSync(bin, ["--voice", voice, "--rate=-6%", "--text", text, "--write-media", file], { stdio: "pipe" });
+  if (!fs.existsSync(file) || fs.statSync(file).size === 0) throw new Error(`edge-tts no generó audio para: ${text}`);
+}
+
 async function main() {
   loadEnv();
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
-  if (!key || !region) {
-    throw new Error("Faltan AZURE_SPEECH_KEY y/o AZURE_SPEECH_REGION en .env.local");
-  }
+  const useEdge = arg("motor") === "edge" || !key || !region;
   const voice = arg("voz") || process.env.AZURE_SPEECH_VOICE || "es-BO-SofiaNeural";
   const redo = process.argv.includes("--rehacer");
 
@@ -90,7 +101,8 @@ async function main() {
     files.push(id);
     if (fs.existsSync(file) && !redo && !voiceChanged) continue;
     process.stdout.write(`  grabando: ${toSpeech(line).slice(0, 70)}…\n`);
-    fs.writeFileSync(file, await synthesize(toSpeech(line), voice, key, region));
+    if (useEdge) synthesizeWithEdge(toSpeech(line), voice, file);
+    else fs.writeFileSync(file, await synthesize(toSpeech(line), voice, key!, region!));
     created++;
   }
 
@@ -100,7 +112,7 @@ async function main() {
   }
 
   fs.writeFileSync(MANIFEST, JSON.stringify({ voice, files: files.sort() }, null, 2) + "\n");
-  console.log(`Listo: ${lines.length} frases con la voz ${voice} (${created} grabadas ahora).`);
+  console.log(`Listo: ${lines.length} frases con la voz ${voice} vía ${useEdge ? "edge-tts" : "Azure"} (${created} grabadas ahora).`);
 }
 
 main().catch((err) => {
