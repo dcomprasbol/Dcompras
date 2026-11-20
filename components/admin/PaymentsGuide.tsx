@@ -18,7 +18,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Accordion from "@/components/Accordion";
-import { narrate, speechSupported, stopNarration, warmUpVoices } from "@/lib/narration";
+import { hasRecordedVoice, narrate, speechSupported, stopNarration, warmUpVoices } from "@/lib/narration";
+import { tutorialScript, TUTORIAL_PRICE_EXAMPLE } from "@/lib/tutorialScript";
 import Icon from "@/components/Icon";
 import { formatBs, PAYOUT_PROCESSING_TIME } from "@/lib/utils";
 
@@ -125,22 +126,24 @@ type Scene = { caption: string; duration: number; render: () => ReactNode };
 type Chapter = { id: string; title: string; subtitle: string; videoSrc?: string; scenes: Scene[] };
 
 function buildChapters(commissionPercent: number, payer: Payer, includeIntro = false): Chapter[] {
-  const price = 150;
+  const price = TUTORIAL_PRICE_EXAMPLE;
   const fee = Math.round(price * commissionPercent) / 100;
   // Mismo cálculo que lib/commission.ts: quién paga cambia lo que paga el
   // cliente y lo que te llega a ti.
   const total = payer === "vendedor" ? price : price + fee;
   const net = payer === "vendedor" ? Math.round((price - fee) * 100) / 100 : price;
+  // Los textos (subtítulo y narración) vienen del guion: lib/tutorialScript.ts.
+  const t = tutorialScript(commissionPercent, payer);
   const intro: Chapter = {
     id: "panel",
     title: "Tu panel",
     subtitle: "Todo en un minuto",
     scenes: [
-      { caption: "¡Bienvenido a Dcompras! En pocos minutos te mostramos cómo vender, cobrar y recibir tu dinero.", duration: 4200, render: () => <SceneWelcome /> },
-      { caption: "En Productos subes lo que vendes. Con el botón Historia creas una imagen lista para tus estados e historias.", duration: 4600, render: () => <SceneProducts /> },
-      { caption: "En Pedidos ves todo lo que te compran. Si alguien no pagó, se lo recuerdas por WhatsApp con un solo toque.", duration: 4600, render: () => <SceneToCollect /> },
-      { caption: "En Clientes ves quién te compra y qué le gusta, para volver a venderle.", duration: 4200, render: () => <SceneCustomers /> },
-      { caption: "Muy importante: carga tu QR en «Datos y cobros». Es donde te pagamos tu dinero; sin tu QR no puedes pedir tu liquidación.", duration: 5200, render: () => <SceneUploadQr /> },
+      { caption: t.panel[0], duration: 4200, render: () => <SceneWelcome /> },
+      { caption: t.panel[1], duration: 4600, render: () => <SceneProducts /> },
+      { caption: t.panel[2], duration: 4600, render: () => <SceneToCollect /> },
+      { caption: t.panel[3], duration: 4200, render: () => <SceneCustomers /> },
+      { caption: t.panel[4], duration: 5200, render: () => <SceneUploadQr /> },
     ],
   };
   return [
@@ -150,23 +153,12 @@ function buildChapters(commissionPercent: number, payer: Payer, includeIntro = f
       title: "Cómo cobras",
       subtitle: "Del pedido a tu billetera",
       scenes: [
-        { caption: "Tu cliente arma su pedido en tu tienda y elige pagar con QR.", duration: 3800, render: () => <SceneCart total={total} /> },
-        { caption: "Dcompras crea un QR único para ese pedido, con el monto exacto.", duration: 3800, render: () => <SceneQr total={total} /> },
-        { caption: "Tu cliente paga desde la app de cualquier banco. El banco nos confirma el pago al instante.", duration: 4200, render: () => <SceneBankOk total={total} /> },
-        { caption: "Te llega el aviso y el pedido queda pagado solo. El stock se descuenta automáticamente.", duration: 4200, render: () => <SceneSellerNotified price={price} /> },
-        {
-          caption:
-            payer === "vendedor"
-              ? `Se suman ${formatBs(net)} a tu billetera: tu precio menos el ${commissionPercent}% que elegiste asumir.`
-              : `Tus ${formatBs(price)} se suman a tu billetera. El ${commissionPercent}% lo pagó tu cliente.`,
-          duration: 4200,
-          render: () => <SceneWalletUp amount={net} payer={payer} />,
-        },
-        {
-          caption: `Y tú decides quién paga ese ${commissionPercent}%: tu cliente, sumado al precio, o tú, y tu tienda muestra el sello «Sin recargos». Lo eliges y lo cambias cuando quieras en «Datos y cobros».`,
-          duration: 7600,
-          render: () => <SceneWhoPays percent={commissionPercent} />,
-        },
+        { caption: t.cobro[0], duration: 3800, render: () => <SceneCart total={total} /> },
+        { caption: t.cobro[1], duration: 3800, render: () => <SceneQr total={total} /> },
+        { caption: t.cobro[2], duration: 4200, render: () => <SceneBankOk total={total} /> },
+        { caption: t.cobro[3], duration: 4200, render: () => <SceneSellerNotified price={price} /> },
+        { caption: t.cobro[4], duration: 4200, render: () => <SceneWalletUp amount={net} payer={payer} /> },
+        { caption: t.cobro[5], duration: 7600, render: () => <SceneWhoPays percent={commissionPercent} /> },
       ],
     },
     {
@@ -174,10 +166,10 @@ function buildChapters(commissionPercent: number, payer: Payer, includeIntro = f
       title: "Cómo pides tu dinero",
       subtitle: "Tu liquidación en 3 pasos",
       scenes: [
-        { caption: "Cuando quieras, tocas «Agendar liquidación». Se junta todo tu saldo en una sola solicitud.", duration: 4200, render: () => <ScenePayoutRequest /> },
-        { caption: `Dcompras te transfiere al QR que cargaste en «Datos y cobros». Normalmente en ${PAYOUT_PROCESSING_TIME}.`, duration: 4200, render: () => <ScenePayoutTracker step={1} /> },
-        { caption: "Te llega el comprobante de la transferencia, para que lo compares con tu banco.", duration: 4200, render: () => <SceneReceipt /> },
-        { caption: "Tú confirmas que te llegó. Recién ahí se cierra la liquidación.", duration: 4400, render: () => <ScenePayoutTracker step={3} /> },
+        { caption: t.liquidacion[0], duration: 4200, render: () => <ScenePayoutRequest /> },
+        { caption: t.liquidacion[1], duration: 4200, render: () => <ScenePayoutTracker step={1} /> },
+        { caption: t.liquidacion[2], duration: 4200, render: () => <SceneReceipt /> },
+        { caption: t.liquidacion[3], duration: 4400, render: () => <ScenePayoutTracker step={3} /> },
       ],
     },
     {
@@ -185,10 +177,10 @@ function buildChapters(commissionPercent: number, payer: Payer, includeIntro = f
       title: "Por qué es seguro",
       subtitle: "Tu dinero, siempre a la vista",
       scenes: [
-        { caption: "Una captura de pantalla no sirve para marcar un pedido como pagado: solo vale la confirmación del banco.", duration: 4600, render: () => <SceneNoFakes /> },
-        { caption: "Revisamos que el monto pagado sea exacto. Si no coincide, el pedido no avanza y lo revisa una persona.", duration: 4600, render: () => <SceneAmountCheck total={total} /> },
-        { caption: "Cada venta y cada liquidación quedan en tu historial, con su comprobante.", duration: 4200, render: () => <SceneLedger /> },
-        { caption: "Ninguna liquidación se da por pagada sin tu confirmación.", duration: 4200, render: () => <SceneLock /> },
+        { caption: t.seguridad[0], duration: 4600, render: () => <SceneNoFakes /> },
+        { caption: t.seguridad[1], duration: 4600, render: () => <SceneAmountCheck total={total} /> },
+        { caption: t.seguridad[2], duration: 4200, render: () => <SceneLedger /> },
+        { caption: t.seguridad[3], duration: 4200, render: () => <SceneLock /> },
       ],
     },
   ];
@@ -249,7 +241,7 @@ export function VideoPlayer({
   const ended = sceneIdx === chapter.scenes.length - 1 && elapsed >= scene.duration && !speaking && !playing;
 
   useEffect(() => {
-    setCanSpeak(speechSupported() || Boolean(process.env.NEXT_PUBLIC_TUTORIAL_AUDIO_BASE));
+    setCanSpeak(speechSupported() || hasRecordedVoice());
     warmUpVoices();
     return () => stopNarration();
   }, []);

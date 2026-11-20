@@ -1,17 +1,39 @@
 // Narración por voz del tutorial del vendedor (solo navegador).
 //
 // Dos fuentes, en este orden:
-//  1. Locución grabada (MP3): si NEXT_PUBLIC_TUTORIAL_AUDIO_BASE está
-//     seteada (ej. "/tutorial/voz"), cada escena reproduce
-//     `${base}/${sceneId}.mp3` (ej. /tutorial/voz/cobro-2.mp3). Es el camino
-//     para una locución profesional (locutor o TTS de estudio): se copian los
-//     archivos en public/tutorial/voz y listo, sin tocar código.
+//  1. Locución grabada (MP3, voz neuronal de Azure): cada frase del guion
+//     (lib/tutorialScript.ts) tiene su archivo en public/tutorial/voz/<id>.mp3,
+//     donde <id> sale del propio texto (narrationFileId). La lista de los que
+//     existen está en lib/tutorialVoice.json; ambos los genera
+//     `npm run voice:tutorial` (scripts/generate-tutorial-voice.ts).
 //  2. Voz del dispositivo (Web Speech API): si no hay MP3 o falla, se usa la
 //     mejor voz en español disponible. En Edge/Windows y en la mayoría de los
 //     celulares hay voces neuronales que suenan naturales.
 // Si no hay ninguna, el tutorial sigue con subtítulos y su ritmo normal.
 
-const AUDIO_BASE = process.env.NEXT_PUBLIC_TUTORIAL_AUDIO_BASE || "";
+import voiceManifest from "@/lib/tutorialVoice.json";
+
+const AUDIO_BASE = "/tutorial/voz";
+const RECORDED = new Set<string>((voiceManifest as { files: string[] }).files);
+
+/** Hay locución grabada para al menos una frase. */
+export function hasRecordedVoice(): boolean {
+  return RECORDED.size > 0;
+}
+
+/**
+ * Nombre del MP3 de una frase: hash corto del texto que se lee en voz alta.
+ * Si el texto cambia, cambia el nombre: así nunca suena una grabación vieja.
+ */
+export function narrationFileId(caption: string): string {
+  const text = toSpeech(caption);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `${h.toString(36)}-${text.length.toString(36)}`;
+}
 
 // Preferimos español latinoamericano (más cercano a Bolivia) y voces
 // neuronales ("Natural"/"Neural"/"Online"/"Google") antes que las clásicas.
@@ -111,8 +133,9 @@ export function narrate(sceneId: string, caption: string, onEnd: () => void): ()
     window.speechSynthesis.speak(u);
   };
 
-  if (AUDIO_BASE) {
-    const audio = new Audio(`${AUDIO_BASE.replace(/\/$/, "")}/${sceneId}.mp3`);
+  const fileId = narrationFileId(caption);
+  if (RECORDED.has(fileId)) {
+    const audio = new Audio(`${AUDIO_BASE}/${fileId}.mp3`);
     currentAudio = audio;
     audio.onended = done;
     audio.onerror = speak; // sin archivo para esta escena: voz del dispositivo

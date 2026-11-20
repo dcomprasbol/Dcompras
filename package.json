@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "migrate:images": "node scripts/migrate-images-to-storage.mjs"
+    "migrate:images": "node scripts/migrate-images-to-storage.mjs",
+    "voice:tutorial": "vite-node --config vitest.config.mts scripts/generate-tutorial-voice.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

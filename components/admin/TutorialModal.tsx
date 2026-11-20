@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Icon from "@/components/Icon";
 import { VideoPlayer } from "@/components/admin/PaymentsGuide";
-import { speechSupported, warmUpVoices, stopNarration } from "@/lib/narration";
+import { hasRecordedVoice, speechSupported, warmUpVoices, stopNarration } from "@/lib/narration";
 
 type Stage = "cover" | "playing" | "done";
 
@@ -38,7 +38,7 @@ export default function TutorialModal({
   const [voiceAvailable, setVoiceAvailable] = useState(false);
 
   useEffect(() => {
-    setVoiceAvailable(speechSupported() || Boolean(process.env.NEXT_PUBLIC_TUTORIAL_AUDIO_BASE));
+    setVoiceAvailable(speechSupported() || hasRecordedVoice());
     warmUpVoices();
     fetch(`/api/stores/${slug}/earnings`)
       .then((r) => r.json())
