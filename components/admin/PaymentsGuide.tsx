@@ -148,7 +148,7 @@ function buildChapters(commissionPercent: number, payer: Payer): Chapter[] {
       subtitle: "Tu liquidación en 3 pasos",
       scenes: [
         { caption: "Cuando quieras, tocas «Agendar liquidación». Se junta todo tu saldo en una sola solicitud.", duration: 4200, render: () => <ScenePayoutRequest /> },
-        { caption: `Dcompras te transfiere a la cuenta o QR que cargaste. Normalmente en ${PAYOUT_PROCESSING_TIME}.`, duration: 4200, render: () => <ScenePayoutTracker step={1} /> },
+        { caption: `Dcompras te transfiere al QR que cargaste en «Datos y cobros». Normalmente en ${PAYOUT_PROCESSING_TIME}.`, duration: 4200, render: () => <ScenePayoutTracker step={1} /> },
         { caption: "Te llega el comprobante de la transferencia, para que lo compares con tu banco.", duration: 4200, render: () => <SceneReceipt /> },
         { caption: "Tú confirmas que te llegó. Recién ahí se cierra la liquidación.", duration: 4400, render: () => <ScenePayoutTracker step={3} /> },
       ],
@@ -990,7 +990,7 @@ function PayoutFaq({ commissionPercent, payer }: { commissionPercent: number; pa
     },
     {
       q: "¿A dónde me llega el dinero?",
-      a: "A la cuenta bancaria o al QR que cargaste en «Datos y cobros». Revisa que estén bien antes de agendar.",
+      a: "Al QR que cargaste en «Datos y cobros». Es obligatorio: sin tu QR no puedes agendar una liquidación (tu saldo queda guardado). Revisa que sea el correcto antes de agendar.",
     },
     {
       q: "¿Qué hago si el comprobante no coincide o no me llegó?",

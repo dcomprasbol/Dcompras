@@ -48,7 +48,9 @@ export default function AdminEarnings({ slug }: { slug: string }) {
   const [commissionPercent, setCommissionPercent] = useState(1);
   const [autoQrEnabled, setAutoQrEnabled] = useState(true);
   const [commissionPayer, setCommissionPayer] = useState<"comprador" | "vendedor">("comprador");
-  const [hasBankInfo, setHasBankInfo] = useState(true);
+  // Sin el QR del vendedor no hay cómo transferirle: no se puede agendar
+  // una liquidación (el servidor también lo bloquea, ver payouts/route.ts).
+  const [hasPayoutQr, setHasPayoutQr] = useState(true);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export default function AdminEarnings({ slug }: { slug: string }) {
     setCommissionPercent(earningsRes.commissionPercent ?? 1);
     setAutoQrEnabled(earningsRes.autoQrEnabled ?? false);
     setCommissionPayer(earningsRes.commissionPayer === "vendedor" ? "vendedor" : "comprador");
-    setHasBankInfo(Boolean(storeRes.store?.bankAccountNumber || storeRes.store?.paymentQrImageUrl));
+    setHasPayoutQr(Boolean(storeRes.store?.paymentQrImageUrl));
     setLoading(false);
   }
 
@@ -205,10 +207,22 @@ export default function AdminEarnings({ slug }: { slug: string }) {
           </motion.div>
         ) : (
           <motion.div key="billetera" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-5">
-            {!hasBankInfo && (
+            {!hasPayoutQr && (
               <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <Icon name="qr" mono className="mr-1.5 h-4 w-4" />Todavía no cargaste tu QR o tu cuenta: sin eso no podemos transferirte.{" "}
-                <span className="font-medium">Agrégalos en la sección Datos y cobros.</span>
+                <p className="font-semibold">
+                  <Icon name="qr" mono className="mr-1.5 h-4 w-4" />
+                  Carga tu QR para poder recibir tu dinero
+                </p>
+                <p className="mt-1 text-xs">
+                  Te pagamos tus liquidaciones a ese QR. Mientras no lo cargues, no puedes agendar una liquidación (tu saldo
+                  queda guardado, no se pierde).
+                </p>
+                <a
+                  href="?tab=datos"
+                  className="mt-2 inline-block rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  Cargar mi QR →
+                </a>
               </div>
             )}
 
@@ -254,16 +268,18 @@ export default function AdminEarnings({ slug }: { slug: string }) {
                   </p>
                   <button
                     onClick={handleRequestPayout}
-                    disabled={requesting || !hasBankInfo || hasRequestedPayout}
+                    disabled={requesting || !hasPayoutQr || hasRequestedPayout}
                     className="mt-3 w-full rounded-xl bg-jade-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-jade-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {requesting
                       ? "Agendando..."
                       : hasRequestedPayout
                         ? "Ya tienes una liquidación en camino"
-                        : `Agendar liquidación de ${formatBs(pending.netAmount)}`}
+                        : !hasPayoutQr
+                          ? "Carga tu QR para agendar la liquidación"
+                          : `Agendar liquidación de ${formatBs(pending.netAmount)}`}
                   </button>
-                  {!hasRequestedPayout && (
+                  {!hasRequestedPayout && hasPayoutQr && (
                     <p className="mt-2 text-center text-[11px] text-ink/45">
                       Te transferimos normalmente en {PAYOUT_PROCESSING_TIME}, con comprobante.
                     </p>

@@ -12,15 +12,13 @@ export async function POST(
   const store = await requireStoreAdmin(params.slug);
   if (!store) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  // Sin ninguna forma de pagarle (ni cuenta bancaria ni QR), el admin no
-  // tendría cómo transferirle — mejor frenar acá con un mensaje claro que
-  // dejar la solicitud varada. Cualquiera de los dos alcanza.
-  if (!store.bankAccountNumber && !store.paymentQrImageUrl) {
+  // Las liquidaciones se pagan al QR del vendedor: sin QR cargado no hay
+  // cómo transferirle, así que no se puede agendar (aunque tenga datos
+  // bancarios). Mejor frenar acá con un mensaje claro que dejar la
+  // solicitud varada en /plataforma.
+  if (!store.paymentQrImageUrl) {
     return NextResponse.json(
-      {
-        error:
-          "Carga tu QR o tus datos bancarios en Cuenta antes de agendar una liquidación",
-      },
+      { error: "Carga tu QR en «Datos y cobros» antes de agendar una liquidación: ahí te pagamos." },
       { status: 400 }
     );
   }
