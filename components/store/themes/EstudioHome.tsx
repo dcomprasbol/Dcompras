@@ -11,7 +11,7 @@ import {
   useTransform,
   type Variants,
 } from "framer-motion";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon, { type IconName } from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
@@ -251,7 +251,7 @@ function Card({ slug, product }: { slug: string; product: ThemeProduct }) {
         <div className="relative aspect-square overflow-hidden">
           {product.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+            <img src={thumbUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center opacity-30">
               <Icon name="box" className="h-10 w-10" />

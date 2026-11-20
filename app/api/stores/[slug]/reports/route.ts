@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getStoreBySlug, getProductById, getOrderById, createReport } from "@/lib/repo";
 import { PRODUCT_REPORT_REASONS, ORDER_REPORT_REASONS } from "@/lib/utils";
 
@@ -12,6 +13,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const limited = await rateLimit(req, RATE_LIMITS.report);
+  if (limited) return limited;
   const store = await getStoreBySlug(params.slug);
   if (!store) return NextResponse.json({ error: "Tienda no encontrada" }, { status: 404 });
 

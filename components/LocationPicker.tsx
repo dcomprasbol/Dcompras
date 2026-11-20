@@ -38,11 +38,16 @@ export default function LocationPicker({
   onChange,
   accentColor = "var(--store-accent, #0EA57A)",
   className = "",
+  defaultCenter,
+  defaultZoom = 5,
 }: {
   value: LatLng | null;
   onChange: (value: LatLng) => void;
   accentColor?: string;
   className?: string;
+  /** Dónde abrir el mapa si todavía no hay ubicación (ej. una ciudad). */
+  defaultCenter?: LatLng;
+  defaultZoom?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -55,8 +60,8 @@ export default function LocationPicker({
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current, {
-      center: value ? [value.lat, value.lng] : BOLIVIA_CENTER,
-      zoom: value ? 16 : 5,
+      center: value ? [value.lat, value.lng] : defaultCenter ? [defaultCenter.lat, defaultCenter.lng] : BOLIVIA_CENTER,
+      zoom: value ? 16 : defaultCenter ? defaultZoom : 5,
       scrollWheelZoom: true,
     });
     mapRef.current = map;

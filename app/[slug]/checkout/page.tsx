@@ -10,6 +10,7 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import LocationField from "@/components/LocationField";
 import type { LatLng } from "@/components/LocationPicker";
 import Icon, { type IconName } from "@/components/Icon";
+import PickupPointChooser, { type PickupPointOption } from "@/components/PickupPointChooser";
 
 export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const { items, total, clear } = useCart();
@@ -29,7 +30,12 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   const [paymentConfig, setPaymentConfig] = useState<{
     autoQrEnabled: boolean;
     commissionPercent: number;
+    commissionPayer: "comprador" | "vendedor";
+    pickupPoints: PickupPointOption[];
   } | null>(null);
+  const [pickupPointId, setPickupPointId] = useState<string | null>(null);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [showFeeInfo, setShowFeeInfo] = useState(false);
   // Si el comprador ya tiene sesión, el pedido queda asociado a su cuenta
   // solo (lo resuelve el propio servidor al crear el pedido) — esto es
   // nada más para mostrarle "comprando como..." o invitarlo a loguearse.
@@ -43,23 +49,45 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/platform/payment-config")
+    fetch(`/api/platform/payment-config?slug=${encodeURIComponent(params.slug)}`)
       .then((r) => r.json())
-      .then(setPaymentConfig);
-  }, []);
+      .then((cfg) => {
+        setPaymentConfig(cfg);
+        if (cfg.pickupPoints?.length === 1) setPickupPointId(cfg.pickupPoints[0].id);
+      });
+  }, [params.slug]);
+
+  const pickupPoints = paymentConfig?.pickupPoints ?? [];
+  const deliveryOptions = DELIVERY_TYPES.filter((d) => d.value !== "punto_dcompras" || pickupPoints.length > 0);
+  const isPickup = deliveryType === "punto_dcompras";
+  const selectedPoint = pickupPoints.find((p) => p.id === pickupPointId) ?? null;
+
+  // En el Punto Dcompras nunca se cobra el producto en nombre del vendedor:
+  // retiro en punto = pago con QR.
+  useEffect(() => {
+    if (isPickup && paymentMethod !== "qr") setPaymentMethod("qr");
+  }, [isPickup, paymentMethod]);
 
   // Misma fórmula que calculateCommission en lib/commission.ts (redondeo a
   // centavos incluido) — si esto se desalinea con el backend, el comprador
   // vería acá un total distinto al que después le pide el QR.
+  // Si el vendedor eligió asumir el pago verificado, el comprador paga el
+  // precio de catálogo tal cual (lib/commission.ts → payer "vendedor").
+  const feeApplies = paymentMethod === "qr" && Boolean(paymentConfig?.autoQrEnabled);
+  const sellerAbsorbs = paymentConfig?.commissionPayer === "vendedor";
   const commissionAmount =
-    paymentMethod === "qr" && paymentConfig?.autoQrEnabled
-      ? Math.round(total * (paymentConfig.commissionPercent / 100) * 100) / 100
+    feeApplies && !sellerAbsorbs
+      ? Math.round(total * (paymentConfig!.commissionPercent / 100) * 100) / 100
       : 0;
   const totalToPay = Math.round((total + commissionAmount) * 100) / 100;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (isPickup && !pickupPointId) {
+      setError("Elige el Punto Dcompras donde vas a retirar tu pedido");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/stores/${params.slug}/orders`, {
@@ -68,8 +96,10 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
         body: JSON.stringify({
           customerName: name,
           customerPhone: phone,
-          customerAddress: address,
+          customerAddress: isPickup ? "" : address,
           deliveryType,
+          pickupPointId: isPickup ? pickupPointId : null,
+          marketingOptIn,
           deliveryLat: location?.lat ?? null,
           deliveryLng: location?.lng ?? null,
           paymentMethod,
@@ -172,8 +202,8 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
           </div>
           <div className="mb-3">
             <p className="mb-1.5 text-sm font-medium text-ink/70">¿Cómo prefieres recibirlo?</p>
-            <div className="grid grid-cols-2 gap-2">
-              {DELIVERY_TYPES.map((d) => (
+            <div className={`grid gap-2 ${deliveryOptions.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"}`}>
+              {deliveryOptions.map((d) => (
                 <button
                   key={d.value}
                   type="button"
@@ -190,6 +220,10 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             </div>
           </div>
 
+          {isPickup ? (
+            <PickupPointChooser points={pickupPoints} value={pickupPointId} onChange={setPickupPointId} />
+          ) : (
+          <>
           <div className="mb-3">
             <label className="mb-1 block text-sm font-medium text-ink/70">
               {deliveryType === "punto_encuentro"
@@ -216,6 +250,8 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             onUseSuggestedAddress={setAddress}
             currentAddress={address}
           />
+          </>
+          )}
         </div>
 
         <div className="border border-ink/10 bg-white p-4">
@@ -229,6 +265,7 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
               />
               Pagar con QR
             </label>
+            {!isPickup && (
             <label className="flex items-center gap-2 border border-ink/15 p-3 text-sm">
               <input
                 type="radio"
@@ -237,8 +274,32 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
               />
               Pago contra entrega (efectivo)
             </label>
+            )}
           </div>
+          {isPickup && (
+            <p className="mt-2 text-xs text-ink/50">
+              El retiro en Punto Dcompras se paga con QR. En el punto solo pagas el servicio de retiro.
+            </p>
+          )}
+          {feeApplies && sellerAbsorbs && (
+            <p className="mt-2 inline-flex items-center gap-1.5 bg-ink px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+              <Icon name="check" mono className="h-3.5 w-3.5" /> Sin recargos: pagas el precio exacto
+            </p>
+          )}
         </div>
+
+        <label className="flex items-start gap-2.5 border border-ink/10 bg-white p-4 text-sm text-ink/70">
+          <input
+            type="checkbox"
+            checked={marketingOptIn}
+            onChange={(e) => setMarketingOptIn(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            Quiero que esta tienda me avise por WhatsApp cuando lleguen novedades u ofertas.
+            <span className="block text-xs text-ink/40">Opcional. Puedes pedir que dejen de escribirte cuando quieras.</span>
+          </span>
+        </label>
 
         <div className="border border-ink/10 bg-white p-4">
           <div className="flex items-center justify-between">
@@ -248,8 +309,29 @@ export default function CheckoutPage({ params }: { params: { slug: string } }) {
             </span>
           </div>
           {commissionAmount > 0 && (
+            <div className="mt-1 text-xs text-ink/50">
+              <p>
+                Incluye {formatBs(commissionAmount)} de <span className="font-semibold">pago verificado</span>{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowFeeInfo((v) => !v)}
+                  className="underline underline-offset-2"
+                  aria-expanded={showFeeInfo}
+                >
+                  ¿qué es?
+                </button>
+              </p>
+              {showFeeInfo && (
+                <p className="mt-1 bg-paper p-2 text-ink/60">
+                  Tu pago se confirma al instante y queda registrado. No necesitas enviar capturas: el vendedor
+                  recibe el aviso y tu pedido avanza solo.
+                </p>
+              )}
+            </div>
+          )}
+          {isPickup && selectedPoint && (
             <p className="mt-1 text-xs text-ink/50">
-              Incluye {formatBs(commissionAmount)} de comisión por pago con QR automático
+              Al retirar en el punto pagas además el servicio: {formatBs(selectedPoint.fee)}.
             </p>
           )}
         </div>

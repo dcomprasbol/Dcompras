@@ -25,6 +25,32 @@ const IMAGE_QUALITY = 0.82;
 // Cuántas fotos puede tener un producto (ver AdminProducts, ProductGallery).
 export const MAX_PRODUCT_IMAGES = 5;
 
+// ---------- Liquidaciones ----------
+// Plazo que se le PROMETE al vendedor en la guía de la billetera
+// (PaymentsGuide). Es un compromiso con el vendedor: cambiarlo acá solo si
+// el equipo de plataforma de verdad puede cumplirlo.
+export const PAYOUT_PROCESSING_TIME = "1 a 2 días hábiles";
+
+// ---------- Fotos en Supabase Storage ----------
+// lib/storage.ts (servidor) sube cada foto como `<carpeta>/<uuid>.jpg` y su
+// miniatura como `<carpeta>/<uuid>_thumb.jpg` en el bucket público "media".
+// Viven acá (y no en lib/storage.ts) porque los componentes de cliente
+// también necesitan armar la URL de la miniatura.
+export const STORAGE_BUCKET = "media";
+export const THUMB_SUFFIX = "_thumb";
+
+/**
+ * URL de la miniatura (640 px) de una foto subida a Storage, para listados y
+ * tarjetas. Si la foto no vino de nuestro Storage (data URL viejo, URL
+ * externa) devuelve la misma URL: la tarjeta se ve igual, solo pesa más.
+ */
+export function thumbUrl<T extends string | null | undefined>(url: T): T | string {
+  if (typeof url !== "string") return url;
+  if (!url.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`)) return url;
+  if (new RegExp(`${THUMB_SUFFIX}\\.jpg(\\?.*)?$`, "i").test(url)) return url;
+  return url.replace(/\.(jpg|png)(\?.*)?$/i, `${THUMB_SUFFIX}.jpg$2`);
+}
+
 export function fileToResizedDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -121,6 +147,9 @@ export function reportReasonLabel(value: string): string {
 export const DELIVERY_TYPES = [
   { value: "domicilio", label: "Entrega a domicilio", icon: "home" },
   { value: "punto_encuentro", label: "Punto de encuentro", icon: "meet" },
+  // Punto Dcompras (lib/pickup.ts): el checkout solo lo ofrece si hay algún
+  // punto activo.
+  { value: "punto_dcompras", label: "Retiro en Punto Dcompras", icon: "pin" },
 ] as const;
 
 export function deliveryTypeLabel(value: string): string {
@@ -216,3 +245,12 @@ export function closeReasonLabel(value: string | null): string {
 
 // Frase que el vendedor escribe dos veces para confirmar que cierra su tienda.
 export const SELLER_CLOSE_PHRASE = "eliminar cuenta";
+
+// Slugs que no puede tomar una tienda porque son rutas de la app (las
+// tiendas viven en /[slug] y una ruta fija siempre le gana). Al crear una
+// tienda con uno de estos nombres se le agrega un sufijo (ver
+// app/api/stores/route.ts).
+export const RESERVED_SLUGS = new Set([
+  "admin", "api", "auth", "categoria", "crear-tienda", "login", "mis-pedidos", "plataforma",
+  "privacidad", "punto", "terminos", "tiendas", "monitoring", "logo", "icon", "_next",
+]);

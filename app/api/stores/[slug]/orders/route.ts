@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import {
   getStoreBySlug,
   listOrders,
   createOrderWithItems,
   updateOrderSipInfo,
   updateOrderInfinityInfo,
+  assignUniquePaymentAmount,
 } from "@/lib/repo";
+import { getPickupPoint } from "@/lib/pickup";
 import { requireStoreAdmin, getCurrentUser } from "@/lib/auth";
 import { DELIVERY_TYPES } from "@/lib/utils";
 import { isValidLatLng } from "@/lib/geo";
@@ -28,6 +31,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const limited = await rateLimit(req, RATE_LIMITS.checkout, [params.slug]);
+  if (limited) return limited;
   const store = await getStoreBySlug(params.slug);
   if (!store) return NextResponse.json({ error: "Tienda no encontrada" }, { status: 404 });
   if (store.status !== "aprobada") {
@@ -38,13 +43,31 @@ export async function POST(
   const {
     customerName,
     customerPhone,
-    customerAddress,
     paymentMethod,
     items,
     deliveryType,
     deliveryLat,
     deliveryLng,
+    marketingOptIn,
+    pickupPointId,
   } = body;
+  let { customerAddress } = body;
+
+  // Retiro en Punto Dcompras: la dirección es la del punto, y solo se acepta
+  // pago con QR — en el punto nunca se cobra el producto en nombre del
+  // vendedor (solo el servicio del punto, al retirar).
+  let pickup: { pointId: string; fee: number } | null = null;
+  if (deliveryType === "punto_dcompras") {
+    const point = typeof pickupPointId === "string" ? await getPickupPoint(pickupPointId) : null;
+    if (!point || !point.active) {
+      return NextResponse.json({ error: "Elige un Punto Dcompras disponible" }, { status: 400 });
+    }
+    if (paymentMethod !== "qr") {
+      return NextResponse.json({ error: "El retiro en Punto Dcompras solo acepta pago con QR" }, { status: 400 });
+    }
+    pickup = { pointId: point.id, fee: point.fee };
+    customerAddress = `${point.name} — ${point.address}`;
+  }
 
   if (!customerName || !customerPhone || !customerAddress) {
     return NextResponse.json(
@@ -87,7 +110,12 @@ export async function POST(
       },
       paymentMethod,
       items,
-      buyer?.id ?? null
+      buyer?.id ?? null,
+      {
+        commissionPayer: store.commissionPayer,
+        marketingOptIn: marketingOptIn === true,
+        pickup,
+      }
     );
 
     // Cobro centralizado: si la plataforma tiene un proveedor de cobro
@@ -123,7 +151,7 @@ export async function POST(
       try {
         const callback = `${process.env.PUBLIC_APP_URL || req.nextUrl.origin}/api/webhooks/infinity`;
         _debugCallback = callback;
-        const { commissionAmount, totalToCharge } = calculateCommission(order.total, true);
+        const { commissionAmount, totalToCharge } = calculateCommission(order.total, true, order.commissionPayer);
         const result = await createPayment({
           amount: totalToCharge,
           currency: "BOB",
@@ -148,7 +176,7 @@ export async function POST(
           const callback = `${process.env.PUBLIC_APP_URL || req.nextUrl.origin}/api/webhooks/sip/confirmar-pago`;
           const vencimiento = new Date();
           vencimiento.setDate(vencimiento.getDate() + 2);
-          const { commissionAmount, totalToCharge } = calculateCommission(order.total, true);
+          const { commissionAmount, totalToCharge } = calculateCommission(order.total, true, order.commissionPayer);
           const result = await generarQr({
             apikeyServicio: platformApikeyServicio,
             alias: order.id,
@@ -174,6 +202,13 @@ export async function POST(
           console.error(`No se pudo generar el QR de SIP para el pedido ${order.id}:`, err);
         }
       }
+    }
+
+    // Pago coordinado: QR sin cobro automático (proveedor sin configurar o
+    // caído). Le damos al pedido un monto con centavos únicos para que el
+    // vendedor encuentre la transferencia en su banco de un vistazo.
+    if (paymentMethod === "qr" && !payment) {
+      await assignUniquePaymentAmount(order);
     }
 
     return NextResponse.json({ order, payment, _debugCallback });

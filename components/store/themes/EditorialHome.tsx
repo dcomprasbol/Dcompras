@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
@@ -231,7 +231,7 @@ function Card({ slug, product, index }: { slug: string; product: ThemeProduct; i
       <div className="relative aspect-square overflow-hidden bg-paper">
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110 group-hover:grayscale-[30%]" />
+          <img src={thumbUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110 group-hover:grayscale-[30%]" />
         ) : (
           <div className="flex h-full items-center justify-center text-ink/25">
             <Icon name="bag" className="h-10 w-10" />

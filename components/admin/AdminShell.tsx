@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import TutorialModal from "@/components/admin/TutorialModal";
 import Link from "next/link";
 import AdminProducts from "@/components/admin/AdminProducts";
 import AdminOrders from "@/components/admin/AdminOrders";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminEarnings from "@/components/admin/AdminEarnings";
 import AdminSupport from "@/components/admin/AdminSupport";
+import AdminCustomers from "@/components/admin/AdminCustomers";
 import RejectedBanner from "@/components/admin/RejectedBanner";
 import CloseStoreSection from "@/components/admin/CloseStoreSection";
+import CommissionPayerCard from "@/components/admin/CommissionPayerCard";
 import SellerHome, {
   CopyLinkButton,
   useStoreUrl,
@@ -28,6 +32,7 @@ const NAV: { key: SellerTab; label: string; icon: IconName; hint: string }[] = [
   { key: "inicio", label: "Inicio", icon: "panel", hint: "Cómo va tu tienda" },
   { key: "productos", label: "Productos", icon: "bag", hint: "Lo que vendes" },
   { key: "pedidos", label: "Pedidos", icon: "box", hint: "Lo que te compraron" },
+  { key: "clientes", label: "Clientes", icon: "meet", hint: "Quién te compra" },
   { key: "diseno", label: "Diseño", icon: "spark", hint: "Estilo, colores y logo" },
   { key: "billetera", label: "Billetera", icon: "wallet", hint: "Tus ganancias" },
   { key: "datos", label: "Datos y cobros", icon: "settings", hint: "Contacto, redes y QR" },
@@ -83,6 +88,7 @@ export default function AdminShell({
   overview,
   checklist,
   initialTab,
+  showTutorial = false,
 }: {
   slug: string;
   status: string;
@@ -93,8 +99,30 @@ export default function AdminShell({
   overview: SellerOverview;
   checklist: SellerChecklist;
   initialTab: SellerTab;
+  /** Primera vez en el panel: el tutorial se abre solo. */
+  showTutorial?: boolean;
 }) {
   const [tab, setTabState] = useState<SellerTab>(initialTab);
+  const [tutorialOpen, setTutorialOpen] = useState(showTutorial);
+  const [tutorialFirstTime, setTutorialFirstTime] = useState(showTutorial);
+
+  // Cualquier parte del panel (ej. la guía de la Billetera) puede abrir el
+  // tutorial con: window.dispatchEvent(new Event("dcompras:open-tutorial"))
+  useEffect(() => {
+    const open = () => {
+      setTutorialFirstTime(false);
+      setTutorialOpen(true);
+    };
+    window.addEventListener("dcompras:open-tutorial", open);
+    // Link directo: /admin/<tienda>?tutorial=1 abre el tutorial (para
+    // volver a verlo o mandárselo a un vendedor por WhatsApp).
+    if (new URLSearchParams(window.location.search).get("tutorial") === "1") open();
+    return () => window.removeEventListener("dcompras:open-tutorial", open);
+  }, []);
+  const openTutorial = () => {
+    setTutorialFirstTime(false);
+    setTutorialOpen(true);
+  };
   const url = useStoreUrl(slug);
   const approved = status === "aprobada";
   const current = NAV.find((n) => n.key === tab)!;
@@ -162,6 +190,14 @@ export default function AdminShell({
         </nav>
 
         <div className="border-t border-ink/5 p-3">
+          <button
+            type="button"
+            onClick={openTutorial}
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-jade-100 bg-jade-50 px-3 py-2.5 text-sm font-semibold text-jade-700 transition hover:border-jade-400"
+          >
+            <Icon name="play" mono className="h-4 w-4" />
+            Ver tutorial
+          </button>
           <a
             href={`/${slug}`}
             target="_blank"
@@ -207,6 +243,15 @@ export default function AdminShell({
                 {pill.label}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={openTutorial}
+              aria-label="Ver tutorial"
+              title="Ver tutorial"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-jade-100 bg-jade-50 text-jade-700"
+            >
+              <Icon name="play" mono className="h-3.5 w-3.5" />
+            </button>
             <a
               href={`/${slug}`}
               target="_blank"
@@ -225,6 +270,17 @@ export default function AdminShell({
           </div>
           <nav className="overflow-x-auto px-4 pb-2.5" aria-label="Secciones del panel">
             <ul className="flex w-max gap-1.5">
+              {/* El tutorial siempre a un toque en el celular (no solo la primera vez). */}
+              <li>
+                <button
+                  type="button"
+                  onClick={openTutorial}
+                  className="flex items-center gap-1.5 rounded-full bg-jade-500 px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  <Icon name="play" mono className="h-3.5 w-3.5" />
+                  Tutorial
+                </button>
+              </li>
               {NAV.map((item) => {
                 const active = tab === item.key;
                 const badge = badges[item.key] ?? 0;
@@ -297,6 +353,24 @@ export default function AdminShell({
           )}
 
           {tab === "inicio" && (
+            <button
+              type="button"
+              onClick={openTutorial}
+              className="group mb-5 flex w-full items-center gap-3 rounded-2xl bg-ink p-4 text-left text-white shadow-sm transition hover:bg-ink-soft"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-jade-500">
+                <Icon name="play" mono className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">¿Dudas sobre cobros, liquidaciones o tu billetera?</span>
+                <span className="block text-xs text-white/60">Mira el tutorial con voz · unos 3 minutos · cuando quieras</span>
+              </span>
+              <span className="text-lg text-jade-400 transition group-hover:translate-x-0.5" aria-hidden="true">
+                →
+              </span>
+            </button>
+          )}
+          {tab === "inicio" && (
             <SellerHome
               slug={slug}
               storeName={store.name}
@@ -309,17 +383,24 @@ export default function AdminShell({
           )}
           {tab === "productos" && <AdminProducts slug={slug} />}
           {tab === "pedidos" && <AdminOrders slug={slug} />}
+          {tab === "clientes" && <AdminCustomers slug={slug} />}
           {tab === "diseno" && <AdminSettings slug={slug} section="diseno" />}
           {tab === "billetera" && <AdminEarnings slug={slug} />}
           {tab === "datos" && (
             <>
               <AdminSettings slug={slug} section="datos" />
+              <CommissionPayerCard slug={slug} />
               <CloseStoreSection slug={slug} storeName={store.name} />
             </>
           )}
           {tab === "soporte" && <AdminSupport slug={slug} />}
         </main>
       </div>
+      <AnimatePresence>
+        {tutorialOpen && (
+          <TutorialModal slug={slug} firstTime={tutorialFirstTime} onClose={() => setTutorialOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

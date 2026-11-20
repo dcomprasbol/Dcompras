@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { parseLatLngFromText } from "@/lib/geo";
 
 // Links acortados de Google Maps (maps.app.goo.gl, goo.gl/maps) no traen
@@ -6,6 +7,8 @@ import { parseLatLngFromText } from "@/lib/geo";
 // URL final que sí las trae. El navegador no puede hacer este fetch por
 // CORS, así que lo resolvemos acá en el servidor.
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, RATE_LIMITS.geo);
+  if (limited) return limited;
   const body = await req.json().catch(() => null);
   const url = body?.url;
   if (!url || typeof url !== "string") {

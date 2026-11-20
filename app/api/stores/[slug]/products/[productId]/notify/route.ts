@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getStoreBySlug, getProductById, createStockNotification } from "@/lib/repo";
 
 // Endpoint público (sin login) para "avisame cuando haya stock" — el
@@ -8,6 +9,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string; productId: string } }
 ) {
+  const limited = await rateLimit(req, RATE_LIMITS.stockNotify);
+  if (limited) return limited;
   const store = await getStoreBySlug(params.slug);
   if (!store) return NextResponse.json({ error: "Tienda no encontrada" }, { status: 404 });
 

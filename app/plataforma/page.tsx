@@ -31,6 +31,8 @@ import PayoutsPanel from "@/components/platform/PayoutsPanel";
 import ReportsPanel from "@/components/platform/ReportsPanel";
 import DeletedStoresPanel from "@/components/platform/DeletedStoresPanel";
 import StoreDirectory from "@/components/platform/StoreDirectory";
+import PickupPointsAdmin from "@/components/platform/PickupPointsAdmin";
+import { listPickupPoints, listOperators } from "@/lib/pickup";
 import PlatformNav, {
   isPlatformSection,
   sectionHref,
@@ -137,6 +139,8 @@ export default async function PlataformaPage({
             </Section>
           )}
 
+          {section === "puntos" && <PuntosSection />}
+
           {section === "moderacion" && <ModeracionSection stores={stores} reports={reports} />}
 
           {section === "soporte" && (
@@ -147,6 +151,21 @@ export default async function PlataformaPage({
         </main>
       </div>
     </div>
+  );
+}
+
+// Puntos Dcompras: dónde se dejan y retiran los paquetes. Se crean desde un
+// mapa; cada punto tiene sus encargados (rol operador, entran a /punto).
+async function PuntosSection() {
+  const points = await listPickupPoints();
+  const withOperators = await Promise.all(points.map(async (p) => ({ ...p, operators: await listOperators(p.id) })));
+  return (
+    <Section
+      title="Puntos Dcompras"
+      description="Lugares físicos donde el vendedor deja el paquete y el comprador lo retira con su código. Marca cada punto en el mapa y asigna a sus encargados: ellos reciben y entregan desde /punto, con foto de cada recepción."
+    >
+      <PickupPointsAdmin initialPoints={withOperators} />
+    </Section>
   );
 }
 

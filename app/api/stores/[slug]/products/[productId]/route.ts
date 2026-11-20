@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { imageErrorResponse } from "@/lib/storage";
 import { requireStoreAdmin } from "@/lib/auth";
 import { setProductActive, updateProduct, getProductById, deleteProduct } from "@/lib/repo";
 import { MAX_PRODUCT_IMAGES } from "@/lib/utils";
@@ -39,6 +40,7 @@ export async function PATCH(
     }
   }
 
+  try {
   await updateProduct(params.productId, {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description: description || null } : {}),
@@ -50,6 +52,9 @@ export async function PATCH(
     // ningún otro caller que no conozca el campo nuevo.
     ...(parsedImages !== undefined ? { images: parsedImages } : imageUrl !== undefined ? { imageUrl: imageUrl || null } : {}),
   });
+  } catch (err) {
+    return imageErrorResponse(err);
+  }
 
   return NextResponse.json({ ok: true });
 }

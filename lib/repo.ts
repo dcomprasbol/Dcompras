@@ -1,5 +1,7 @@
 import { sql, dbReady, newId, nowISO } from "@/lib/db";
-import { calculateCommission } from "@/lib/commission";
+import { calculateCommission, type CommissionPayer } from "@/lib/commission";
+import { persistImage, persistImages } from "@/lib/storage";
+import { isAutoQrEnabled } from "@/lib/paymentConfig";
 
 export type Store = {
   id: string;
@@ -33,6 +35,8 @@ export type Store = {
   deletionNote: string | null;
   originalSlug: string | null;
   suspensionNote: string | null;
+  commissionPayer: CommissionPayer;
+  tutorialSeenAt: string | null;
   createdAt: string;
 };
 
@@ -88,9 +92,30 @@ export type Order = {
   rating: number | null;
   review: string | null;
   buyerId: string | null;
+  commissionPayer: CommissionPayer;
+  marketingOptIn: boolean;
+  reminderSentAt: string | null;
+  paymentAmountUnique: number | null;
+  paymentReceiptUrl: string | null;
+  paymentReceiptAt: string | null;
+  pickupPointId: string | null;
+  pickupFee: number | null;
+  pickupStatus: PickupStatus | null;
+  pickupCode: string | null;
+  pickupReceivedAt: string | null;
+  pickupReceivedBy: string | null;
+  pickupIntakePhoto: string | null;
+  pickupDeadline: string | null;
+  pickupPickedUpAt: string | null;
+  pickupDeliveredBy: string | null;
+  pickupHandoverPhoto: string | null;
+  pickupCollectedAmount: number | null;
+  pickupReturnedAt: string | null;
   createdAt: string;
   items: OrderItem[];
 };
+
+export type PickupStatus = "esperando_vendedor" | "en_punto" | "retirado" | "devuelto";
 
 // ---------- Stores ----------
 
@@ -162,6 +187,7 @@ export async function createStore(input: {
   await dbReady;
   const id = newId();
   const createdAt = nowISO();
+  input = { ...input, logoUrl: await persistImage(input.logoUrl, "logos") };
   await sql`
     INSERT INTO stores (
       id, slug, name, owner_name, whatsapp, city, user_id,
@@ -311,10 +337,16 @@ export async function updateStoreSettings(
       | "bankAccountType"
       | "dropAt"
       | "storeStyle"
+      | "commissionPayer"
     >
   >
 ): Promise<void> {
   await dbReady;
+  fields = { ...fields };
+  if (fields.logoUrl !== undefined) fields.logoUrl = await persistImage(fields.logoUrl, "logos");
+  if (fields.paymentQrImageUrl !== undefined) {
+    fields.paymentQrImageUrl = await persistImage(fields.paymentQrImageUrl, "payment-qr");
+  }
   const keys = Object.keys(fields) as (keyof typeof fields)[];
   if (keys.length === 0) return;
   await sql`UPDATE stores SET ${sql(fields as Record<string, unknown>, ...keys)} WHERE id = ${storeId}`;
@@ -358,12 +390,15 @@ export async function createProduct(input: {
   // La portada (image_url) siempre es la primera foto de la galería, para
   // que todo lo que lee una sola imagen (carrito, checkout, tarjeta de
   // producto, pedidos) siga funcionando sin cambios.
-  const images = (input.images && input.images.length > 0
-    ? input.images
-    : input.imageUrl
-      ? [input.imageUrl]
-      : []
-  ).slice(0, 5);
+  const images = await persistImages(
+    (input.images && input.images.length > 0
+      ? input.images
+      : input.imageUrl
+        ? [input.imageUrl]
+        : []
+    ).slice(0, 5),
+    "products"
+  );
   const coverImage = images[0] ?? null;
   await sql`
     INSERT INTO products (id, store_id, name, description, price, compare_at_price, image_url, images, tags, active, created_at)
@@ -400,13 +435,14 @@ export async function updateProduct(
   // siempre tiene que quedar igual a images[0] — ver createProduct.
   const { images, imageUrl, ...rest } = fields;
   if (images !== undefined) {
-    const trimmed = images.slice(0, 5);
+    const trimmed = await persistImages(images.slice(0, 5), "products");
     await sql`
       UPDATE products SET images = ${sql.json(trimmed)}, image_url = ${trimmed[0] ?? null}
       WHERE id = ${productId}
     `;
   } else if (imageUrl !== undefined) {
-    await sql`UPDATE products SET image_url = ${imageUrl} WHERE id = ${productId}`;
+    const stored = await persistImage(imageUrl, "products");
+    await sql`UPDATE products SET image_url = ${stored} WHERE id = ${productId}`;
   }
   const keys = Object.keys(rest) as (keyof typeof rest)[];
   if (keys.length > 0) {
@@ -529,23 +565,31 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
         infinityOrderId: string | null;
         paidAt: string | null;
         paymentMethod: string;
+        commissionPayer: CommissionPayer;
       }[]
     >`
-      SELECT total, sip_id_qr, infinity_order_id, paid_at, payment_method FROM orders WHERE id = ${orderId}
+      SELECT total, sip_id_qr, infinity_order_id, paid_at, payment_method, commission_payer FROM orders WHERE id = ${orderId}
     `;
     const order = rows[0];
     if (order && order.paidAt === null) {
       const { commissionAmount, netAmount } = calculateCommission(
         Number(order.total),
-        Boolean(order.sipIdQr) || Boolean(order.infinityOrderId)
+        Boolean(order.sipIdQr) || Boolean(order.infinityOrderId),
+        order.commissionPayer
       );
       await sql.begin(async (tx) => {
-        await tx`
+        // "AND paid_at IS NULL" hace que el propio UPDATE sea el candado: si
+        // llegan dos confirmaciones a la vez (los bancos reintentan
+        // webhooks), solo una actualiza la fila y descuenta stock; la otra
+        // no actualiza nada y sale sin tocar el stock.
+        const won = await tx`
           UPDATE orders
           SET status = 'pagado', paid_at = ${nowISO()},
               commission_amount = ${commissionAmount}, net_amount = ${netAmount}
-          WHERE id = ${orderId}
+          WHERE id = ${orderId} AND paid_at IS NULL
+          RETURNING id
         `;
+        if (won.length === 0) return;
         // Contra entrega ya descontó su stock al crear el pedido (ahí sí es
         // un compromiso inmediato, no hay pago que esperar) — no lo toques
         // de nuevo acá o quedaría descontado doble.
@@ -704,7 +748,12 @@ export async function createOrderWithItems(
   },
   paymentMethod: string,
   items: CartInputItem[],
-  buyerId: string | null = null
+  buyerId: string | null = null,
+  extra: {
+    commissionPayer?: CommissionPayer;
+    marketingOptIn?: boolean;
+    pickup?: { pointId: string; fee: number } | null;
+  } = {}
 ): Promise<Order> {
   await dbReady;
   const orderId = newId();
@@ -785,11 +834,14 @@ export async function createOrderWithItems(
     await tx`
       INSERT INTO orders (
         id, store_id, customer_name, customer_phone, customer_address,
-        delivery_type, delivery_lat, delivery_lng, payment_method, status, total, buyer_id, created_at
+        delivery_type, delivery_lat, delivery_lng, payment_method, status, total, buyer_id, created_at,
+        commission_payer, marketing_opt_in, pickup_point_id, pickup_fee, pickup_status
       )
       VALUES (
         ${orderId}, ${storeId}, ${customer.customerName}, ${customer.customerPhone}, ${customer.customerAddress},
-        ${customer.deliveryType}, ${customer.deliveryLat}, ${customer.deliveryLng}, ${paymentMethod}, 'pendiente', ${total}, ${buyerId}, ${createdAt}
+        ${customer.deliveryType}, ${customer.deliveryLat}, ${customer.deliveryLng}, ${paymentMethod}, 'pendiente', ${total}, ${buyerId}, ${createdAt},
+        ${extra.commissionPayer ?? "comprador"}, ${Boolean(extra.marketingOptIn)},
+        ${extra.pickup?.pointId ?? null}, ${extra.pickup?.fee ?? null}, ${extra.pickup ? "esperando_vendedor" : null}
       )
     `;
 
@@ -945,17 +997,22 @@ export type PublicStore = {
   hasLogo: boolean;
   productCount: number;
   previewIds: string[];
+  /** El vendedor asume el pago verificado: su tienda lleva el sello "Sin recargos". */
+  noSurcharge: boolean;
 };
 
 export async function listPublicStores(): Promise<PublicStore[]> {
   await dbReady;
-  return sql<PublicStore[]>`
+  // El sello solo tiene sentido si hay cobro automático (si no, no hay
+  // recargo que asumir).
+  const autoQr = isAutoQrEnabled();
+  const rows = await sql<(Omit<PublicStore, "noSurcharge"> & { commissionPayer: string })[]>`
     WITH available AS (
       SELECT p.id, p.store_id, p.image_url, p.created_at
       FROM products p
       WHERE p.active AND EXISTS (SELECT 1 FROM variants v WHERE v.product_id = p.id AND v.stock > 0)
     )
-    SELECT s.slug, s.name, s.tagline, s.category, s.city, s.theme_color,
+    SELECT s.slug, s.name, s.tagline, s.category, s.city, s.theme_color, s.commission_payer,
       (s.logo_url IS NOT NULL AND s.logo_url <> '') AS has_logo,
       (SELECT COUNT(*)::int FROM available a WHERE a.store_id = s.id) AS product_count,
       COALESCE((
@@ -969,6 +1026,7 @@ export async function listPublicStores(): Promise<PublicStore[]> {
     WHERE s.status = 'aprobada' AND s.deleted_at IS NULL
     ORDER BY product_count DESC, s.created_at ASC
   `;
+  return rows.map(({ commissionPayer, ...r }) => ({ ...r, noSurcharge: autoQr && commissionPayer === "vendedor" }));
 }
 
 // Actividad de cada tienda para el directorio del admin (/plataforma):
@@ -1473,4 +1531,198 @@ export async function createStoreWarning(storeId: string, note?: string | null):
 export async function listAllStoreWarnings(): Promise<StoreWarning[]> {
   await dbReady;
   return sql<StoreWarning[]>`SELECT * FROM store_warnings ORDER BY created_at DESC`;
+}
+
+// ---------- Pedidos por cobrar / pago coordinado ----------
+
+/** "Por cobrar": el vendedor le mandó el recordatorio de pago al comprador. */
+export async function markOrderReminderSent(orderId: string): Promise<void> {
+  await dbReady;
+  await sql`UPDATE orders SET reminder_sent_at = ${nowISO()} WHERE id = ${orderId}`;
+}
+
+/**
+ * Pago coordinado (QR sin cobro automático): le asigna al pedido un monto
+ * con centavos únicos (ej. Bs 150,37) para que el vendedor encuentre la
+ * transferencia en su banco de un vistazo. Evita repetir centavos con otro
+ * pedido pendiente de la misma tienda y el mismo total. Los centavos extra
+ * los paga el comprador y le llegan al vendedor (nunca pasan por Dcompras).
+ */
+export async function assignUniquePaymentAmount(order: { id: string; storeId: string; total: number }): Promise<number> {
+  await dbReady;
+  const taken = await sql<{ amount: number }[]>`
+    SELECT payment_amount_unique AS amount FROM orders
+    WHERE store_id = ${order.storeId} AND status = 'pendiente' AND payment_amount_unique IS NOT NULL
+      AND floor(total) = floor(${order.total})
+  `;
+  const used = new Set(taken.map((t) => Math.round(Number(t.amount) * 100)));
+  const base = Math.floor(order.total);
+  let amount = base + 0.01;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const cents = 1 + Math.floor(Math.random() * 98); // 0,01 a 0,98
+    amount = Math.round((base + cents / 100) * 100) / 100;
+    if (amount > order.total && !used.has(Math.round(amount * 100))) break;
+  }
+  await sql`UPDATE orders SET payment_amount_unique = ${amount} WHERE id = ${order.id}`;
+  return amount;
+}
+
+/** El comprador sube la captura de su transferencia (queda "por verificar"). */
+export async function saveOrderPaymentReceipt(orderId: string, receipt: string): Promise<void> {
+  await dbReady;
+  await sql`
+    UPDATE orders SET payment_receipt_url = ${receipt}, payment_receipt_at = ${nowISO()}
+    WHERE id = ${orderId} AND status = 'pendiente'
+  `;
+}
+
+/** Venta promedio y pedidos por mes (últimos 90 días), para simular el pago verificado. */
+export async function getStoreSalesStats(storeId: string): Promise<{ avgTicket: number; monthlyOrders: number }> {
+  await dbReady;
+  const [row] = await sql<{ avgTicket: number | null; orders: number }[]>`
+    SELECT AVG(total)::float AS avg_ticket, COUNT(*)::int AS orders FROM orders
+    WHERE store_id = ${storeId} AND status <> 'pendiente'
+      AND created_at::timestamptz >= now() - interval '90 days'
+  `;
+  return {
+    avgTicket: Math.round(Number(row?.avgTicket ?? 0) * 100) / 100,
+    monthlyOrders: Math.round((row?.orders ?? 0) / 3),
+  };
+}
+
+// ---------- Precios en lote ----------
+
+export type PriceChangeBatch = {
+  batchId: string;
+  description: string;
+  createdAt: string;
+  count: number;
+  reverted: boolean;
+};
+
+/**
+ * Aplica un lote de cambios de precio en una transacción y lo registra en
+ * price_changes para poder deshacerlo. Solo toca productos de esa tienda.
+ */
+export async function applyPriceBatch(
+  storeId: string,
+  description: string,
+  changes: { productId: string; oldPrice: number; newPrice: number; oldCompareAt: number | null; newCompareAt: number | null }[]
+): Promise<string> {
+  await dbReady;
+  const batchId = newId();
+  const createdAt = nowISO();
+  await sql.begin(async (tx) => {
+    for (const c of changes) {
+      const updated = await tx`
+        UPDATE products SET price = ${c.newPrice}, compare_at_price = ${c.newCompareAt}
+        WHERE id = ${c.productId} AND store_id = ${storeId}
+        RETURNING id
+      `;
+      if (updated.length === 0) continue;
+      await tx`
+        INSERT INTO price_changes (id, batch_id, store_id, product_id, description, old_price, new_price,
+          old_compare_at, new_compare_at, created_at)
+        VALUES (${newId()}, ${batchId}, ${storeId}, ${c.productId}, ${description}, ${c.oldPrice}, ${c.newPrice},
+          ${c.oldCompareAt}, ${c.newCompareAt}, ${createdAt})
+      `;
+    }
+  });
+  return batchId;
+}
+
+/** Deshace un lote: vuelve cada producto al precio que tenía antes de ese lote. */
+export async function revertPriceBatch(storeId: string, batchId: string): Promise<number> {
+  await dbReady;
+  let count = 0;
+  await sql.begin(async (tx) => {
+    const rows = await tx<{ productId: string; oldPrice: number; oldCompareAt: number | null }[]>`
+      SELECT product_id, old_price, old_compare_at FROM price_changes
+      WHERE batch_id = ${batchId} AND store_id = ${storeId} AND reverted_at IS NULL
+      FOR UPDATE
+    `;
+    for (const r of rows) {
+      await tx`
+        UPDATE products SET price = ${r.oldPrice}, compare_at_price = ${r.oldCompareAt}
+        WHERE id = ${r.productId} AND store_id = ${storeId}
+      `;
+      count++;
+    }
+    await tx`UPDATE price_changes SET reverted_at = ${nowISO()} WHERE batch_id = ${batchId} AND store_id = ${storeId}`;
+  });
+  return count;
+}
+
+export async function listPriceBatches(storeId: string, limit = 10): Promise<PriceChangeBatch[]> {
+  await dbReady;
+  return sql<PriceChangeBatch[]>`
+    SELECT batch_id, MIN(description) AS description, MIN(created_at) AS created_at,
+      COUNT(*)::int AS count, BOOL_OR(reverted_at IS NOT NULL) AS reverted
+    FROM price_changes WHERE store_id = ${storeId}
+    GROUP BY batch_id
+    ORDER BY MIN(created_at) DESC
+    LIMIT ${limit}
+  `;
+}
+
+// ---------- Mis clientes ----------
+
+export type StoreCustomer = {
+  phone: string;
+  name: string;
+  orders: number;
+  totalSpent: number;
+  firstOrderAt: string;
+  lastOrderAt: string;
+  optIn: boolean;
+  topItems: string[];
+};
+
+/**
+ * Clientes de una tienda armados solos a partir de sus pedidos, agrupados
+ * por teléfono (solo dígitos). Cuenta como compra todo pedido que no quedó
+ * "pendiente" sin pagar (un contra entrega pendiente sí cuenta: ya es un
+ * compromiso). `optIn` = marcó en algún pedido que quiere recibir novedades.
+ */
+export async function listStoreCustomers(storeId: string): Promise<StoreCustomer[]> {
+  await dbReady;
+  return sql<StoreCustomer[]>`
+    WITH o AS (
+      SELECT *, regexp_replace(customer_phone, '\D', '', 'g') AS phone_digits
+      FROM orders
+      WHERE store_id = ${storeId}
+        AND (status <> 'pendiente' OR payment_method = 'contra_entrega')
+    ),
+    agg AS (
+      SELECT phone_digits AS phone,
+        (ARRAY_AGG(customer_name ORDER BY created_at DESC))[1] AS name,
+        COUNT(*)::int AS orders,
+        COALESCE(SUM(total), 0)::float AS total_spent,
+        MIN(created_at) AS first_order_at,
+        MAX(created_at) AS last_order_at,
+        BOOL_OR(marketing_opt_in) AS opt_in
+      FROM o
+      WHERE length(phone_digits) >= 6
+      GROUP BY phone_digits
+    )
+    SELECT agg.*,
+      COALESCE((
+        SELECT ARRAY_AGG(t.label ORDER BY t.qty DESC) FROM (
+          SELECT oi.label, SUM(oi.quantity) AS qty
+          FROM order_items oi JOIN o ON o.id = oi.order_id
+          WHERE o.phone_digits = agg.phone
+          GROUP BY oi.label
+          ORDER BY qty DESC
+          LIMIT 3
+        ) t
+      ), '{}') AS top_items
+    FROM agg
+    ORDER BY agg.total_spent DESC
+  `;
+}
+
+/** El vendedor ya vio el tutorial de bienvenida (no se le vuelve a abrir solo). */
+export async function markTutorialSeen(storeId: string): Promise<void> {
+  await dbReady;
+  await sql`UPDATE stores SET tutorial_seen_at = ${nowISO()} WHERE id = ${storeId} AND tutorial_seen_at IS NULL`;
 }

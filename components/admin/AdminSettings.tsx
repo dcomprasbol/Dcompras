@@ -346,6 +346,14 @@ export default function AdminSettings({
           plata de tus ventas. Así funciona cuando agendes una liquidación desde la pestaña
           Billetera:
         </p>
+        <a
+          href="?tab=billetera&guia=1"
+          className="mb-4 flex items-center gap-2 rounded-xl border border-jade-200 bg-jade-50 px-3 py-2.5 text-xs font-semibold text-jade-800 transition hover:border-jade-400"
+        >
+          <Icon name="play" mono className="h-4 w-4" />
+          Ver en video cómo cobras y cómo te pagamos
+          <span className="ml-auto">→</span>
+        </a>
         <ol className="mb-4 space-y-2 text-xs text-ink/60">
           <li className="flex gap-2">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-jade-100 text-[11px] font-bold text-jade-700">

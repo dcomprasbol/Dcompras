@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon, { type IconName } from "@/components/Icon";
 import { discountPct, type ThemeHomeProps, type ThemeProduct } from "./types";
@@ -193,7 +193,7 @@ function PopCard({ slug, product, index }: { slug: string; product: ThemeProduct
         <div className="relative aspect-square overflow-hidden border-b-[3px] border-[var(--store-text)] bg-[var(--store-card-bg)]">
           {product.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+            <img src={thumbUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
           ) : (
             <div className="flex h-full items-center justify-center opacity-30">
               <Icon name="bag" className="h-12 w-12" />

@@ -342,6 +342,107 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$;
 
+  -- Límite de intentos para endpoints públicos (ver lib/rateLimit.ts): un
+  -- contador por (llave, ventana de tiempo). Las filas viejas se borran solas
+  -- de a poco desde lib/rateLimit.ts.
+  CREATE TABLE IF NOT EXISTS rate_limits (
+    key TEXT NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (key, window_start)
+  );
+  CREATE INDEX IF NOT EXISTS rate_limits_window_idx ON rate_limits (window_start);
+
+  -- "Pago verificado" (el 1% de lib/commission.ts): el vendedor elige quién
+  -- lo paga. 'comprador' (default) = se suma arriba del precio; 'vendedor' =
+  -- el comprador paga el precio de catálogo y el 1% se descuenta del neto.
+  -- Se copia en cada pedido al crearlo: cambiar el ajuste nunca recalcula
+  -- pedidos viejos.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS commission_payer TEXT NOT NULL DEFAULT 'comprador';
+
+  -- Tutorial de bienvenida del panel del vendedor: se muestra solo hasta que
+  -- lo ve (ver components/admin/TutorialModal.tsx). Por tienda, así no
+  -- vuelve a aparecer al entrar desde otro celular.
+  ALTER TABLE stores ADD COLUMN IF NOT EXISTS tutorial_seen_at TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_payer TEXT NOT NULL DEFAULT 'comprador';
+
+  -- "Mis clientes": el comprador marca en el checkout si quiere recibir
+  -- novedades de la tienda. Solo a esos se les puede escribir en grupo.
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN NOT NULL DEFAULT false;
+  -- "Por cobrar": cuándo el vendedor le mandó el recordatorio de pago. Si el
+  -- pedido se paga después, cuenta como venta recuperada.
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS reminder_sent_at TEXT;
+
+  -- Pago coordinado (QR con pago por WhatsApp, sin QR automático): monto con
+  -- centavos únicos para que el vendedor encuentre la transferencia en su
+  -- banco de un vistazo, y el comprobante que sube el comprador. El
+  -- comprobante tiene datos bancarios: queda en la base, nunca en el bucket
+  -- público de fotos.
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_amount_unique DOUBLE PRECISION;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_receipt_at TEXT;
+
+  -- Edición de precios en lote: cada cambio queda registrado por lote para
+  -- poder deshacerlo (y como historial de precios del producto).
+  CREATE TABLE IF NOT EXISTS price_changes (
+    id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL,
+    store_id TEXT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    old_price DOUBLE PRECISION NOT NULL,
+    new_price DOUBLE PRECISION NOT NULL,
+    old_compare_at DOUBLE PRECISION,
+    new_compare_at DOUBLE PRECISION,
+    created_at TEXT NOT NULL,
+    reverted_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_price_changes_store ON price_changes(store_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_price_changes_batch ON price_changes(batch_id);
+
+  -- Punto Dcompras: lugar físico donde el vendedor deja el paquete y el
+  -- comprador lo retira. Los crea el admin de plataforma desde un mapa.
+  CREATE TABLE IF NOT EXISTS pickup_points (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    city TEXT NOT NULL,
+    address TEXT NOT NULL,
+    reference TEXT,
+    lat DOUBLE PRECISION NOT NULL,
+    lng DOUBLE PRECISION NOT NULL,
+    hours TEXT NOT NULL,
+    fee DOUBLE PRECISION NOT NULL,
+    free_days INTEGER NOT NULL DEFAULT 5,
+    storage_fee_per_day DOUBLE PRECISION NOT NULL DEFAULT 2,
+    dropoff_days INTEGER NOT NULL DEFAULT 2,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TEXT NOT NULL
+  );
+  -- Encargados de cada punto (rol "operador"): por correo de su cuenta.
+  CREATE TABLE IF NOT EXISTS pickup_operators (
+    email TEXT NOT NULL,
+    point_id TEXT NOT NULL REFERENCES pickup_points(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (email, point_id)
+  );
+  -- Estado del pedido en el punto:
+  --   esperando_vendedor → en_punto → retirado
+  --                                 ↘ devuelto (no lo retiraron a tiempo)
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_point_id TEXT REFERENCES pickup_points(id) ON DELETE SET NULL;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_fee DOUBLE PRECISION;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_status TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_code TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_received_at TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_received_by TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_intake_photo TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_deadline TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_picked_up_at TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_delivered_by TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_handover_photo TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_collected_amount DOUBLE PRECISION;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_returned_at TEXT;
+  CREATE INDEX IF NOT EXISTS idx_orders_pickup ON orders(pickup_point_id, pickup_status);
+
   -- Seguridad: Supabase publica el esquema "public" por su API REST, y la
   -- clave "anon" (NEXT_PUBLIC_SUPABASE_ANON_KEY) viaja en el navegador. Sin
   -- RLS, cualquiera con esa clave podía leer y modificar tiendas, pedidos y
@@ -359,4 +460,8 @@ export const dbReady: Promise<unknown> = sql.unsafe(`
   ALTER TABLE store_warnings ENABLE ROW LEVEL SECURITY;
   ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
   ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE price_changes ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE pickup_points ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE pickup_operators ENABLE ROW LEVEL SECURITY;
 `);

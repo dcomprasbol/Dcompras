@@ -10,6 +10,7 @@ export type PlatformSection =
   | "solicitudes"
   | "tiendas"
   | "liquidaciones"
+  | "puntos"
   | "moderacion"
   | "soporte";
 
@@ -18,6 +19,7 @@ export const PLATFORM_SECTIONS: { key: PlatformSection; label: string; icon: Ico
   { key: "solicitudes", label: "Solicitudes", icon: "clock" },
   { key: "tiendas", label: "Tiendas", icon: "bag" },
   { key: "liquidaciones", label: "Liquidaciones", icon: "wallet" },
+  { key: "puntos", label: "Puntos Dcompras", icon: "pin" },
   { key: "moderacion", label: "Reportes", icon: "alert" },
   { key: "soporte", label: "Soporte", icon: "chat" },
 ];

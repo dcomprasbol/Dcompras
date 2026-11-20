@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, secondImage, type ThemeHomeProps, type ThemeProduct } from "./types";
@@ -207,7 +207,7 @@ function PieceCard({ slug, product, index }: { slug: string; product: ThemeProdu
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={product.imageUrl}
+              src={thumbUrl(product.imageUrl)}
               alt={product.name}
               className={`absolute inset-0 h-full w-full object-cover transition duration-[1400ms] ease-out group-hover:scale-105 ${alt ? "group-hover:opacity-0" : ""}`}
             />
