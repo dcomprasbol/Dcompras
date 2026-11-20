@@ -114,6 +114,9 @@ export default function AdminShell({
       setTutorialOpen(true);
     };
     window.addEventListener("dcompras:open-tutorial", open);
+    // Link directo: /admin/<tienda>?tutorial=1 abre el tutorial (para
+    // volver a verlo o mandárselo a un vendedor por WhatsApp).
+    if (new URLSearchParams(window.location.search).get("tutorial") === "1") open();
     return () => window.removeEventListener("dcompras:open-tutorial", open);
   }, []);
   const openTutorial = () => {
@@ -267,6 +270,17 @@ export default function AdminShell({
           </div>
           <nav className="overflow-x-auto px-4 pb-2.5" aria-label="Secciones del panel">
             <ul className="flex w-max gap-1.5">
+              {/* El tutorial siempre a un toque en el celular (no solo la primera vez). */}
+              <li>
+                <button
+                  type="button"
+                  onClick={openTutorial}
+                  className="flex items-center gap-1.5 rounded-full bg-jade-500 px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  <Icon name="play" mono className="h-3.5 w-3.5" />
+                  Tutorial
+                </button>
+              </li>
               {NAV.map((item) => {
                 const active = tab === item.key;
                 const badge = badges[item.key] ?? 0;
@@ -338,6 +352,24 @@ export default function AdminShell({
             <h1 className="mb-5 font-display text-xl font-bold text-ink md:hidden">{current.label}</h1>
           )}
 
+          {tab === "inicio" && (
+            <button
+              type="button"
+              onClick={openTutorial}
+              className="group mb-5 flex w-full items-center gap-3 rounded-2xl bg-ink p-4 text-left text-white shadow-sm transition hover:bg-ink-soft"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-jade-500">
+                <Icon name="play" mono className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">¿Dudas sobre cobros, liquidaciones o tu billetera?</span>
+                <span className="block text-xs text-white/60">Mira el tutorial con voz · unos 3 minutos · cuando quieras</span>
+              </span>
+              <span className="text-lg text-jade-400 transition group-hover:translate-x-0.5" aria-hidden="true">
+                →
+              </span>
+            </button>
+          )}
           {tab === "inicio" && (
             <SellerHome
               slug={slug}

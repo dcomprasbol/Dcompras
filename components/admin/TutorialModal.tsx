@@ -92,13 +92,15 @@ export default function TutorialModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex flex-col bg-ink/90 backdrop-blur-sm"
+      // 100dvh: en el celular descuenta la barra del navegador (con 100vh el
+      // final del tutorial quedaba tapado).
+      className="fixed inset-x-0 top-0 z-[60] flex h-[100dvh] flex-col bg-ink/90 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Tutorial de Dcompras"
     >
       {/* Barra superior */}
-      <div className="flex items-center justify-between px-4 py-3 text-white md:px-8">
+      <div className="flex shrink-0 items-center justify-between px-3 py-2 text-white md:px-8 md:py-3">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="" className="h-7 w-7 rounded-lg bg-white object-contain p-0.5" />
@@ -117,7 +119,7 @@ export default function TutorialModal({
         </button>
       </div>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-3 pb-4 md:px-6 md:pb-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-2 pb-2 sm:px-3 sm:pb-4 md:px-6 md:pb-8">
         <AnimatePresence mode="wait">
           {stage === "cover" && (
             <motion.div

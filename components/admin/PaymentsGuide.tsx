@@ -377,7 +377,7 @@ export function VideoPlayer({
           {/* Escenario */}
           <div
             className={`relative flex items-center justify-center overflow-hidden ${
-              cinema ? "min-h-[300px] flex-1 bg-gradient-to-b from-[#f2fbf7] via-paper to-white" : "h-[340px] bg-gradient-to-b from-paper to-white"
+              cinema ? "min-h-[240px] flex-1 bg-gradient-to-b from-[#f2fbf7] via-paper to-white" : "h-[340px] bg-gradient-to-b from-paper to-white"
             }`}
           >
             {/* Brillo de fondo animado: da sensación de video, no de diapositiva */}
@@ -396,7 +396,11 @@ export function VideoPlayer({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 1.02, y: -8 }}
                 transition={{ duration: reduce ? 0 : 0.35, ease: "easeOut" }}
-                className="relative flex h-full w-full items-center justify-center"
+                className={`relative flex h-full w-full items-center justify-center ${
+                  // Celulares de pantalla baja: las escenas (un celular de 290 px
+                  // de alto) se achican para que no se corten.
+                  cinema ? "[@media(max-height:760px)]:scale-[0.85] [@media(max-height:660px)]:scale-[0.72]" : ""
+                }`}
               >
                 {scene.render()}
               </motion.div>
@@ -436,7 +440,7 @@ export function VideoPlayer({
           </div>
 
           {/* Subtítulo + controles */}
-          <div className="border-t border-ink/5 p-4">
+          <div className={`border-t border-ink/5 ${cinema ? "p-3 sm:p-4" : "p-4"}`}>
             <div className="flex gap-1" aria-hidden="true">
               {chapter.scenes.map((s, i) => (
                 <button
@@ -468,7 +472,7 @@ export function VideoPlayer({
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className={`min-h-[2.5rem] leading-snug text-ink/80 ${cinema ? "text-base" : "text-sm"}`}
+                  className={`min-h-[2.5rem] leading-snug text-ink/80 ${cinema ? "text-sm sm:text-base" : "text-sm"}`}
                   aria-live="polite"
                 >
                   {scene.caption}
