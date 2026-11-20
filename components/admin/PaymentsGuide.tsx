@@ -162,6 +162,11 @@ function buildChapters(commissionPercent: number, payer: Payer, includeIntro = f
           duration: 4200,
           render: () => <SceneWalletUp amount={net} payer={payer} />,
         },
+        {
+          caption: `Y tú decides quién paga ese ${commissionPercent}%: tu cliente, sumado al precio, o tú, y tu tienda muestra el sello «Sin recargos». Lo eliges y lo cambias cuando quieras en «Datos y cobros».`,
+          duration: 7600,
+          render: () => <SceneWhoPays percent={commissionPercent} />,
+        },
       ],
     },
     {
@@ -402,7 +407,14 @@ export function VideoPlayer({
                   cinema ? "[@media(max-height:760px)]:scale-[0.85] [@media(max-height:660px)]:scale-[0.72]" : ""
                 }`}
               >
-                {scene.render()}
+                <motion.div
+                  className="flex h-full w-full items-center justify-center"
+                  initial={{ scale: 1 }}
+                  animate={reduce || !playing ? { scale: 1 } : { scale: 1.04 }}
+                  transition={{ duration: reduce ? 0 : scene.duration / 1000 + 4, ease: "linear" }}
+                >
+                  {scene.render()}
+                </motion.div>
               </motion.div>
             </AnimatePresence>
 
@@ -1331,5 +1343,77 @@ function SceneUploadQr() {
         ✓ QR cargado: ya puedes cobrar
       </motion.p>
     </Phone>
+  );
+}
+
+// "Tú eliges quién paga el 1%": la misma compra vista con cada opción,
+// alternando sola, para que se entienda la diferencia sin leer.
+function SceneWhoPays({ percent }: { percent: number }) {
+  const price = 150;
+  const fee = Math.round(price * percent) / 100;
+  const [mode, setMode] = useState<"comprador" | "vendedor">("comprador");
+  useEffect(() => {
+    const a = window.setTimeout(() => setMode("vendedor"), 2600);
+    const b = window.setTimeout(() => setMode("comprador"), 5200);
+    return () => {
+      window.clearTimeout(a);
+      window.clearTimeout(b);
+    };
+  }, []);
+  const absorbs = mode === "vendedor";
+  return (
+    <div className="w-full max-w-xs">
+      <motion.p {...pop(0.1)} className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-ink/40">
+        ¿Quién paga el {percent}%?
+      </motion.p>
+      <motion.div {...pop(0.2)} className="grid grid-cols-2 gap-1 rounded-xl bg-white p-1 shadow-sm">
+        {(["comprador", "vendedor"] as const).map((m) => (
+          <div key={m} className="relative rounded-lg py-2 text-center text-[11px] font-bold">
+            {mode === m && (
+              <motion.span layoutId="who-pays" className="absolute inset-0 rounded-lg bg-ink" transition={{ type: "spring", stiffness: 300, damping: 28 }} />
+            )}
+            <span className={`relative ${mode === m ? "text-white" : "text-ink/50"}`}>
+              {m === "comprador" ? "Mi cliente" : "Yo lo asumo"}
+            </span>
+          </div>
+        ))}
+      </motion.div>
+      <motion.div {...pop(0.4)} className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-white p-3 shadow-sm">
+          <p className="text-[10px] text-ink/50">Tu cliente paga</p>
+          <motion.p key={`c-${mode}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-base font-bold text-ink">
+            {formatBs(absorbs ? price : price + fee)}
+          </motion.p>
+        </div>
+        <div className="rounded-xl bg-jade-50 p-3 shadow-sm">
+          <p className="text-[10px] text-jade-700/70">A ti te llega</p>
+          <motion.p key={`v-${mode}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-base font-bold text-jade-700">
+            {formatBs(absorbs ? price - fee : price)}
+          </motion.p>
+        </div>
+      </motion.div>
+      <div className="mt-3 flex h-7 items-center justify-center">
+        <AnimatePresence mode="wait">
+          {absorbs ? (
+            <motion.span
+              key="badge"
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.7 }}
+              className="bg-ink px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+            >
+              Sin recargos
+            </motion.span>
+          ) : (
+            <motion.span key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[11px] font-semibold text-jade-700">
+              Recibes el 100% de tu precio
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+      <motion.p {...pop(1)} className="mt-1 text-center text-[10px] text-ink/45">
+        Lo eliges en «Datos y cobros»
+      </motion.p>
+    </div>
   );
 }
