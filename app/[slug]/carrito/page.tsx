@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import Icon from "@/components/Icon";
 
@@ -36,7 +36,7 @@ export default function CartPage({ params }: { params: { slug: string } }) {
             <div className="h-16 w-16 flex-shrink-0 overflow-hidden bg-paper">
               {item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                <img src={thumbUrl(item.imageUrl)} alt={item.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-ink/30"><Icon name="bag" className="h-6 w-6" /></div>
               )}

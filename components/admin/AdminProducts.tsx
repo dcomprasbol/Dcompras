@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatBs, fileToResizedDataUrl, MAX_PRODUCT_IMAGES } from "@/lib/utils";
+import { formatBs, fileToResizedDataUrl, MAX_PRODUCT_IMAGES, thumbUrl } from "@/lib/utils";
 import Icon from "@/components/Icon";
+import BulkPriceEditor from "@/components/admin/BulkPriceEditor";
+import StoryImageButton, { type StoryStore } from "@/components/admin/StoryImageButton";
 import { MAX_PRODUCT_TAGS, tagGroupsForCategory, tagLabels, type TagGroup } from "@/lib/productTags";
 
 type Variant = { id?: string; label: string; stock: number };
@@ -59,6 +61,8 @@ export default function AdminProducts({ slug }: { slug: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savedPulse, setSavedPulse] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showBulk, setShowBulk] = useState(false);
+  const [storyStore, setStoryStore] = useState<StoryStore | null>(null);
 
   async function loadProducts() {
     const res = await fetch(`/api/stores/${slug}/products`);
@@ -77,7 +81,12 @@ export default function AdminProducts({ slug }: { slug: string }) {
     loadNotifications();
     fetch(`/api/stores/${slug}`)
       .then((r) => r.json())
-      .then((d) => setCategory(d.store?.category ?? null))
+      .then((d) => {
+        setCategory(d.store?.category ?? null);
+        if (d.store) {
+          setStoryStore({ name: d.store.name, slug: d.store.slug, themeColor: d.store.themeColor, logoUrl: d.store.logoUrl });
+        }
+      })
       .catch(() => {});
   }, [slug]);
 
@@ -259,6 +268,16 @@ export default function AdminProducts({ slug }: { slug: string }) {
               : "Completa los datos de tu producto"
             : "Gestiona lo que vendes"}
         </p>
+        <div className="flex items-center gap-2">
+        {!showForm && products.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setShowBulk((v) => !v)}
+            className="rounded-full border border-ink/15 px-3.5 py-1.5 text-sm font-semibold text-ink/70 transition hover:border-ink/30"
+          >
+            {showBulk ? "Cerrar lote" : "Precios en lote"}
+          </button>
+        )}
         <button
           onClick={() => (showForm ? resetForm() : setShowForm(true))}
           className={`rounded-full bg-jade-500 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-jade-600 ${
@@ -267,7 +286,17 @@ export default function AdminProducts({ slug }: { slug: string }) {
         >
           {showForm ? "Cancelar" : "+ Nuevo producto"}
         </button>
+        </div>
       </div>
+
+      {showBulk && !showForm && (
+        <BulkPriceEditor
+          slug={slug}
+          products={products}
+          onClose={() => setShowBulk(false)}
+          onApplied={loadProducts}
+        />
+      )}
 
       {showForm && (
         <form
@@ -552,6 +581,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
                   product={p}
                   notifications={notifications.filter((n) => n.productId === p.id)}
                   deleting={deletingId === p.id}
+                  storyStore={storyStore}
                   onEdit={() => handleEdit(p)}
                   onDelete={() => handleDelete(p.id)}
                 />
@@ -579,6 +609,7 @@ export default function AdminProducts({ slug }: { slug: string }) {
                     product={p}
                     notifications={notifications.filter((n) => n.productId === p.id)}
                     deleting={deletingId === p.id}
+                    storyStore={storyStore}
                     onEdit={() => handleEdit(p)}
                     onDelete={() => handleDelete(p.id)}
                   />
@@ -596,12 +627,14 @@ function ProductRow({
   product: p,
   notifications: productNotifications,
   deleting,
+  storyStore,
   onEdit,
   onDelete,
 }: {
   product: Product;
   notifications: StockNotification[];
   deleting: boolean;
+  storyStore: StoryStore | null;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -617,7 +650,7 @@ function ProductRow({
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-paper">
             {p.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+              <img src={thumbUrl(p.imageUrl)} alt={p.name} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-ink/30"><Icon name="bag" className="h-5 w-5" /></div>
             )}
@@ -653,6 +686,7 @@ function ProductRow({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <StoryImageButton product={p} store={storyStore} />
           <button onClick={onEdit} className="text-xs font-medium text-ink/50 hover:text-ink">
             Editar
           </button>

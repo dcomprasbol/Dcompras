@@ -24,6 +24,8 @@ export default function PublicStoreBrowser({
   const reduce = useReducedMotion();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(initialCategory);
+  const [onlyNoSurcharge, setOnlyNoSurcharge] = useState(false);
+  const noSurchargeCount = stores.filter((s) => s.noSurcharge).length;
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { todas: stores.length };
@@ -38,10 +40,11 @@ export default function PublicStoreBrowser({
     const q = normalize(query.trim());
     return stores.filter((s) => {
       if (category !== "todas" && normalizeCategory(s.category) !== category) return false;
+      if (onlyNoSurcharge && !s.noSurcharge) return false;
       if (!q) return true;
       return [s.name, s.tagline ?? "", s.city ?? ""].some((f) => normalize(f).includes(q));
     });
-  }, [stores, query, category]);
+  }, [stores, query, category, onlyNoSurcharge]);
 
   const chips = [{ value: "todas", label: "Todas" }, ...STORE_CATEGORIES.filter((c) => counts[c.value])];
 
@@ -92,6 +95,19 @@ export default function PublicStoreBrowser({
               </button>
             );
           })}
+          {noSurchargeCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setOnlyNoSurcharge((v) => !v)}
+              aria-pressed={onlyNoSurcharge}
+              title="Tiendas donde pagas con QR el precio exacto, sin recargo por pago verificado"
+              className={`shrink-0 border px-3.5 py-2 text-xs font-semibold uppercase tracking-wide transition ${
+                onlyNoSurcharge ? "border-jade-500 bg-jade-500 text-white" : "border-jade-500 text-jade-700 hover:bg-jade-50"
+              }`}
+            >
+              Pago QR sin recargo ({noSurchargeCount})
+            </button>
+          )}
         </div>
       </div>
 

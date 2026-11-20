@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrderByInfinityOrderId, getOrderById, updateOrderInfinityInfo, updateOrderStatus } from "@/lib/repo";
 import { verifyWebhookSignature } from "@/lib/infinityPayments";
 import { calculateCommission } from "@/lib/commission";
+import { alertPlatform } from "@/lib/alerts";
 
 // Endpoint que Infinity Payments llama cuando confirma un pago (evento
 // payment.completed) — ver "5. Webhooks" en la documentación.
@@ -66,9 +67,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (!order) {
-    console.error(
-      `Webhook de Infinity: no se encontró pedido (infinityOrderId=${infinityOrderId ?? "-"}, ferioOrderId=${ferioOrderId ?? "-"})`
-    );
+    // Pago real confirmado por Infinity que no podemos atar a ningún pedido:
+    // alguien pagó y nadie lo va a ver si no avisamos.
+    await alertPlatform("Pago de Infinity sin pedido asociado", {
+      infinityOrderId: infinityOrderId ?? "-",
+      ferioOrderId: ferioOrderId ?? "-",
+      amount: body.amount,
+    });
     return NextResponse.json({ received: true });
   }
 
@@ -83,12 +88,15 @@ export async function POST(req: NextRequest) {
   // lib/commission.ts), no con order.total a secas: este pedido llegó por
   // getOrderByInfinityOrderId, o sea que sí pasó por Dcompras. Si no calza,
   // no lo marcamos pagado — queda para revisión manual.
-  const { totalToCharge } = calculateCommission(order.total, true);
+  const { totalToCharge } = calculateCommission(order.total, true, order.commissionPayer);
   const amount = Number(body.amount);
   if (Number.isFinite(amount) && Math.abs(amount - totalToCharge) > 0.01) {
-    console.error(
-      `Webhook de Infinity para el pedido ${order.id}: monto ${amount} no coincide con lo esperado ${totalToCharge}`
-    );
+    await alertPlatform("Pago de Infinity con monto que no coincide", {
+      orderId: order.id,
+      storeId: order.storeId,
+      paid: amount,
+      expected: totalToCharge,
+    });
     return NextResponse.json({ received: true });
   }
 

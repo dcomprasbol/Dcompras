@@ -14,6 +14,7 @@ export type SellerTab =
   | "inicio"
   | "productos"
   | "pedidos"
+  | "clientes"
   | "diseno"
   | "billetera"
   | "datos"

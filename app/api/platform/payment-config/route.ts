@@ -1,16 +1,35 @@
-import { NextResponse } from "next/server";
-import { isInfinityConfigured } from "@/lib/infinityPayments";
-import { isSipConfigured } from "@/lib/sip";
-import { commissionPercent } from "@/lib/commission";
+import { NextRequest, NextResponse } from "next/server";
+import { commissionPercent, PAYMENT_FEE_LABEL } from "@/lib/commission";
+import { isAutoQrEnabled } from "@/lib/paymentConfig";
+import { getStoreBySlug } from "@/lib/repo";
+import { listPickupPoints } from "@/lib/pickup";
 
-// Endpoint público (sin auth, lo llama el checkout de cualquier tienda) que
-// dice si el cobro automático de la plataforma está activo y qué comisión
-// aplica — así el checkout puede mostrarle al comprador el total real
-// (precio + comisión) ANTES de crear el pedido, en vez de sorprenderlo con
-// un QR que pide más de lo que vio en pantalla. No expone ningún secreto,
-// solo estos dos valores de configuración (ver lib/commission.ts).
-export async function GET() {
-  const platformApikeyServicio = process.env.SIP_APIKEY_SERVICIO;
-  const autoQrEnabled = isInfinityConfigured() || Boolean(platformApikeyServicio && isSipConfigured());
-  return NextResponse.json({ autoQrEnabled, commissionPercent: commissionPercent() });
+// Endpoint público (sin auth, lo llama el checkout de cualquier tienda): si
+// el cobro automático está activo, cuánto es el pago verificado, QUIÉN lo
+// paga en esta tienda (?slug=) y qué Puntos Dcompras están disponibles —
+// así el checkout muestra el total real ANTES de crear el pedido. No expone
+// ningún secreto, solo configuración pública.
+export async function GET(req: NextRequest) {
+  const slug = req.nextUrl.searchParams.get("slug");
+  const store = slug ? await getStoreBySlug(slug) : null;
+  const points = await listPickupPoints({ activeOnly: true });
+  return NextResponse.json({
+    autoQrEnabled: isAutoQrEnabled(),
+    commissionPercent: commissionPercent(),
+    feeLabel: PAYMENT_FEE_LABEL,
+    commissionPayer: store?.commissionPayer ?? "comprador",
+    pickupPoints: points.map((p) => ({
+      id: p.id,
+      name: p.name,
+      city: p.city,
+      address: p.address,
+      reference: p.reference,
+      hours: p.hours,
+      fee: p.fee,
+      freeDays: p.freeDays,
+      dropoffDays: p.dropoffDays,
+      lat: p.lat,
+      lng: p.lng,
+    })),
+  });
 }

@@ -9,7 +9,7 @@ import type { PublicStore } from "@/lib/repo";
 // dentro del buscador de /tiendas.
 export default function StoreCard({ store, rank }: { store: PublicStore; rank?: number }) {
   const [a, b, c] = store.previewIds;
-  const img = (id: string) => `/api/img/product/${id}`;
+  const img = (id: string) => `/api/img/product/${id}?size=thumb`;
   return (
     <Link
       href={`/${store.slug}`}
@@ -44,6 +44,14 @@ export default function StoreCard({ store, rank }: { store: PublicStore; rank?: 
         {rank !== undefined && (
           <span className="absolute left-3 top-3 shadow-sm">
             <RankBadge position={rank} />
+          </span>
+        )}
+        {store.noSurcharge && (
+          <span
+            className="absolute right-3 top-3 bg-ink px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"
+            title="Pagas con QR el precio exacto, sin recargo"
+          >
+            Sin recargos
           </span>
         )}
       </div>

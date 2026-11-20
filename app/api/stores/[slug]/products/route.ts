@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { imageErrorResponse } from "@/lib/storage";
 import { getStoreBySlug, listActiveProducts, createProduct } from "@/lib/repo";
 import { requireStoreAdmin } from "@/lib/auth";
 import { MAX_PRODUCT_IMAGES } from "@/lib/utils";
@@ -53,7 +54,9 @@ export async function POST(
           .map((v: any) => ({ label: v.label.trim(), stock: Number(v.stock) || 0 }))
       : [{ label: "Único", stock: Number(body.stock) || 0 }];
 
-  const product = await createProduct({
+  let product: Awaited<ReturnType<typeof createProduct>>;
+  try {
+  product = await createProduct({
     storeId: store.id,
     name,
     description: description || null,
@@ -64,6 +67,9 @@ export async function POST(
     tags: sanitizeTags(tags),
     variants: parsedVariants,
   });
+  } catch (err) {
+    return imageErrorResponse(err);
+  }
 
   return NextResponse.json({ product });
 }

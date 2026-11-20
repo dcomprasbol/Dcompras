@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getStoreBySlug, getOrderById, confirmOrderReceived } from "@/lib/repo";
 
 // Endpoint público (sin login) para que el propio comprador confirme que le
@@ -11,6 +12,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string; orderId: string } }
 ) {
+  const limited = await rateLimit(req, RATE_LIMITS.confirmReceived);
+  if (limited) return limited;
   const store = await getStoreBySlug(params.slug);
   if (!store) return NextResponse.json({ error: "Tienda no encontrada" }, { status: 404 });
 

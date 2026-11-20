@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { imageErrorResponse } from "@/lib/storage";
 import { getStoreBySlug, getStoreByUserId, createStore } from "@/lib/repo";
 import {
   slugify,
@@ -6,11 +8,14 @@ import {
   STORE_FONTS,
   DEFAULT_STORE_COLOR,
   isValidHexColor,
+  RESERVED_SLUGS,
 } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { isValidStoreStyle } from "@/lib/storeTheme";
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, RATE_LIMITS.createStore);
+  if (limited) return limited;
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -84,12 +89,14 @@ export async function POST(req: NextRequest) {
   // Evita colisiones de slug agregando un sufijo numérico si ya existe
   let slug = baseSlug;
   let suffix = 1;
-  while (await getStoreBySlug(slug)) {
+  while (RESERVED_SLUGS.has(slug) || (await getStoreBySlug(slug))) {
     slug = `${baseSlug}-${suffix}`;
     suffix++;
   }
 
-  const store = await createStore({
+  let store: Awaited<ReturnType<typeof createStore>>;
+  try {
+    store = await createStore({
     slug,
     name,
     ownerName: (ownerName && String(ownerName).trim()) || googleName || null,
@@ -105,7 +112,10 @@ export async function POST(req: NextRequest) {
     tiktokUrl: (tiktokUrl && String(tiktokUrl).trim()) || null,
     facebookUrl: (facebookUrl && String(facebookUrl).trim()) || null,
     storeStyle: storeStyle || null,
-  });
+    });
+  } catch (err) {
+    return imageErrorResponse(err);
+  }
 
   return NextResponse.json({ slug: store.slug });
 }

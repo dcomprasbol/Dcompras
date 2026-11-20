@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderBySipIdQr, updateOrderStatus } from "@/lib/repo";
 import { calculateCommission } from "@/lib/commission";
+import { alertPlatform } from "@/lib/alerts";
+import crypto from "crypto";
 
 // Endpoint que SIP (BISA) llama cuando confirma el pago de un QR generado
 // por generarQr (lib/sip.ts). Ver "3.1 CALL BACK" en la especificación.
@@ -27,7 +29,15 @@ function isAuthorized(req: NextRequest): boolean {
   if (separatorIndex === -1) return false;
   const sentUser = decoded.slice(0, separatorIndex);
   const sentPassword = decoded.slice(separatorIndex + 1);
-  return sentUser === user && sentPassword === password;
+  // Comparación en tiempo constante: con "===" se puede adivinar la
+  // contraseña carácter por carácter midiendo cuánto tarda la respuesta.
+  return safeEqual(sentUser, user) && safeEqual(sentPassword, password);
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a).digest();
+  const hb = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
 }
 
 export async function POST(req: NextRequest) {
@@ -64,11 +74,14 @@ export async function POST(req: NextRequest) {
   // lib/commission.ts), no con order.total a secas: este pedido llegó por
   // getOrderBySipIdQr, o sea que sí pasó por Dcompras. Si no calza, no lo
   // marcamos pagado — queda para revisión manual.
-  const { totalToCharge } = calculateCommission(order.total, true);
+  const { totalToCharge } = calculateCommission(order.total, true, order.commissionPayer);
   if (typeof monto === "number" && Math.abs(monto - totalToCharge) > 0.01) {
-    console.error(
-      `Callback de SIP para el pedido ${order.id}: monto ${monto} no coincide con lo esperado ${totalToCharge}`
-    );
+    await alertPlatform("Pago de SIP con monto que no coincide", {
+      orderId: order.id,
+      storeId: order.storeId,
+      paid: monto,
+      expected: totalToCharge,
+    });
     return NextResponse.json({ codigo: "9422", mensaje: "El monto no coincide" }, { status: 400 });
   }
 

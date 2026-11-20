@@ -1,0 +1,42 @@
+name: CI
+
+# Corre en cada push a main y en cada pull request: tipos, tests y build.
+# Si algo de esto falla, no se debería mergear/desplegar.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tipos (TypeScript)
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Valores falsos a propósito: el build no debe tocar ninguna base
+          # real. Los errores de conexión que aparecen en el log son esperados.
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:1/ci
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          NEXT_TELEMETRY_DISABLED: "1"

@@ -7,8 +7,10 @@ import AdminOrders from "@/components/admin/AdminOrders";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminEarnings from "@/components/admin/AdminEarnings";
 import AdminSupport from "@/components/admin/AdminSupport";
+import AdminCustomers from "@/components/admin/AdminCustomers";
 import RejectedBanner from "@/components/admin/RejectedBanner";
 import CloseStoreSection from "@/components/admin/CloseStoreSection";
+import CommissionPayerCard from "@/components/admin/CommissionPayerCard";
 import SellerHome, {
   CopyLinkButton,
   useStoreUrl,
@@ -28,6 +30,7 @@ const NAV: { key: SellerTab; label: string; icon: IconName; hint: string }[] = [
   { key: "inicio", label: "Inicio", icon: "panel", hint: "Cómo va tu tienda" },
   { key: "productos", label: "Productos", icon: "bag", hint: "Lo que vendes" },
   { key: "pedidos", label: "Pedidos", icon: "box", hint: "Lo que te compraron" },
+  { key: "clientes", label: "Clientes", icon: "meet", hint: "Quién te compra" },
   { key: "diseno", label: "Diseño", icon: "spark", hint: "Estilo, colores y logo" },
   { key: "billetera", label: "Billetera", icon: "wallet", hint: "Tus ganancias" },
   { key: "datos", label: "Datos y cobros", icon: "settings", hint: "Contacto, redes y QR" },
@@ -309,11 +312,13 @@ export default function AdminShell({
           )}
           {tab === "productos" && <AdminProducts slug={slug} />}
           {tab === "pedidos" && <AdminOrders slug={slug} />}
+          {tab === "clientes" && <AdminCustomers slug={slug} />}
           {tab === "diseno" && <AdminSettings slug={slug} section="diseno" />}
           {tab === "billetera" && <AdminEarnings slug={slug} />}
           {tab === "datos" && (
             <>
               <AdminSettings slug={slug} section="datos" />
+              <CommissionPayerCard slug={slug} />
               <CloseStoreSection slug={slug} storeName={store.name} />
             </>
           )}

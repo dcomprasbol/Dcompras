@@ -114,3 +114,14 @@ export function sendStoreClosedBySellerEmail(to: string, storeName: string) {
   const text = `${title}\n\nTu tienda fue eliminada. Si quieres volver, puedes crear una nueva con este mismo correo en dcompras.shop/crear-tienda.`;
   return send(to, title, html, text);
 }
+
+// Aviso interno al equipo de Dcompras (ver lib/alerts.ts): pagos que no
+// cuadran, webhooks que no encuentran su pedido, etc.
+export function sendPlatformAlertEmail(to: string, title: string, details: string) {
+  return send(
+    to,
+    `[Alerta Dcompras] ${title}`,
+    layout(title, ["Algo en los cobros necesita revisión manual."], { label: "Detalle", text: details }),
+    `${title}\n\n${details}`
+  );
+}

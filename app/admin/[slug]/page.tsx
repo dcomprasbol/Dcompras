@@ -6,7 +6,7 @@ import type { SellerTab } from "@/components/admin/SellerHome";
 
 export const dynamic = "force-dynamic";
 
-const TABS: SellerTab[] = ["inicio", "productos", "pedidos", "diseno", "billetera", "datos", "soporte"];
+const TABS: SellerTab[] = ["inicio", "productos", "pedidos", "clientes", "diseno", "billetera", "datos", "soporte"];
 
 export default async function AdminPage({
   params,

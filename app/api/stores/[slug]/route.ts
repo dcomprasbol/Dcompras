@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { imageErrorResponse } from "@/lib/storage";
+import { isCommissionPayer } from "@/lib/commission";
 import { getStoreBySlug, updateStoreSettings, deleteStore } from "@/lib/repo";
 import { requireStoreAdmin, getCurrentUser } from "@/lib/auth";
 import { STORE_CATEGORIES, STORE_FONTS, isValidHexColor } from "@/lib/utils";
@@ -58,7 +60,12 @@ export async function PATCH(
     bankAccountType,
     dropAt,
     storeStyle,
+    commissionPayer,
   } = body;
+
+  if (commissionPayer !== undefined && !isCommissionPayer(commissionPayer)) {
+    return NextResponse.json({ error: "Opción de pago verificado inválida" }, { status: 400 });
+  }
 
   if (category !== undefined && category && !STORE_CATEGORIES.some((c) => c.value === category)) {
     return NextResponse.json({ error: "Rubro inválido" }, { status: 400 });
@@ -73,6 +80,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Estilo de tienda inválido" }, { status: 400 });
   }
 
+  try {
   await updateStoreSettings(store.id, {
     ...(paymentQrImageUrl !== undefined ? { paymentQrImageUrl } : {}),
     ...(paymentInstructions !== undefined ? { paymentInstructions } : {}),
@@ -101,7 +109,11 @@ export async function PATCH(
     ...(bankAccountType !== undefined ? { bankAccountType: bankAccountType || null } : {}),
     ...(dropAt !== undefined ? { dropAt: dropAt || null } : {}),
     ...(storeStyle !== undefined ? { storeStyle } : {}),
+    ...(commissionPayer !== undefined ? { commissionPayer } : {}),
   });
+  } catch (err) {
+    return imageErrorResponse(err);
+  }
 
   // PATCH ya está protegido por requireStoreAdmin (solo la dueña de la
   // tienda puede llegar hasta acá), así que sí devolvemos sus datos

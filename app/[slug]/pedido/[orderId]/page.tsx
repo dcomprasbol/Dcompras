@@ -9,6 +9,9 @@ import RevealOnScroll from "@/components/landing/RevealOnScroll";
 import ConfirmReceivedButton from "@/components/ConfirmReceivedButton";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
 import ReportButton from "@/components/ReportButton";
+import PaymentReceiptUpload from "@/components/PaymentReceiptUpload";
+import PickupStatusCard from "@/components/PickupStatusCard";
+import { getPickupPoint } from "@/lib/pickup";
 import Icon, { Rating } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +68,7 @@ export default async function OrderTrackingPage({
   // pagar.
   const processedByDcompras =
     order.paymentMethod === "qr" && (Boolean(order.infinityOrderId) || Boolean(order.sipIdQr));
-  const { commissionAmount, totalToCharge } = calculateCommission(order.total, processedByDcompras);
+  const { commissionAmount, totalToCharge } = calculateCommission(order.total, processedByDcompras, order.commissionPayer);
 
   // El QR nunca se guardó en la base (ver createOrderWithItems /
   // updateOrderInfinityInfo): solo vivía en la pantalla de "pedido
@@ -90,9 +93,17 @@ export default async function OrderTrackingPage({
       qrFetchFailed = true;
     }
   }
+  // Pago coordinado: QR sin cobro automático. El comprador le paga al QR
+  // que la tienda le pasa por WhatsApp, con un monto de centavos únicos y el
+  // código del pedido en la glosa, y después sube su comprobante.
+  const coordinated = pendingQr && !processedByDcompras;
+  const amountToPay = coordinated && order.paymentAmountUnique ? order.paymentAmountUnique : totalToCharge;
   const whatsappOrderMsg = encodeURIComponent(
-    `Hola, hice un pedido #${code} por ${formatBs(totalToCharge)} en ${store.name}. Mi nombre es ${order.customerName}.`
+    coordinated
+      ? `Hola, hice el pedido #${code} en ${store.name} por ${formatBs(amountToPay)}. Mi nombre es ${order.customerName}. ¿Me pasas tu QR para pagar? Pondré "${code}" en la glosa.`
+      : `Hola, hice un pedido #${code} por ${formatBs(totalToCharge)} en ${store.name}. Mi nombre es ${order.customerName}.`
   );
+  const pickupPoint = order.pickupPointId ? await getPickupPoint(order.pickupPointId) : null;
 
   // Este pedido no quedó atado a ninguna cuenta (compró como invitado) — lo
   // invitamos a crear una así el próximo pedido (en esta tienda o en
@@ -133,6 +144,27 @@ export default async function OrderTrackingPage({
               No pudimos cargar el QR en este momento. Actualiza la página o pídele el QR a la
               tienda por WhatsApp.
             </p>
+          ) : coordinated ? (
+            <div className="mt-3 text-left">
+              <p className="text-center text-xs text-amber-700">
+                Pídele el QR a la tienda por WhatsApp y paga así, para que encuentre tu pago al instante:
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                <div className="border border-amber-200 bg-white p-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Monto exacto</p>
+                  <p className="font-mono text-lg font-bold text-ink">{formatBs(amountToPay)}</p>
+                </div>
+                <div className="border border-amber-200 bg-white p-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">En la glosa escribe</p>
+                  <p className="font-mono text-lg font-bold text-ink">{code}</p>
+                </div>
+              </div>
+              <PaymentReceiptUpload
+                slug={params.slug}
+                orderId={order.id}
+                alreadyUploaded={Boolean(order.paymentReceiptAt)}
+              />
+            </div>
           ) : (
             <p className="mt-3 text-xs text-amber-700">
               La tienda te va a escribir por WhatsApp para coordinar el pago.
@@ -216,6 +248,28 @@ export default async function OrderTrackingPage({
         </div>
       </RevealOnScroll>
 
+      {pickupPoint && order.pickupStatus && (
+        <RevealOnScroll delay={100} className="mt-8">
+          <PickupStatusCard
+            point={{
+              name: pickupPoint.name,
+              address: pickupPoint.address,
+              city: pickupPoint.city,
+              reference: pickupPoint.reference,
+              hours: pickupPoint.hours,
+              lat: pickupPoint.lat,
+              lng: pickupPoint.lng,
+            }}
+            status={order.pickupStatus}
+            code={order.pickupCode}
+            deadline={order.pickupDeadline}
+            fee={order.pickupFee ?? pickupPoint.fee}
+            storageFeePerDay={pickupPoint.storageFeePerDay}
+            pickedUpAt={order.pickupPickedUpAt}
+          />
+        </RevealOnScroll>
+      )}
+
       {order.status === "recibido" && order.receivedAt && (
         <RevealOnScroll delay={120} className="mt-8">
           <p className="border border-jade-500 bg-jade-50 px-4 py-3 text-center text-sm font-semibold text-jade-700">
@@ -282,9 +336,9 @@ export default async function OrderTrackingPage({
             <span className="text-sm font-medium text-ink/70">Total</span>
             <span className="font-mono text-base font-bold text-ink">{formatBs(totalToCharge)}</span>
           </div>
-          {commissionAmount > 0 && (
+          {commissionAmount > 0 && totalToCharge > order.total && (
             <p className="mt-1 text-xs text-ink/50">
-              Incluye {formatBs(commissionAmount)} de comisión por pago con QR automático
+              Incluye {formatBs(commissionAmount)} de pago verificado (confirmación automática de tu pago)
             </p>
           )}
         </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { formatBs } from "@/lib/utils";
+import { formatBs, thumbUrl } from "@/lib/utils";
 import DropCountdown from "@/components/DropCountdown";
 import Icon from "@/components/Icon";
 import { discountPct, secondImage, type ThemeHomeProps, type ThemeProduct } from "./types";
@@ -230,10 +230,10 @@ function Card({ slug, product }: { slug: string; product: ThemeProduct }) {
           {product.imageUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.imageUrl} alt={product.name} className={`absolute inset-0 h-full w-full object-cover transition duration-700 ${alt ? "group-hover:opacity-0" : "group-hover:scale-105"}`} />
+              <img src={thumbUrl(product.imageUrl)} alt={product.name} className={`absolute inset-0 h-full w-full object-cover transition duration-700 ${alt ? "group-hover:opacity-0" : "group-hover:scale-105"}`} />
               {alt && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={alt} alt="" className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-700 group-hover:opacity-100" />
+                <img src={thumbUrl(alt)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-700 group-hover:opacity-100" />
               )}
             </>
           ) : (

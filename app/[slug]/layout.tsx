@@ -1,4 +1,5 @@
 import { getStoreBySlug, getStoreByUserId } from "@/lib/repo";
+import { isAutoQrEnabled } from "@/lib/paymentConfig";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CartProvider } from "@/lib/cart-context";
@@ -226,6 +227,14 @@ export default async function StoreLayout({
                   {store.tagline && <p className="store-text-soft mt-1 text-sm">{store.tagline}</p>}
                   {store.city && (
                     <p className="store-accent-text mt-1 text-xs font-semibold uppercase tracking-wider">{store.city}</p>
+                  )}
+                  {store.commissionPayer === "vendedor" && isAutoQrEnabled() && (
+                    <p
+                      className="mt-2 inline-block bg-ink px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                      title="Pagas con QR el precio exacto, sin recargo por pago verificado"
+                    >
+                      Sin recargos al pagar con QR
+                    </p>
                   )}
                 </div>
               </div>

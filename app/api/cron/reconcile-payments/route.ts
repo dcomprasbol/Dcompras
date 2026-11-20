@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { listStalePendingQrOrders, updateOrderStatus } from "@/lib/repo";
 import { getPaymentStatus, InfinityError } from "@/lib/infinityPayments";
 import { calculateCommission } from "@/lib/commission";
+import { alertPlatform } from "@/lib/alerts";
 
 // Red de respaldo del webhook de Infinity: pasó dos veces que un pedido
 // quedó pagado del lado de ellos pero "pendiente" para nosotros porque el
@@ -52,11 +53,13 @@ export async function GET(req: NextRequest) {
 
       // Mismo chequeo de integridad que el webhook: el monto pagado tiene
       // que calzar con precio + comisión, si no queda para revisión manual.
-      const { totalToCharge } = calculateCommission(order.total, true);
+      const { totalToCharge } = calculateCommission(order.total, true, order.commissionPayer);
       if (Math.abs(remote.amount - totalToCharge) > 0.01) {
-        console.error(
-          `Reconciliación: pedido ${order.id} pagado en Infinity por ${remote.amount}, se esperaba ${totalToCharge} — no se marca solo.`
-        );
+        await alertPlatform("Conciliación: pago de Infinity con monto que no coincide", {
+          orderId: order.id,
+          paid: remote.amount,
+          expected: totalToCharge,
+        });
         results.push({ orderId: order.id, result: "monto no calza, revisar a mano" });
         continue;
       }
