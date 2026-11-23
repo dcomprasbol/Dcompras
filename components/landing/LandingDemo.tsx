@@ -1,24 +1,27 @@
 "use client";
 
-// Demo en video de la landing: el mismo tutorial animado que ve el vendedor
-// en su panel (components/admin/PaymentsGuide.tsx → VideoPlayer), con la
-// locución grabada de Sofía. Arranca solo y en silencio cuando la sección
-// entra en pantalla (los navegadores no dejan reproducir audio sin un toque);
-// "Activar voz" prende la narración.
+// "Míralo en acción" (landing): el comercial vertical de 30 s con personas
+// reales (CommercialVideo) y, para quien quiera el detalle, el recorrido
+// animado del panel con la voz de Sofía (el mismo tutorial del vendedor,
+// components/admin/PaymentsGuide.tsx → VideoPlayer), que se abre aparte.
 
-import { motion, useReducedMotion } from "framer-motion";
+import { useState } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { MotionLinkButton } from "@/components/MotionCta";
+import CommercialVideo from "@/components/landing/CommercialVideo";
 
-// El reproductor se descarga aparte, sin frenar la carga de la portada (muchos
-// visitantes entran con datos móviles).
+// El recorrido se descarga recién cuando lo abren (muchos visitantes entran
+// con datos móviles).
 const VideoPlayer = dynamic(() => import("@/components/admin/PaymentsGuide").then((m) => m.VideoPlayer), {
   ssr: false,
   loading: () => <div className="h-[520px] w-full animate-pulse rounded-2xl bg-white/10" />,
 });
-import { MotionLinkButton } from "@/components/MotionCta";
 
 export default function LandingDemo({ commissionPercent }: { commissionPercent: number }) {
   const reduce = useReducedMotion();
+  const [showTour, setShowTour] = useState(false);
+
   return (
     <section id="demo" className="relative overflow-hidden bg-ink px-5 py-20 text-white md:py-24">
       {/* Fondo con dos brillos que se mueven despacio */}
@@ -39,7 +42,7 @@ export default function LandingDemo({ commissionPercent }: { commissionPercent: 
         </>
       )}
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -48,43 +51,57 @@ export default function LandingDemo({ commissionPercent }: { commissionPercent: 
           className="min-w-0"
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-jade-400">Míralo en acción</p>
-          <h2 className="mt-3 font-impact text-4xl uppercase leading-[0.92] tracking-tight md:text-5xl">
-            Así vendes, cobras
+          <h2 className="mt-3 font-impact text-4xl uppercase leading-[0.92] tracking-tight md:text-6xl">
+            Menos chat,
             <br />
-            y recibes tu dinero
+            <span className="text-jade-400">más ventas</span>
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-white/65 md:text-base">
-            Un recorrido de unos 3 minutos por tu panel: cómo te paga tu cliente con QR, cómo pides tu
-            liquidación y qué hacemos para que nadie te engañe con una captura.
+            Tu cliente ve tu catálogo, paga con QR desde cualquier banco y a ti te llega el aviso de pedido pagado. Tú
+            preparas el pedido y lo entregas.
           </p>
-          <ul className="mt-6 space-y-2 text-sm text-white/75">
-            {["Tu panel, en un minuto", "Cómo cobras con QR", "Cómo pides tu dinero", "Por qué es seguro"].map((t, i) => (
-              <li key={t} className="flex items-center gap-2.5">
-                <span className="flex h-6 w-6 items-center justify-center border border-white/20 font-mono text-[11px] text-jade-400">
-                  {i + 1}
-                </span>
-                {t}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-6 text-xs text-white/45">Toca «Activar voz» en el video para escuchar la explicación.</p>
-          <MotionLinkButton href="/crear-tienda" className="btn-editorial mt-6 inline-flex border-white bg-white text-ink">
-            Crear mi tienda gratis →
-          </MotionLinkButton>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <MotionLinkButton href="/crear-tienda" className="btn-editorial inline-flex border-white bg-white text-ink">
+              Crear mi tienda gratis →
+            </MotionLinkButton>
+            <button
+              type="button"
+              onClick={() => setShowTour((v) => !v)}
+              aria-expanded={showTour}
+              className="inline-flex items-center gap-2 border border-white/25 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:border-white/60"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                <path d="M6 4l10 6-10 6V4z" />
+              </svg>
+              {showTour ? "Cerrar el recorrido" : "Ver el recorrido del panel (3 min)"}
+            </button>
+          </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          initial={{ opacity: 0, y: 30, scale: 0.96 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          // min-w-0: sin esto, la fila de capítulos del video ensancha la
-          // columna de la grilla y en el celular todo se corta a la derecha.
-          className="min-w-0 text-ink"
+          className="min-w-0"
         >
-          <VideoPlayer commissionPercent={commissionPercent} payer="comprador" includeIntro autoNextChapter />
+          <CommercialVideo />
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showTour && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="relative mx-auto mt-12 max-w-3xl overflow-hidden text-ink"
+          >
+            <p className="mb-3 text-center text-xs text-white/50">Toca «Activar voz» para escuchar la explicación.</p>
+            <VideoPlayer commissionPercent={commissionPercent} payer="comprador" includeIntro autoNextChapter />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
