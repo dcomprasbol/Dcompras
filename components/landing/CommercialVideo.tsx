@@ -1,6 +1,7 @@
 "use client";
 
-// Comercial vertical de Dcompras (public/video/comercial-dcompras.mp4, 30 s).
+// Anuncio vertical de Dcompras (public/video/anuncio-vendedor.mp4 o
+// anuncio-comprador.mp4, unos 20 s, armados con scripts/comercial/anuncios.py).
 // Se reproduce solo, en silencio y en bucle mientras está en pantalla (los
 // navegadores no dejan sonar un video sin que el usuario toque algo); el
 // botón "Activar sonido" lo reinicia con voz y música.
@@ -9,9 +10,16 @@
 // (uso comercial permitido, sin atribución obligatoria). Para reemplazarlas
 // por grabaciones propias, ver docs/comercial-guion-grabacion.md.
 
+type Props = {
+  src: string;
+  poster: string;
+  label: string;
+  className?: string;
+};
+
 import { useEffect, useRef, useState } from "react";
 
-export default function CommercialVideo() {
+export default function CommercialVideo({ src, poster, label, className = "" }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
 
@@ -44,17 +52,17 @@ export default function CommercialVideo() {
   }
 
   return (
-    <div className="relative mx-auto aspect-[9/16] w-full max-w-[340px] overflow-hidden rounded-[2rem] border-[6px] border-white/10 bg-ink shadow-[0_40px_90px_-30px_rgba(29,190,134,0.45)]">
+    <div className={`relative mx-auto aspect-[9/16] w-full max-w-[400px] overflow-hidden rounded-[2rem] border-[6px] border-white/10 bg-ink shadow-[0_40px_90px_-30px_rgba(29,190,134,0.45)] ${className}`}>
       <video
         ref={ref}
-        src="/video/comercial-dcompras.mp4"
-        poster="/video/comercial-portada.jpg"
+        src={src}
+        poster={poster}
         muted={muted}
         loop
         playsInline
         preload="metadata"
         className="h-full w-full object-cover"
-        aria-label="Comercial de Dcompras: vende por redes y cobra con QR"
+        aria-label={label}
       />
       <button
         type="button"

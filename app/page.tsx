@@ -14,7 +14,7 @@ import FAQ from "@/components/landing/FAQ";
 import FinalCta from "@/components/landing/FinalCta";
 import Footer from "@/components/landing/Footer";
 import LandingDemo from "@/components/landing/LandingDemo";
-import { commissionPercent } from "@/lib/commission";
+import BuyerAd from "@/components/landing/BuyerAd";
 
 export default function HomePage() {
   return (
@@ -25,12 +25,13 @@ export default function HomePage() {
       <Ticker />
       <Stats />
       <Features />
-      <LandingDemo commissionPercent={commissionPercent()} />
+      <LandingDemo />
       <HowItWorks />
       <Personalization />
       <MobileExperience />
       <DashboardPreview />
       <Audiences />
+      <BuyerAd />
       <Pricing />
       <FAQ />
       <FinalCta />
